@@ -5,7 +5,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .registry import DEFAULT_REGISTRY_URL, PackageRegistry
+from .registry import (
+    DEFAULT_REGISTRY_TIMEOUT_SECONDS,
+    DEFAULT_REGISTRY_URL,
+    PackageRegistry,
+    PackageRegistryError,
+    is_http_source,
+)
 from .state import PackageState
 
 
@@ -51,9 +57,35 @@ def _registry_source(args: argparse.Namespace) -> str | Path:
     return args.source or DEFAULT_REGISTRY_URL
 
 
+def _registry_timeout(args: argparse.Namespace) -> float:
+    return float(getattr(args, "timeout", DEFAULT_REGISTRY_TIMEOUT_SECONDS))
+
+
+def _update_registry(registry: PackageRegistry, source: str | Path, *, timeout: float) -> dict | None:
+    source_str = str(source)
+    if is_http_source(source_str):
+        print(f"Fetching package registry: {source_str} (timeout {timeout:g}s)", file=sys.stderr, flush=True)
+    try:
+        return registry.update(source, timeout=timeout)
+    except PackageRegistryError as exc:
+        print(f"Package registry update failed: {exc}", file=sys.stderr)
+        if is_http_source(source_str):
+            print(
+                "Try `hermes pkg update --timeout 60`, check proxy/DNS access to raw.githubusercontent.com,",
+                file=sys.stderr,
+            )
+            print(
+                "or use `hermes pkg --source /path/to/registry/index.json update` for an offline registry.",
+                file=sys.stderr,
+            )
+        return None
+
+
 def cmd_update(args: argparse.Namespace) -> int:
     registry = PackageRegistry(home=args.home)
-    index = registry.update(_registry_source(args))
+    index = _update_registry(registry, _registry_source(args), timeout=_registry_timeout(args))
+    if index is None:
+        return 1
     print(f"Updated package registry: {index.get('package_count', len(index.get('packages', {})))} packages")
     print(registry.index_path)
     return 0
@@ -62,7 +94,8 @@ def cmd_update(args: argparse.Namespace) -> int:
 def cmd_search(args: argparse.Namespace) -> int:
     registry = PackageRegistry(home=args.home)
     if args.source:
-        registry.update(args.source)
+        if _update_registry(registry, args.source, timeout=_registry_timeout(args)) is None:
+            return 1
     matches = registry.search(args.query)
     if not matches:
         print("No packages found")
@@ -75,7 +108,8 @@ def cmd_search(args: argparse.Namespace) -> int:
 def cmd_show(args: argparse.Namespace) -> int:
     registry = PackageRegistry(home=args.home)
     if args.source:
-        registry.update(args.source)
+        if _update_registry(registry, args.source, timeout=_registry_timeout(args)) is None:
+            return 1
     package = registry.get(args.name)
     print(_format_package_line(package))
     print(f"Channel: {package.get('channel')}")
@@ -95,7 +129,8 @@ def cmd_show(args: argparse.Namespace) -> int:
 def cmd_install(args: argparse.Namespace) -> int:
     registry = PackageRegistry(home=args.home)
     source = _registry_source(args)
-    registry.update(source)
+    if _update_registry(registry, source, timeout=_registry_timeout(args)) is None:
+        return 1
     packages = registry.resolve_with_dependencies(args.packages)
     _print_install_plan(packages)
     if args.dry_run:
@@ -153,14 +188,17 @@ def _populate_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
     sub = parser.add_subparsers(dest="pkg_command")
 
     update = sub.add_parser("update", help="Refresh registry cache")
+    update.add_argument("--timeout", type=float, default=DEFAULT_REGISTRY_TIMEOUT_SECONDS, help="Registry fetch timeout in seconds")
     update.set_defaults(func=cmd_update)
 
     search = sub.add_parser("search", help="Search packages")
     search.add_argument("query")
+    search.add_argument("--timeout", type=float, default=DEFAULT_REGISTRY_TIMEOUT_SECONDS, help="Registry fetch timeout in seconds")
     search.set_defaults(func=cmd_search)
 
     show = sub.add_parser("show", help="Show package details")
     show.add_argument("name")
+    show.add_argument("--timeout", type=float, default=DEFAULT_REGISTRY_TIMEOUT_SECONDS, help="Registry fetch timeout in seconds")
     show.set_defaults(func=cmd_show)
 
     install = sub.add_parser("install", help="Install packages")
@@ -168,6 +206,7 @@ def _populate_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
     install.add_argument("--dry-run", action="store_true", help="Print plan without changing state")
     install.add_argument("--yes", "-y", action="store_true", help="Apply install plan without prompting")
     install.add_argument("--no-pip", action="store_true", help="Record package state without invoking pip")
+    install.add_argument("--timeout", type=float, default=DEFAULT_REGISTRY_TIMEOUT_SECONDS, help="Registry fetch timeout in seconds")
     install.set_defaults(func=cmd_install)
 
     remove = sub.add_parser("remove", aliases=["rm"], help="Remove packages from local state")

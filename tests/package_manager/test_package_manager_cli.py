@@ -1,8 +1,12 @@
 import json
+import time
 from pathlib import Path
 
+import pytest
+
 from nanohermes.package_manager import cli as pkg_cli
-from nanohermes.package_manager.registry import PackageRegistry
+from nanohermes.package_manager import registry as registry_module
+from nanohermes.package_manager.registry import PackageRegistry, PackageRegistryError
 from nanohermes.package_manager.state import PackageState
 
 
@@ -114,6 +118,51 @@ def test_install_yes_no_pip_records_package_state(tmp_path, capsys):
     installed = PackageState(home=home).installed
     assert installed["web-search"]["version"] == "0.1.0"
     assert installed["web-search"]["toolsets"] == ["web"]
+
+
+def test_registry_http_update_has_wall_clock_timeout(tmp_path, monkeypatch):
+    def stalled_urlopen(*args, **kwargs):
+        time.sleep(1)
+        raise AssertionError("the registry fetch should have timed out already")
+
+    monkeypatch.setattr(registry_module.urllib.request, "urlopen", stalled_urlopen)
+    start = time.monotonic()
+
+    with pytest.raises(PackageRegistryError, match="Timed out fetching package registry"):
+        PackageRegistry(home=tmp_path / "home").update("https://example.invalid/index.json", timeout=0.05)
+
+    assert time.monotonic() - start < 0.5
+
+
+def test_pkg_update_timeout_failure_is_user_friendly(tmp_path, monkeypatch, capsys):
+    def failed_update(self, source, *, timeout):
+        raise PackageRegistryError(f"Timed out fetching package registry after {timeout:g}s: {source}")
+
+    monkeypatch.setattr(PackageRegistry, "update", failed_update)
+
+    rc = pkg_cli.main(["--home", str(tmp_path / "home"), "update", "--timeout", "0.1"])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "Package registry update failed" in captured.err
+    assert "--timeout 60" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_pkg_update_accepts_timeout_after_subcommand(tmp_path, monkeypatch, capsys):
+    seen = {}
+
+    def fake_update(self, source, *, timeout):
+        seen["timeout"] = timeout
+        return {"package_count": 0, "packages": {}}
+
+    monkeypatch.setattr(PackageRegistry, "update", fake_update)
+
+    rc = pkg_cli.main(["--home", str(tmp_path / "home"), "update", "--timeout", "3"])
+
+    capsys.readouterr()
+    assert rc == 0
+    assert seen["timeout"] == 3
 
 
 def test_pkg_and_plug_are_builtin_cli_commands():
