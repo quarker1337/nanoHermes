@@ -14307,10 +14307,11 @@ Examples:
 
     # Execute the command
     if hasattr(args, "func"):
-        args.func(args)
+        return args.func(args)
     else:
         parser.print_help()
+        return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

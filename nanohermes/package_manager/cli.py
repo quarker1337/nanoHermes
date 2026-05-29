@@ -81,6 +81,11 @@ def _update_registry(registry: PackageRegistry, source: str | Path, *, timeout: 
         return None
 
 
+def _print_registry_error(exc: PackageRegistryError) -> int:
+    print(str(exc), file=sys.stderr)
+    return 1
+
+
 def cmd_update(args: argparse.Namespace) -> int:
     registry = PackageRegistry(home=args.home)
     index = _update_registry(registry, _registry_source(args), timeout=_registry_timeout(args))
@@ -96,7 +101,10 @@ def cmd_search(args: argparse.Namespace) -> int:
     if args.source:
         if _update_registry(registry, args.source, timeout=_registry_timeout(args)) is None:
             return 1
-    matches = registry.search(args.query)
+    try:
+        matches = registry.search(args.query)
+    except PackageRegistryError as exc:
+        return _print_registry_error(exc)
     if not matches:
         print("No packages found")
         return 1
@@ -110,7 +118,10 @@ def cmd_show(args: argparse.Namespace) -> int:
     if args.source:
         if _update_registry(registry, args.source, timeout=_registry_timeout(args)) is None:
             return 1
-    package = registry.get(args.name)
+    try:
+        package = registry.get(args.name)
+    except PackageRegistryError as exc:
+        return _print_registry_error(exc)
     print(_format_package_line(package))
     print(f"Channel: {package.get('channel')}")
     print(f"Type: {package.get('type')}")
@@ -131,7 +142,10 @@ def cmd_install(args: argparse.Namespace) -> int:
     source = _registry_source(args)
     if _update_registry(registry, source, timeout=_registry_timeout(args)) is None:
         return 1
-    packages = registry.resolve_with_dependencies(args.packages)
+    try:
+        packages = registry.resolve_with_dependencies(args.packages)
+    except PackageRegistryError as exc:
+        return _print_registry_error(exc)
     _print_install_plan(packages)
     if args.dry_run:
         return 0

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import base64
 import binascii
+import difflib
 import json
 import queue
+import re
 import shutil
 import socket
 import threading
@@ -27,8 +29,26 @@ class PackageRegistryError(RuntimeError):
     """User-facing package registry failure."""
 
 
+class PackageNotFoundError(PackageRegistryError):
+    """Raised when a package name cannot be resolved from the registry."""
+
+    def __init__(self, name: str, suggestions: Iterable[str] = ()) -> None:
+        self.name = name
+        self.suggestions = list(suggestions)
+        message = f"Package not found: {name}"
+        if self.suggestions:
+            message += f"\nDid you mean: {', '.join(self.suggestions)}"
+        else:
+            message += "\nRun `hermes pkg search <query>` to find packages."
+        super().__init__(message)
+
+
 def is_http_source(source: str | Path) -> bool:
     return str(source).startswith(("http://", "https://"))
+
+
+def _normalize_package_name(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", name.lower())
 
 
 def _fetch_url_with_deadline(url: str, timeout: float) -> bytes:
@@ -117,7 +137,7 @@ class PackageRegistry:
 
     def load(self) -> dict:
         if not self.index_path.exists():
-            raise FileNotFoundError(
+            raise PackageRegistryError(
                 f"No package registry cache at {self.index_path}. Run `hermes pkg update` first."
             )
         return json.loads(self.index_path.read_text(encoding="utf-8"))
@@ -126,11 +146,35 @@ class PackageRegistry:
     def packages(self) -> dict[str, dict]:
         return self.load().get("packages", {})
 
+    def suggest(self, name: str, *, limit: int = 3) -> list[str]:
+        names = sorted(self.packages)
+        direct = difflib.get_close_matches(name, names, n=limit, cutoff=0.55)
+        if direct:
+            return direct
+
+        normalized = _normalize_package_name(name)
+        normalized_to_name = {_normalize_package_name(package_name): package_name for package_name in names}
+        normalized_matches = difflib.get_close_matches(normalized, list(normalized_to_name), n=limit, cutoff=0.55)
+        return [normalized_to_name[match] for match in normalized_matches]
+
+    def resolve_name(self, name: str) -> str:
+        packages = self.packages
+        if name in packages:
+            return name
+
+        normalized = _normalize_package_name(name)
+        normalized_matches = [
+            package_name for package_name in packages
+            if _normalize_package_name(package_name) == normalized
+        ]
+        if len(normalized_matches) == 1:
+            return normalized_matches[0]
+
+        raise PackageNotFoundError(name, self.suggest(name))
+
     def get(self, name: str) -> dict:
         packages = self.packages
-        if name not in packages:
-            raise KeyError(f"Package not found: {name}")
-        return packages[name]
+        return packages[self.resolve_name(name)]
 
     def search(self, query: str) -> list[dict]:
         q = query.lower()
@@ -149,12 +193,13 @@ class PackageRegistry:
         seen: set[str] = set()
 
         def visit(name: str) -> None:
-            if name in seen:
+            package_name = self.resolve_name(name)
+            if package_name in seen:
                 return
-            package = self.get(name)
+            package = self.packages[package_name]
             for dep in package.get("dependencies", []):
                 visit(dep)
-            seen.add(name)
+            seen.add(package_name)
             resolved.append(package)
 
         for name in names:

@@ -1,5 +1,6 @@
 import base64
 import json
+import sys
 import time
 from pathlib import Path
 
@@ -148,6 +149,58 @@ def test_install_yes_no_pip_records_package_state(tmp_path, capsys):
     assert installed["web-search"]["toolsets"] == ["web"]
 
 
+def test_show_accepts_unhyphenated_package_name(tmp_path, capsys):
+    source = _write_registry(tmp_path)
+    home = tmp_path / "home"
+    assert pkg_cli.main(["--home", str(home), "--source", str(source), "update"]) == 0
+    capsys.readouterr()
+
+    rc = pkg_cli.main(["--home", str(home), "show", "websearch"])
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "web-search 0.1.0" in captured.out
+    assert "Traceback" not in captured.err
+
+
+def test_show_unknown_package_is_user_friendly(tmp_path, capsys):
+    source = _write_registry(tmp_path)
+    home = tmp_path / "home"
+    assert pkg_cli.main(["--home", str(home), "--source", str(source), "update"]) == 0
+    capsys.readouterr()
+
+    rc = pkg_cli.main(["--home", str(home), "show", "web-serch"])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "Package not found: web-serch" in captured.err
+    assert "Did you mean: web-search" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_install_unknown_package_is_user_friendly(tmp_path, capsys):
+    source = _write_registry(tmp_path)
+    home = tmp_path / "home"
+
+    rc = pkg_cli.main(["--home", str(home), "--source", str(source), "install", "web-serch", "--dry-run"])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "Package not found: web-serch" in captured.err
+    assert "Did you mean: web-search" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_search_without_registry_cache_is_user_friendly(tmp_path, capsys):
+    rc = pkg_cli.main(["--home", str(tmp_path / "home"), "search", "web"])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "No package registry cache" in captured.err
+    assert "hermes pkg update" in captured.err
+    assert "Traceback" not in captured.err
+
+
 def test_registry_http_update_has_wall_clock_timeout(tmp_path, monkeypatch):
     def stalled_urlopen(*args, **kwargs):
         time.sleep(1)
@@ -198,3 +251,13 @@ def test_pkg_and_plug_are_builtin_cli_commands():
 
     assert "pkg" in _BUILTIN_SUBCOMMANDS
     assert "plug" in _BUILTIN_SUBCOMMANDS
+
+
+def test_top_level_hermes_pkg_returns_subcommand_exit_code(tmp_path, monkeypatch, capsys):
+    from hermes_cli import main as hermes_main
+
+    monkeypatch.setattr(sys, "argv", ["hermes", "pkg", "--home", str(tmp_path / "home"), "search", "web"])
+
+    assert hermes_main.main() == 1
+    captured = capsys.readouterr()
+    assert "No package registry cache" in captured.err
