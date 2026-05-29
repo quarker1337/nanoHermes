@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import queue
 import shutil
@@ -13,6 +15,9 @@ from typing import Iterable
 from hermes_constants import get_hermes_home
 
 DEFAULT_REGISTRY_URL = (
+    "https://api.github.com/repos/quarker1337/Hermes-Packages/contents/registry/index.json?ref=main"
+)
+DEFAULT_REGISTRY_RAW_URL = (
     "https://raw.githubusercontent.com/quarker1337/Hermes-Packages/main/registry/index.json"
 )
 DEFAULT_REGISTRY_TIMEOUT_SECONDS = 15.0
@@ -70,6 +75,23 @@ def _fetch_url_with_deadline(url: str, timeout: float) -> bytes:
     raise PackageRegistryError(f"Failed to fetch package registry from {url}")
 
 
+def _decode_registry_payload(payload: bytes) -> bytes:
+    """Return registry JSON bytes from either raw JSON or GitHub Contents API JSON."""
+    try:
+        data = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return payload
+
+    if not isinstance(data, dict) or data.get("encoding") != "base64" or "content" not in data:
+        return payload
+
+    content = str(data["content"]).replace("\n", "")
+    try:
+        return base64.b64decode(content, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise PackageRegistryError("GitHub registry API response contained invalid base64 content") from exc
+
+
 class PackageRegistry:
     """Cached Hermes package registry index."""
 
@@ -84,6 +106,7 @@ class PackageRegistry:
         source_str = str(source)
         if is_http_source(source_str):
             payload = _fetch_url_with_deadline(source_str, timeout=max(float(timeout), 0.1))
+            payload = _decode_registry_payload(payload)
             self.index_path.write_bytes(payload)
         else:
             try:

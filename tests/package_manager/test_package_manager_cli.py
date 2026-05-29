@@ -1,3 +1,4 @@
+import base64
 import json
 import time
 from pathlib import Path
@@ -66,6 +67,33 @@ def test_registry_update_search_and_show_use_local_source(tmp_path):
     matches = registry.search("web")
     assert [pkg["name"] for pkg in matches] == ["web-search"]
     assert registry.get("web-search")["install"]["python_extras"] == ["web-search"]
+
+
+def test_registry_update_decodes_github_contents_api_payload(tmp_path, monkeypatch):
+    source = _write_registry(tmp_path)
+    api_payload = json.dumps({
+        "name": "index.json",
+        "encoding": "base64",
+        "content": base64.b64encode(source.read_bytes()).decode("ascii"),
+    }).encode("utf-8")
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return api_payload
+
+    monkeypatch.setattr(registry_module.urllib.request, "urlopen", lambda *args, **kwargs: Response())
+
+    registry = PackageRegistry(home=tmp_path / "home")
+    index = registry.update(registry_module.DEFAULT_REGISTRY_URL, timeout=1)
+
+    assert index["package_count"] == 1
+    assert registry.get("web-search")["version"] == "0.1.0"
 
 
 def test_search_uses_cached_registry_when_source_is_omitted(tmp_path, capsys):

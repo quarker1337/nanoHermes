@@ -71,7 +71,7 @@ def _update_registry(registry: PackageRegistry, source: str | Path, *, timeout: 
         print(f"Package registry update failed: {exc}", file=sys.stderr)
         if is_http_source(source_str):
             print(
-                "Try `hermes pkg update --timeout 60`, check proxy/DNS access to raw.githubusercontent.com,",
+                "Try `hermes pkg update --timeout 60`, check proxy/DNS access to GitHub,",
                 file=sys.stderr,
             )
             print(

@@ -52,7 +52,9 @@ Working/intentional pieces:
 - optional features are being separated into package-managed installs;
 - `hermes pkg ...` and `hermes plug ...` are the experimental package commands;
 - `nanohermes` is available as a CLI alias for the Hermes entry point;
-- the default package registry points at:
+- the default package registry uses GitHub's Contents API for better network compatibility:
+  `https://api.github.com/repos/quarker1337/Hermes-Packages/contents/registry/index.json?ref=main`.
+  The direct raw index is also available at
   `https://raw.githubusercontent.com/quarker1337/Hermes-Packages/main/registry/index.json`.
 
 ---
