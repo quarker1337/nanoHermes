@@ -1,0 +1,19 @@
+name: Sync upstream Hermes
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+jobs:
+  dry-run-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/NousResearch/hermes-agent.git || git remote set-url upstream https://github.com/NousResearch/hermes-agent.git
+      - name: Dry-run upstream sync
+        run: python3 scripts/sync_upstream.py --dry-run
