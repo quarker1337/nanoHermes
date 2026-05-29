@@ -47,9 +47,13 @@ def _install_python_extras(extras: list[str]) -> None:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", extras_arg], cwd=project_root)
 
 
+def _registry_source(args: argparse.Namespace) -> str | Path:
+    return args.source or DEFAULT_REGISTRY_URL
+
+
 def cmd_update(args: argparse.Namespace) -> int:
     registry = PackageRegistry(home=args.home)
-    index = registry.update(args.source)
+    index = registry.update(_registry_source(args))
     print(f"Updated package registry: {index.get('package_count', len(index.get('packages', {})))} packages")
     print(registry.index_path)
     return 0
@@ -90,7 +94,8 @@ def cmd_show(args: argparse.Namespace) -> int:
 
 def cmd_install(args: argparse.Namespace) -> int:
     registry = PackageRegistry(home=args.home)
-    registry.update(args.source)
+    source = _registry_source(args)
+    registry.update(source)
     packages = registry.resolve_with_dependencies(args.packages)
     _print_install_plan(packages)
     if args.dry_run:
@@ -105,7 +110,7 @@ def cmd_install(args: argparse.Namespace) -> int:
         _install_python_extras(extras)
     state = PackageState(home=args.home)
     for package in packages:
-        state.mark_installed(package, source=str(args.source))
+        state.mark_installed(package, source=str(source))
         print(f"Installed {package['name']} {package.get('version', '')}")
     return 0
 
@@ -144,7 +149,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
 def _populate_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument("--home", type=Path, default=None, help="Override HERMES_HOME for package state")
-    parser.add_argument("--source", default=DEFAULT_REGISTRY_URL, help="Registry index URL or local path")
+    parser.add_argument("--source", default=None, help="Registry index URL or local path")
     sub = parser.add_subparsers(dest="pkg_command")
 
     update = sub.add_parser("update", help="Refresh registry cache")

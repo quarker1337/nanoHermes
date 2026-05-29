@@ -23,6 +23,7 @@ def _data_file_tree(root_name: str) -> list[tuple[str, list[str]]]:
 setup(
     data_files=[
         *_data_file_tree("skills"),
-        *_data_file_tree("optional-skills"),
+        # Optional skill packs are installed through NanoHermes packages instead
+        # of being copied into every base environment.
     ]
 )

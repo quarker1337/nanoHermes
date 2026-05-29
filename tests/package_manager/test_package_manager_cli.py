@@ -64,6 +64,20 @@ def test_registry_update_search_and_show_use_local_source(tmp_path):
     assert registry.get("web-search")["install"]["python_extras"] == ["web-search"]
 
 
+def test_search_uses_cached_registry_when_source_is_omitted(tmp_path, capsys):
+    source = _write_registry(tmp_path)
+    home = tmp_path / "home"
+
+    assert pkg_cli.main(["--home", str(home), "--source", str(source), "update"]) == 0
+    capsys.readouterr()
+
+    rc = pkg_cli.main(["--home", str(home), "search", "web"])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "web-search 0.1.0" in out
+
+
 def test_install_dry_run_prints_plan_without_writing_state(tmp_path, capsys):
     source = _write_registry(tmp_path)
     home = tmp_path / "home"

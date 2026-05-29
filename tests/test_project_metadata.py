@@ -4,11 +4,28 @@ from pathlib import Path
 import tomllib
 
 
-def _load_optional_dependencies():
+def _load_project_metadata():
     pyproject_path = Path(__file__).resolve().parents[1] / "pyproject.toml"
     with pyproject_path.open("rb") as handle:
-        project = tomllib.load(handle)["project"]
-    return project["optional-dependencies"]
+        return tomllib.load(handle)["project"]
+
+
+def _load_dependencies():
+    return _load_project_metadata()["dependencies"]
+
+
+def _load_optional_dependencies():
+    return _load_project_metadata()["optional-dependencies"]
+
+
+def _load_manifest_lines():
+    manifest_path = Path(__file__).resolve().parents[1] / "MANIFEST.in"
+    return manifest_path.read_text(encoding="utf-8").splitlines()
+
+
+def _load_setup_py_text():
+    setup_path = Path(__file__).resolve().parents[1] / "setup.py"
+    return setup_path.read_text(encoding="utf-8")
 
 
 def _load_package_data():
@@ -110,6 +127,32 @@ def test_feishu_extra_includes_qrcode_for_qr_login():
 
     feishu_extra = optional_dependencies["feishu"]
     assert any(dep.startswith("qrcode") for dep in feishu_extra)
+
+
+def test_github_app_jwt_crypto_is_optional():
+    """GitHub App bot auth needs RSA signing, but PAT / gh CLI Skills Hub
+    auth does not. Keep the cryptography wheel out of the base install.
+    """
+    dependencies = _load_dependencies()
+    optional_dependencies = _load_optional_dependencies()
+
+    assert "PyJWT==2.12.1" in dependencies
+    assert not any("PyJWT[crypto]" in dep or "pyjwt[crypto]" in dep.lower() for dep in dependencies)
+    assert "github-app" in optional_dependencies
+    assert "PyJWT[crypto]==2.12.1" in optional_dependencies["github-app"]
+
+
+def test_optional_skills_not_grafted_into_base_sdist():
+    """NanoHermes installs optional skill packs through packages, not the
+    base wheel/sdist payload.
+    """
+    manifest_lines = _load_manifest_lines()
+    setup_py = _load_setup_py_text()
+
+    assert "graft skills" in manifest_lines
+    assert "graft optional-skills" not in manifest_lines
+    assert '*_data_file_tree("skills")' in setup_py
+    assert '*_data_file_tree("optional-skills")' not in setup_py
 
 
 def test_dashboard_plugin_manifests_and_assets_are_packaged():
