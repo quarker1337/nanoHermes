@@ -110,6 +110,23 @@ The split is intentional:
 
 ---
 
+## Repository layout
+
+The root is intentionally kept for runtime import roots, entrypoints, packaging
+metadata, and high-signal project files. Maintainer docs, release history,
+plans, examples, and binary doc assets live under dedicated folders now.
+
+Start here when auditing the repo:
+
+- [`docs/repository-layout.md`](docs/repository-layout.md) — top-level map,
+  audit entry points, and rules for future file placement;
+- [`docs/nanohermes/overview.md`](docs/nanohermes/overview.md) — downstream
+  fork purpose, remotes, package-manager basics, and upstream-sync policy;
+- [`docs/packages.md`](docs/packages.md) — package-manager user/developer notes;
+- [`docs/upstream-sync.md`](docs/upstream-sync.md) — slim fork sync workflow.
+
+---
+
 ## Relationship to upstream Hermes
 
 NanoHermes is a fork/downstream distribution of Hermes Agent, not a replacement

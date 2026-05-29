@@ -14,6 +14,9 @@ NousResearch/hermes-agent moves on its own timeline. NanoHermes keeps a controll
 
 ## Repository shape
 
+The current top-level map and audit entry points are documented in
+[`../repository-layout.md`](../repository-layout.md).
+
 The `quarker1337/nanoHermes` GitHub repo is intentionally slim/squashed. It contains a NanoHermes snapshot plus downstream changes, not the full upstream Hermes Git history.
 
 The upstream commit represented by the snapshot is tracked in:
@@ -22,7 +25,8 @@ The upstream commit represented by the snapshot is tracked in:
 .nanohermes/upstream-base.txt
 ```
 
-Do not merge `upstream/main` into `main`; use the patch-sync workflow in `docs/upstream-sync.md` so pushes stay small.
+Do not merge `upstream/main` into `main`; use the patch-sync workflow in
+[`../upstream-sync.md`](../upstream-sync.md) so pushes stay small.
 
 ## Remotes
 
@@ -63,4 +67,4 @@ python scripts/sync_upstream.py --dry-run
 python scripts/sync_upstream.py
 ```
 
-See `docs/upstream-sync.md`.
+See [`../upstream-sync.md`](../upstream-sync.md).
