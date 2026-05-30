@@ -20,7 +20,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 | `config/` | Default templates seeded into user homes or packaged data, such as `env.example` and `cli-config.yaml.example`. |
 | `constraints/` | Platform-specific dependency constraints, e.g. Termux. |
 | `infra/docker/` | Container entrypoints: Dockerfile, Compose files, hadolint config, s6-overlay service files, and container boot hooks. |
-| `infra/nix/` | Nix expressions used by root `flake.nix`. |
+| `infra/nix/` | Nix flake entrypoint (`flake.nix` / `flake.lock`) and implementation expressions. Use `nix develop 'path:.?dir=infra/nix'` or `nix build 'path:.?dir=infra/nix'`. |
 | `infra/packaging/` | Distro/package-manager packaging helpers such as Homebrew formula files. |
 | `infra/nanohermes/` | Downstream metadata such as `upstream-base.txt`. |
 | `resources/acp/registry/` | ACP registry metadata (`agent.json`, icon). Formerly root `acp_registry/`. |
@@ -38,7 +38,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 | `README.md`, `LICENSE` | Project identity and legal entrypoints. |
 | `pyproject.toml`, `setup.py`, `MANIFEST.in`, `uv.lock` | Python build/install contract. |
 | `.dockerignore`, `.gitattributes`, `.gitignore` | Root-level Docker/Git ignore and attribute contracts. |
-| `.envrc`, `flake.nix`, `flake.lock` | Standard Nix/direnv dev-shell entrypoints. Implementation files are in `infra/nix/`. |
+| `.envrc` | Root direnv entrypoint; delegates to `use flake "path:.?dir=infra/nix"`. |
 | `hermes` | Root launcher for source-checkout CLI usage. |
 
 ## Root-adjacent files moved into buckets
@@ -47,6 +47,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 |---|---|
 | `.github/CONTRIBUTING.md`, `.github/SECURITY.md` | GitHub-recognized community health files; `.github/` keeps them discoverable without root clutter. |
 | `docs/README.zh-CN.md`, `docs/contributing/AGENTS.md`, `docs/contributing/mailmap` | Localized README, agent contributor guide, and author map belong with docs/contributor material. |
+| `infra/nix/flake.nix`, `infra/nix/flake.lock` | Nix flake entrypoint and lockfile are infra; root `.envrc` points direnv at them. |
 
 ## Fast audit entry points
 
@@ -105,7 +106,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 2. Keep runtime Python packages at root until there is a dedicated `src/` migration branch with broad import/package tests.
 3. Put product frontends under `apps/`, not root.
 4. Put docs/static websites under `docs/`, not root.
-5. Put container, Nix, distro packaging, contributor guides, GitHub community files, and localized docs under `infra/`, `docs/`, or `.github/`, while keeping only tool-discovery contracts such as `flake.nix`, `.envrc`, `.dockerignore`, `.gitignore`, and `.gitattributes` at root when moving them would break default tooling.
+5. Put container, Nix, distro packaging, contributor guides, GitHub community files, and localized docs under `infra/`, `docs/`, or `.github/`, while keeping only tool-discovery contracts such as `.envrc`, `.dockerignore`, `.gitignore`, and `.gitattributes` at root when moving them would break default tooling.
 6. Do not add one-off markdown files to root. Put them under `docs/nanohermes/`, `docs/notes/`, `docs/plans/`, or `docs/releases/`.
 7. Keep generated output out of git: `.hermes/`, `.venv/`, `build/`, `dist/`, frontend build outputs, and scratch examples.
 8. Keep large corpus/resource payloads under `resources/` instead of root-level folders.

@@ -39,13 +39,13 @@ jobs:
         id: flake
         if: runner.os == 'Linux'
         continue-on-error: true
-        run: nix flake check --print-build-logs
+        run: nix flake check 'path:.?dir=infra/nix' --print-build-logs
 
       - name: Build package
         id: build
         if: runner.os == 'Linux'
         continue-on-error: true
-        run: nix build --print-build-logs
+        run: nix build 'path:.?dir=infra/nix' --print-build-logs
 
       # When the real Nix build fails, run a targeted diagnostic to see if
       # the failure is specifically a stale npm lockfile hash in one of the
@@ -57,7 +57,7 @@ jobs:
         continue-on-error: true
         env:
           LINK_SHA: ${{ steps.sha.outputs.full }}
-        run: nix run .#fix-lockfiles -- --check
+        run: nix run 'path:.?dir=infra/nix#fix-lockfiles' -- --check
 
       # If fix-lockfiles itself crashes (infrastructure blip, cache throttle,
       # etc.) it won't set stale=true/false.  Treat that as a distinct failure
@@ -86,7 +86,7 @@ jobs:
 
             - [ ] **Apply lockfile fix** — tick to push a commit with the correct hashes to this PR branch
             - Or [run the Nix Lockfile Fix workflow](${{ github.server_url }}/${{ github.repository }}/actions/workflows/nix-lockfile-fix.yml) manually (pass PR `#${{ github.event.pull_request.number }}`)
-            - Or locally: `nix run .#fix-lockfiles` and commit the diff
+            - Or locally: `nix run 'path:.?dir=infra/nix#fix-lockfiles'` and commit the diff
 
       # Clear the sticky comment when either the build passed outright (no
       # hash check needed) or the hash check explicitly returned stale=false
@@ -106,7 +106,7 @@ jobs:
         if: steps.flake.outcome == 'failure' || steps.build.outcome == 'failure'
         run: |
           if [ "${{ steps.hash_check.outputs.stale }}" == "true" ]; then
-            echo "::error::Nix build failed due to stale npm lockfile hash. Run: nix run .#fix-lockfiles"
+            echo "::error::Nix build failed due to stale npm lockfile hash. Run: nix run 'path:.?dir=infra/nix#fix-lockfiles'"
           else
             echo "::error::Nix build/flake check failed. See logs above."
           fi
@@ -114,4 +114,4 @@ jobs:
 
       - name: Evaluate flake (macOS)
         if: runner.os == 'macOS'
-        run: nix flake show --json > /dev/null
+        run: nix flake show 'path:.?dir=infra/nix' --json > /dev/null

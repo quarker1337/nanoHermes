@@ -35,11 +35,11 @@ No clone needed. Nix fetches, builds, and runs everything:
 
 ```bash
 # Run directly (builds on first use, cached after)
-nix run github:NousResearch/hermes-agent -- setup
-nix run github:NousResearch/hermes-agent -- chat
+nix run 'github:NousResearch/hermes-agent?dir=infra/nix' -- setup
+nix run 'github:NousResearch/hermes-agent?dir=infra/nix' -- chat
 
 # Or install persistently
-nix profile install github:NousResearch/hermes-agent
+nix profile install 'github:NousResearch/hermes-agent?dir=infra/nix'
 hermes setup
 hermes chat
 ```
@@ -50,13 +50,13 @@ After `nix profile install`, `hermes`, `hermes-agent`, and `hermes-acp` are on y
 The default package doesn't include messaging platform libraries — they were moved to on-demand installation, which can't work in Nix's read-only environment. If you plan to connect the agent to Discord, Telegram, or Slack, install the `messaging` variant:
 
 ```bash
-nix profile install github:NousResearch/hermes-agent#messaging
+nix profile install 'github:NousResearch/hermes-agent?dir=infra/nix#messaging'
 ```
 
 For all optional extras (voice, all providers, all platforms):
 
 ```bash
-nix profile install github:NousResearch/hermes-agent#full
+nix profile install 'github:NousResearch/hermes-agent?dir=infra/nix#full'
 ```
 
 The `full` variant adds ~700 MB to the closure. If you only need messaging platforms, `#messaging` adds just ~33 MB.
@@ -68,7 +68,7 @@ The `full` variant adds ~700 MB to the closure. If you only need messaging platf
 ```bash
 git clone https://github.com/NousResearch/hermes-agent.git
 cd hermes-agent
-nix build
+nix build 'path:.?dir=infra/nix'
 ./result/bin/hermes setup
 ```
 
@@ -91,7 +91,7 @@ This module requires NixOS. For non-NixOS systems (macOS, other Linux distros), 
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    hermes-agent.url = "github:NousResearch/hermes-agent";
+    hermes-agent.url = "github:NousResearch/hermes-agent?dir=infra/nix";
   };
 
   outputs = { nixpkgs, hermes-agent, ... }: {
@@ -249,7 +249,7 @@ Both are deep-merged at evaluation time. Nix-declared keys always win over keys 
 :::
 
 :::tip Discovering available config keys
-Run `nix build .#configKeys && cat result` to see every leaf config key extracted from Python's `DEFAULT_CONFIG`. You can paste your existing `config.yaml` into the `settings` attrset — the structure maps 1:1.
+Run `nix build 'path:.?dir=infra/nix#configKeys' && cat result` to see every leaf config key extracted from Python's `DEFAULT_CONFIG`. You can paste your existing `config.yaml` into the `settings` attrset — the structure maps 1:1.
 :::
 
 <details>
@@ -730,7 +730,7 @@ External flakes can override the package directly:
 
 ```nix
 {
-  inputs.hermes-agent.url = "github:NousResearch/hermes-agent";
+  inputs.hermes-agent.url = "github:NousResearch/hermes-agent?dir=infra/nix";
   outputs = { hermes-agent, nixpkgs, ... }: {
     nixpkgs.overlays = [ hermes-agent.overlays.default ];
     # Then:
@@ -765,7 +765,7 @@ The flake provides a development shell with Python 3.12, uv, Node.js, and all ru
 
 ```bash
 cd hermes-agent
-nix develop
+nix develop 'path:.?dir=infra/nix'
 
 # Shell provides:
 #   - Python 3.12 + uv (deps installed into .venv on first entry)
@@ -792,15 +792,15 @@ The flake includes build-time verification that runs in CI and locally:
 
 ```bash
 # Run all checks
-nix flake check
+nix flake check 'path:.?dir=infra/nix'
 
 # Individual checks
-nix build .#checks.x86_64-linux.package-contents   # binaries exist + version
-nix build .#checks.x86_64-linux.entry-points-sync  # pyproject.toml ↔ Nix package sync
-nix build .#checks.x86_64-linux.cli-commands        # gateway/config subcommands
-nix build .#checks.x86_64-linux.managed-guard       # HERMES_MANAGED blocks mutation
-nix build .#checks.x86_64-linux.bundled-skills      # skills present in package
-nix build .#checks.x86_64-linux.config-roundtrip    # merge script preserves user keys
+nix build "path:.?dir=infra/nix#checks.x86_64-linux.package-contents"   # binaries exist + version
+nix build "path:.?dir=infra/nix#checks.x86_64-linux.entry-points-sync"  # pyproject.toml ↔ Nix package sync
+nix build "path:.?dir=infra/nix#checks.x86_64-linux.cli-commands"   # gateway/config subcommands
+nix build "path:.?dir=infra/nix#checks.x86_64-linux.managed-guard"   # HERMES_MANAGED blocks mutation
+nix build "path:.?dir=infra/nix#checks.x86_64-linux.bundled-skills"   # skills present in package
+nix build "path:.?dir=infra/nix#checks.x86_64-linux.config-roundtrip"   # merge script preserves user keys
 ```
 
 <details>

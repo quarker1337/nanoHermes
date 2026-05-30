@@ -68,11 +68,11 @@
 
           NIX_FILE="$REPO_ROOT/${nixFile}"
           sed -i "s/hash = \"[^\"]*\";/hash = \"\";/" $NIX_FILE
-          NIX_OUTPUT=$(nix build .#${attr} 2>&1 || true)
+          NIX_OUTPUT=$(nix build 'path:.?dir=infra/nix#${attr}' 2>&1 || true)
           NEW_HASH=$(echo "$NIX_OUTPUT" | grep 'got:' | awk '{print $2}')
           echo got new hash $NEW_HASH
           sed -i "s|hash = \"[^\"]*\";|hash = \"$NEW_HASH\";|" $NIX_FILE
-          nix build .#${attr}
+          nix build 'path:.?dir=infra/nix#${attr}'
           echo "Updated npm hash in $NIX_FILE to $NEW_HASH"
         '')
       ];
@@ -98,7 +98,7 @@
               sed -i "s|hash = \"sha256-[A-Za-z0-9+/=]+\"|hash = \"$NEW_HASH\";|" "$NIX_FILE"
               echo "${pname}: updated hash to $NEW_HASH"
             else
-              echo "${pname}: warning: prefetch failed, run 'nix run .#fix-lockfiles' manually" >&2
+              echo "${pname}: warning: prefetch failed, run: nix run 'path:.?dir=infra/nix#fix-lockfiles' manually" >&2
             fi
 
             mkdir -p .nix-stamps
@@ -171,7 +171,7 @@
         NEW_HASH=$(${pkgs.lib.getExe pkgs.prefetch-npm-deps} "$LOCK_FILE" 2>/dev/null)
         if [ -z "$NEW_HASH" ]; then
           echo "    prefetch-npm-deps failed, falling back to nix build" >&2
-          OUTPUT=$(nix build ".#$ATTR.npmDeps" --no-link --print-build-logs 2>&1)
+          OUTPUT=$(nix build "path:.?dir=infra/nix#$ATTR.npmDeps" --no-link --print-build-logs 2>&1)
           STATUS=$?
           if [ "$STATUS" -eq 0 ]; then
             echo "    ok (via nix build)"
@@ -212,7 +212,7 @@
 
         if [ "$MODE" = "--apply" ]; then
           sed -i "s|hash = \"sha256-[^\"]*\";|hash = \"$NEW_HASH\";|" "$NIX_FILE"
-          if ! nix build ".#$ATTR.npmDeps" --no-link --print-build-logs; then
+          if ! nix build "path:.?dir=infra/nix#$ATTR.npmDeps" --no-link --print-build-logs; then
             echo "    verification build failed after hash update" >&2
             exit 1
           fi
@@ -236,7 +236,7 @@
       if [ "$STALE" -eq 1 ] && [ "$MODE" = "--check" ]; then
         echo
         echo "Stale lockfile hashes detected. Run:"
-        echo "  nix run .#fix-lockfiles"
+        echo "  nix run 'path:.?dir=infra/nix#fix-lockfiles'"
         exit 1
       fi
 

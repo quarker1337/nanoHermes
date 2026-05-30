@@ -10,7 +10,7 @@
   dependency-groups ? [ "all" ],
 }:
 let
-  workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./..; };
+  workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ../..; };
   hacks = callPackage pyproject-nix.build.hacks { };
 
   overlay = workspace.mkPyprojectOverlay {

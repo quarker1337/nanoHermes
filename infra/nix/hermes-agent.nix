@@ -54,7 +54,7 @@ let
   };
 
   bundledSkills = lib.cleanSourceWith {
-    src = ../skills;
+    src = ../../resources/skills;
     filter = path: _type: !(lib.hasInfix "/index-cache/" path);
   };
 
@@ -62,7 +62,7 @@ let
   # them out of the Python site-packages keeps import semantics identical
   # to a dev checkout — the loader reads them from HERMES_BUNDLED_PLUGINS.
   bundledPlugins = lib.cleanSourceWith {
-    src = ../plugins;
+    src = ../../runtime/plugins;
     filter = path: _type: !(lib.hasInfix "/__pycache__/" path);
   };
 
@@ -90,10 +90,10 @@ let
 
   pythonPath = lib.makeSearchPath sitePackagesPath allExtraPythonPackages;
 
-  pyprojectHash = builtins.hashString "sha256" (builtins.readFile ../pyproject.toml);
+  pyprojectHash = builtins.hashString "sha256" (builtins.readFile ../../pyproject.toml);
   uvLockHash =
-    if builtins.pathExists ../uv.lock then
-      builtins.hashString "sha256" (builtins.readFile ../uv.lock)
+    if builtins.pathExists ../../uv.lock then
+      builtins.hashString "sha256" (builtins.readFile ../../uv.lock)
     else
       "none";
   checkPackageCollisions = ''
@@ -138,7 +138,7 @@ let
 in
 stdenv.mkDerivation {
   pname = "hermes-agent";
-  version = (fromTOML (builtins.readFile ../pyproject.toml)).project.version;
+  version = (fromTOML (builtins.readFile ../../pyproject.toml)).project.version;
 
   dontUnpack = true;
   dontBuild = true;

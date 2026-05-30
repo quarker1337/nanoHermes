@@ -67,7 +67,7 @@ jobs:
 
       - name: Apply lockfile hashes
         id: apply
-        run: nix run .#fix-lockfiles -- --apply
+        run: nix run 'path:.?dir=infra/nix#fix-lockfiles' -- --apply
 
       - name: Commit & push
         if: steps.apply.outputs.changed == 'true'
@@ -207,7 +207,7 @@ jobs:
 
       - name: Apply lockfile hashes
         id: apply
-        run: nix run .#fix-lockfiles
+        run: nix run 'path:.?dir=infra/nix#fix-lockfiles'
 
       - name: Commit & push
         if: steps.apply.outputs.changed == 'true'

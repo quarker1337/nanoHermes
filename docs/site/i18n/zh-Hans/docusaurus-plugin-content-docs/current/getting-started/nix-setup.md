@@ -35,11 +35,11 @@ Hermes Agent 提供了一个 Nix flake，支持三个层级的集成：
 
 ```bash
 # 直接运行（首次使用时构建，之后使用缓存）
-nix run github:NousResearch/hermes-agent -- setup
-nix run github:NousResearch/hermes-agent -- chat
+nix run 'github:NousResearch/hermes-agent?dir=infra/nix' -- setup
+nix run 'github:NousResearch/hermes-agent?dir=infra/nix' -- chat
 
 # 或持久化安装
-nix profile install github:NousResearch/hermes-agent
+nix profile install 'github:NousResearch/hermes-agent?dir=infra/nix'
 hermes setup
 hermes chat
 ```
@@ -52,7 +52,7 @@ hermes chat
 ```bash
 git clone https://github.com/NousResearch/hermes-agent.git
 cd hermes-agent
-nix build
+nix build 'path:.?dir=infra/nix'
 ./result/bin/hermes setup
 ```
 
@@ -75,7 +75,7 @@ nix build
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    hermes-agent.url = "github:NousResearch/hermes-agent";
+    hermes-agent.url = "github:NousResearch/hermes-agent?dir=infra/nix";
   };
 
   outputs = { nixpkgs, hermes-agent, ... }: {
@@ -233,7 +233,7 @@ services.hermes-agent.settings = {
 :::
 
 :::tip 查找可用配置键
-运行 `nix build .#configKeys && cat result` 可查看从 Python `DEFAULT_CONFIG` 中提取的所有叶配置键。你可以将现有的 `config.yaml` 粘贴到 `settings` attrset 中——结构是 1:1 对应的。
+运行 `nix build 'path:.?dir=infra/nix#configKeys' && cat result` 可查看从 Python `DEFAULT_CONFIG` 中提取的所有叶配置键。你可以将现有的 `config.yaml` 粘贴到 `settings` attrset 中——结构是 1:1 对应的。
 :::
 
 <details>
@@ -685,7 +685,7 @@ services.hermes-agent = {
 
 ```nix
 {
-  inputs.hermes-agent.url = "github:NousResearch/hermes-agent";
+  inputs.hermes-agent.url = "github:NousResearch/hermes-agent?dir=infra/nix";
   outputs = { hermes-agent, nixpkgs, ... }: {
     nixpkgs.overlays = [ hermes-agent.overlays.default ];
     # 然后：
@@ -720,7 +720,7 @@ services.hermes-agent.settings.plugins.enabled = [
 
 ```bash
 cd hermes-agent
-nix develop
+nix develop 'path:.?dir=infra/nix'
 
 # Shell 提供：
 #   - Python 3.12 + uv（首次进入时将依赖安装到 .venv）
@@ -747,15 +747,15 @@ direnv allow    # 仅需一次
 
 ```bash
 # 运行所有检查
-nix flake check
+nix flake check 'path:.?dir=infra/nix'
 
 # 单独检查
-nix build .#checks.x86_64-linux.package-contents   # 二进制文件存在 + 版本
-nix build .#checks.x86_64-linux.entry-points-sync  # pyproject.toml ↔ Nix 包同步
-nix build .#checks.x86_64-linux.cli-commands        # gateway/config 子命令
-nix build .#checks.x86_64-linux.managed-guard       # HERMES_MANAGED 屏蔽变更操作
-nix build .#checks.x86_64-linux.bundled-skills      # 包中存在 skills
-nix build .#checks.x86_64-linux.config-roundtrip    # 合并脚本保留用户键
+nix build "path:.?dir=infra/nix#checks.x86_64-linux.package-contents"   # 二进制文件存在 + 版本
+nix build "path:.?dir=infra/nix#checks.x86_64-linux.entry-points-sync"  # pyproject.toml ↔ Nix 包同步
+nix build "path:.?dir=infra/nix#checks.x86_64-linux.cli-commands"   # gateway/config 子命令
+nix build "path:.?dir=infra/nix#checks.x86_64-linux.managed-guard"   # HERMES_MANAGED 屏蔽变更操作
+nix build "path:.?dir=infra/nix#checks.x86_64-linux.bundled-skills"   # 包中存在 skills
+nix build "path:.?dir=infra/nix#checks.x86_64-linux.config-roundtrip"   # 合并脚本保留用户键
 ```
 
 <details>
