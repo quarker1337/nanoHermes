@@ -15,7 +15,7 @@ SiYuan Note API for searching, reading, creating, and managing blocks and docume
 | | |
 |---|---|
 | Source | Optional — install with `hermes skills install official/productivity/siyuan` |
-| Path | `optional-skills/productivity/siyuan` |
+| Path | `resources/optional-skills/productivity/siyuan` |
 | Version | `1.0.0` |
 | Author | FEUAZUR |
 | License | MIT |

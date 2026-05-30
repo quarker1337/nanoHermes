@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 SKILL_MD = (
     Path(__file__).resolve().parents[2]
-    / "skills/productivity/google-workspace/SKILL.md"
+    / "resources/skills/productivity/google-workspace/SKILL.md"
 )
 
 _EXPECTED_PATHS = {"google_token.json", "google_client_secret.json"}

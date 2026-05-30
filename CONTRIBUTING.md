@@ -38,12 +38,12 @@ This is the most common question for new contributors. The answer is almost alwa
 
 ### Should the Skill be bundled?
 
-Bundled skills (in `skills/`) ship with every Hermes install. They should be **broadly useful to most users**:
+Bundled skills (in `resources/skills/`) ship with every Hermes install. They should be **broadly useful to most users**:
 
 - Document handling, web research, common dev workflows, system administration
 - Used regularly by a wide range of people
 
-If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`optional-skills/`** — it ships with the repo but isn't activated by default. Users can discover it via `hermes skills browse` (labeled "official") and install it with `hermes skills install` (no third-party warning, builtin trust).
+If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`resources/optional-skills/`** — it ships with the repo but isn't activated by default. Users can discover it via `hermes skills browse` (labeled "official") and install it with `hermes skills install` (no third-party warning, builtin trust).
 
 If your skill is specialized, community-contributed, or niche, it's better suited for a **Skills Hub** — upload it to a skills registry and share it in the [Nous Research Discord](https://discord.gg/NousResearch). Users can install it with `hermes skills install`.
 
@@ -191,8 +191,10 @@ hermes-agent/
 │   ├── install.ps1               # Windows PowerShell installer
 │   └── whatsapp-bridge/          # Node.js WhatsApp bridge (Baileys)
 │
-├── skills/                   # Bundled skills (copied to ~/.hermes/skills/ on install)
-├── optional-skills/          # Official optional skills (discoverable via hub, not activated by default)
+├── resources/                # Bundled corpora and optional payloads kept out of root
+│   ├── skills/               # Bundled skills (copied to ~/.hermes/skills/ on install)
+│   ├── optional-skills/      # Official optional skills (discoverable via hub, not activated by default)
+│   └── optional-mcps/        # Official optional MCP manifests
 ├── tests/                    # Test suite
 ├── website/                  # Documentation site (hermes-agent.nousresearch.com)
 │
@@ -322,10 +324,10 @@ plugin vs core guidance.
 
 ## Adding a Skill
 
-Bundled skills live in `skills/` organized by category. Official optional skills use the same structure in `optional-skills/`:
+Bundled skills live in `resources/skills/` organized by category. Official optional skills use the same structure in `resources/optional-skills/`:
 
 ```
-skills/
+resources/skills/
 ├── research/
 │   └── arxiv/
 │       ├── SKILL.md              # Required: main instructions
@@ -397,7 +399,7 @@ platforms: [macos, linux]     # macOS and Linux
 platforms: [windows]          # Windows only
 ```
 
-If the field is omitted or empty, the skill loads on all platforms (backward compatible). See `skills/apple/` for examples of macOS-only skills.
+If the field is omitted or empty, the skill loads on all platforms (backward compatible). See `resources/skills/apple/` for examples of macOS-only skills.
 
 ### Conditional skill activation
 
@@ -473,7 +475,7 @@ Gateway and messaging sessions never collect secrets in-band; they instruct the 
 - The skill relies on a CLI tool that may not be installed (e.g., `himalaya`, `openhue`, `ddgs`)
 - Treat command checks as guidance, not discovery-time hiding
 
-See `skills/gifs/gif-search/` and `skills/email/himalaya/` for examples.
+See `resources/skills/gifs/gif-search/` and `resources/skills/email/himalaya/` for examples.
 
 ### Skill authoring standards (HARDLINE)
 
@@ -483,7 +485,7 @@ Every new or modernized skill — bundled, optional, or contributed — must mee
    ```python
    import re, pathlib
    m = re.search(r'^description: (.*)$',
-                 pathlib.Path('skills/<cat>/<name>/SKILL.md').read_text(),
+                 pathlib.Path('resources/skills/<cat>/<name>/SKILL.md').read_text(),
                  re.MULTILINE)
    assert len(m.group(1)) <= 60, len(m.group(1))
    ```

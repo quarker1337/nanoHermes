@@ -15,7 +15,7 @@ Shopify Admin & Storefront GraphQL APIs via curl. Products, orders, customers, i
 | | |
 |---|---|
 | Source | Optional — install with `hermes skills install official/productivity/shopify` |
-| Path | `optional-skills/productivity/shopify` |
+| Path | `resources/optional-skills/productivity/shopify` |
 | Version | `1.0.0` |
 | Author | community |
 | License | MIT |

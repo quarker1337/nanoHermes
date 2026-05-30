@@ -15,7 +15,7 @@ Clone/create/fork repos; manage remotes, releases.
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/github/github-repo-management` |
+| Path | `resources/skills/github/github-repo-management` |
 | Version | `1.1.0` |
 | Author | Hermes Agent |
 | License | MIT |

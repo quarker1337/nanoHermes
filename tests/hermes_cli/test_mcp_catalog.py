@@ -37,9 +37,9 @@ def _default_mock_probe(monkeypatch):
 
 @pytest.fixture
 def catalog_dir(tmp_path, monkeypatch):
-    """Provide an isolated optional-mcps/ directory."""
-    cat = tmp_path / "optional-mcps"
-    cat.mkdir()
+    """Provide an isolated resources/optional-mcps/ directory."""
+    cat = tmp_path / "resources" / "optional-mcps"
+    cat.mkdir(parents=True)
     monkeypatch.setenv("HERMES_OPTIONAL_MCPS", str(cat))
     return cat
 
@@ -379,7 +379,7 @@ class TestPicker:
 
 
 # ---------------------------------------------------------------------------
-# Shipped catalog (sanity: every manifest in the repo's optional-mcps/ parses)
+# Shipped catalog (sanity: every manifest in the repo's resources/optional-mcps/ parses)
 # ---------------------------------------------------------------------------
 
 
@@ -768,20 +768,20 @@ class TestToolsConfigIncludeMode:
 
 class TestShippedCatalog:
     def test_all_shipped_manifests_parse(self, monkeypatch):
-        """Every manifest in optional-mcps/ must parse cleanly.
+        """Every manifest in resources/optional-mcps/ must parse cleanly.
 
         This is a contract test — CI will fail if a PR adds a malformed
         manifest. Intentionally NOT a snapshot of catalog names (those are
         expected to change as PRs land).
         """
-        # Use the actual repo's optional-mcps directory (no HERMES_OPTIONAL_MCPS
+        # Use the actual repo's resources/optional-mcps directory (no HERMES_OPTIONAL_MCPS
         # override) so this test catches real manifests.
         monkeypatch.delenv("HERMES_OPTIONAL_MCPS", raising=False)
         from hermes_cli.mcp_catalog import _catalog_root, _parse_manifest
 
         root = _catalog_root()
         if not root.exists():
-            pytest.skip("optional-mcps/ not present in this checkout")
+            pytest.skip("resources/optional-mcps/ not present in this checkout")
 
         manifests = list(root.glob("*/manifest.yaml"))
         # Don't assert minimum count — change-detector test rule. Just parse

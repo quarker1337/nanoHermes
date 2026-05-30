@@ -15,7 +15,7 @@ Decomposition playbook + anti-temptation rules for an orchestrator profile routi
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/devops/kanban-orchestrator` |
+| Path | `resources/skills/devops/kanban-orchestrator` |
 | Version | `3.0.0` |
 | Platforms | linux, macos, windows |
 | Tags | `kanban`, `multi-agent`, `orchestration`, `routing` |

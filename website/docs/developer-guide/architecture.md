@@ -127,8 +127,10 @@ hermes-agent/
 ├── cron/                     # Scheduler (jobs.py, scheduler.py)
 ├── plugins/memory/           # Memory provider plugins
 ├── plugins/context_engine/   # Context engine plugins
-├── skills/                   # Bundled skills (always available)
-├── optional-skills/          # Official optional skills (install explicitly)
+├── resources/                # Bundled corpora and optional payloads
+│   ├── skills/               # Bundled skills (always available)
+│   ├── optional-skills/      # Official optional skills (install explicitly)
+│   └── optional-mcps/        # Official optional MCP manifests
 ├── website/                  # Docusaurus documentation site
 └── tests/                    # Pytest suite (~25,000 tests across ~1,250 files)
 ```

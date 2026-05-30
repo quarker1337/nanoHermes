@@ -143,8 +143,8 @@ def get_default_hermes_root() -> Path:
 def _get_packaged_data_dir(name: str) -> Path | None:
     """Return an installed data-files directory if one exists.
 
-    Used to discover bundled skills/optional-skills when Hermes is installed
-    from a wheel that emitted them via setuptools data_files.
+    Used to discover bundled resources when Hermes is installed from a wheel
+    that emitted them via setuptools data_files.
     """
     candidates = []
     for scheme in ("data", "purelib", "platlib"):
@@ -158,15 +158,16 @@ def _get_packaged_data_dir(name: str) -> Path | None:
 
 
 def get_optional_skills_dir(default: Path | None = None) -> Path:
-    """Return the optional-skills directory, honoring package-manager wrappers.
+    """Return the optional skill resource directory.
 
-    Packaged installs may ship ``optional-skills`` outside the Python package
-    tree and expose it via ``HERMES_OPTIONAL_SKILLS``.
+    Source checkouts keep optional skills under ``resources/optional-skills``.
+    Packaged installs may expose them via ``HERMES_OPTIONAL_SKILLS`` or ship
+    them through setuptools data_files.
     """
     override = os.getenv("HERMES_OPTIONAL_SKILLS", "").strip()
     if override:
         return Path(override)
-    packaged = _get_packaged_data_dir("optional-skills")
+    packaged = _get_packaged_data_dir("resources/optional-skills") or _get_packaged_data_dir("optional-skills")
     if packaged is not None:
         return packaged
     if default is not None:
@@ -178,14 +179,14 @@ def get_optional_mcps_dir(default: Path | None = None) -> Path:
     """Return the optional-mcps directory, honoring package-manager wrappers.
 
     Mirrors :func:`get_optional_skills_dir` for the MCP catalog (Nous-approved
-    Model Context Protocol servers shipped with the repo but disabled by
-    default). Packaged installs may ship ``optional-mcps`` outside the Python
-    package tree and expose it via ``HERMES_OPTIONAL_MCPS``.
+    Model Context Protocol servers shipped with the repo under
+    ``resources/optional-mcps`` but disabled by default). Packaged installs may
+    expose it via ``HERMES_OPTIONAL_MCPS``.
     """
     override = os.getenv("HERMES_OPTIONAL_MCPS", "").strip()
     if override:
         return Path(override)
-    packaged = _get_packaged_data_dir("optional-mcps")
+    packaged = _get_packaged_data_dir("resources/optional-mcps") or _get_packaged_data_dir("optional-mcps")
     if packaged is not None:
         return packaged
     if default is not None:
@@ -198,14 +199,14 @@ def get_bundled_skills_dir(default: Path | None = None) -> Path:
 
     Resolution order:
         1. ``HERMES_BUNDLED_SKILLS`` env var (Nix wrapper / explicit override)
-        2. Wheel-installed ``<sysconfig data>/skills`` (pip install path)
+        2. Wheel-installed ``<sysconfig data>/resources/skills`` (pip install path)
         3. Caller-supplied ``default`` (typically the source-checkout path)
         4. ``<HERMES_HOME>/skills`` last-resort
     """
     override = os.getenv("HERMES_BUNDLED_SKILLS", "").strip()
     if override:
         return Path(override)
-    packaged = _get_packaged_data_dir("skills")
+    packaged = _get_packaged_data_dir("resources/skills") or _get_packaged_data_dir("skills")
     if packaged is not None:
         return packaged
     if default is not None:

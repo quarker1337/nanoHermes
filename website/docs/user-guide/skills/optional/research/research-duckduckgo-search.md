@@ -15,7 +15,7 @@ Free web search via DuckDuckGo — text, news, images, videos. No API key needed
 | | |
 |---|---|
 | Source | Optional — install with `hermes skills install official/research/duckduckgo-search` |
-| Path | `optional-skills/research/duckduckgo-search` |
+| Path | `resources/optional-skills/research/duckduckgo-search` |
 | Version | `1.3.0` |
 | Author | gamedevCloudy |
 | License | MIT |

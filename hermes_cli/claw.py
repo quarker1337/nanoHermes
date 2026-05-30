@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
 _OPENCLAW_SCRIPT = (
-    get_optional_skills_dir(PROJECT_ROOT / "optional-skills")
+    get_optional_skills_dir(PROJECT_ROOT / "resources" / "optional-skills")
     / "migration"
     / "openclaw-migration"
     / "scripts"

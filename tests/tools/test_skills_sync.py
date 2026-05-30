@@ -167,14 +167,14 @@ class TestReadSkillName:
 
 class TestComputeRelativeDest:
     def test_preserves_category_structure(self):
-        bundled = Path("/repo/skills")
-        skill_dir = Path("/repo/skills/mlops/axolotl")
+        bundled = Path("/repo/resources/skills")
+        skill_dir = Path("/repo/resources/skills/mlops/axolotl")
         dest = _compute_relative_dest(skill_dir, bundled)
         assert str(dest).endswith("mlops/axolotl")
 
     def test_flat_skill(self):
-        bundled = Path("/repo/skills")
-        skill_dir = Path("/repo/skills/simple")
+        bundled = Path("/repo/resources/skills")
+        skill_dir = Path("/repo/resources/skills/simple")
         dest = _compute_relative_dest(skill_dir, bundled)
         assert dest.name == "simple"
 
@@ -196,7 +196,7 @@ class TestSyncSkills:
         from contextlib import ExitStack
         stack = ExitStack()
         stack.enter_context(patch("tools.skills_sync._get_bundled_dir", return_value=bundled))
-        stack.enter_context(patch("tools.skills_sync._get_optional_dir", return_value=bundled.parent / "optional-skills"))
+        stack.enter_context(patch("tools.skills_sync._get_optional_dir", return_value=bundled.parent / "resources" / "optional-skills"))
         stack.enter_context(patch("tools.skills_sync.SKILLS_DIR", skills_dir))
         stack.enter_context(patch("tools.skills_sync.MANIFEST_FILE", manifest_file))
         return stack
@@ -485,7 +485,7 @@ class TestSyncSkills:
 
     def test_backfills_official_optional_provenance_for_existing_identical_skill(self, tmp_path):
         bundled = self._setup_bundled(tmp_path)
-        optional = tmp_path / "optional-skills"
+        optional = tmp_path / "resources" / "optional-skills"
         optional_skill = optional / "mlops" / "training" / "trl-fine-tuning"
         optional_skill.mkdir(parents=True)
         (optional_skill / "SKILL.md").write_text(
@@ -519,7 +519,7 @@ class TestSyncSkills:
 
     def test_does_not_backfill_optional_provenance_for_modified_skill(self, tmp_path):
         bundled = self._setup_bundled(tmp_path)
-        optional = tmp_path / "optional-skills"
+        optional = tmp_path / "resources" / "optional-skills"
         optional_skill = optional / "mlops" / "training" / "trl-fine-tuning"
         optional_skill.mkdir(parents=True)
         (optional_skill / "SKILL.md").write_text("# upstream optional\n")
@@ -539,7 +539,7 @@ class TestSyncSkills:
 
     def test_repair_official_optional_restores_reorganized_skill_with_backup(self, tmp_path):
         bundled = self._setup_bundled(tmp_path)
-        optional = tmp_path / "optional-skills"
+        optional = tmp_path / "resources" / "optional-skills"
         optional_skill = optional / "mlops" / "training" / "trl-fine-tuning"
         optional_skill.mkdir(parents=True)
         (optional_skill / "SKILL.md").write_text(
@@ -572,7 +572,7 @@ class TestSyncSkills:
 
     def test_repair_official_optional_without_restore_does_not_replace_modified_copy(self, tmp_path):
         bundled = self._setup_bundled(tmp_path)
-        optional = tmp_path / "optional-skills"
+        optional = tmp_path / "resources" / "optional-skills"
         optional_skill = optional / "mlops" / "training" / "trl-fine-tuning"
         optional_skill.mkdir(parents=True)
         (optional_skill / "SKILL.md").write_text("# official\n")
@@ -708,12 +708,14 @@ class TestGetBundledDir:
         monkeypatch.delenv("HERMES_BUNDLED_SKILLS", raising=False)
         result = _get_bundled_dir()
         assert result.name == "skills"
+        assert result.parent.name == "resources"
 
     def test_env_var_empty_string_ignored(self, monkeypatch):
         """Empty HERMES_BUNDLED_SKILLS should fall back to default."""
         monkeypatch.setenv("HERMES_BUNDLED_SKILLS", "")
         result = _get_bundled_dir()
         assert result.name == "skills"
+        assert result.parent.name == "resources"
 
 
 class TestResetBundledSkill:
@@ -732,7 +734,7 @@ class TestResetBundledSkill:
         from contextlib import ExitStack
         stack = ExitStack()
         stack.enter_context(patch("tools.skills_sync._get_bundled_dir", return_value=bundled))
-        stack.enter_context(patch("tools.skills_sync._get_optional_dir", return_value=bundled.parent / "optional-skills"))
+        stack.enter_context(patch("tools.skills_sync._get_optional_dir", return_value=bundled.parent / "resources" / "optional-skills"))
         stack.enter_context(patch("tools.skills_sync.SKILLS_DIR", skills_dir))
         stack.enter_context(patch("tools.skills_sync.MANIFEST_FILE", manifest_file))
         return stack

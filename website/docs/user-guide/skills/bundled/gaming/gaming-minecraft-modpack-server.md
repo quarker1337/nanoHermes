@@ -15,7 +15,7 @@ Host modded Minecraft servers (CurseForge, Modrinth).
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/gaming/minecraft-modpack-server` |
+| Path | `resources/skills/gaming/minecraft-modpack-server` |
 | Platforms | linux, macos |
 
 ## Reference: full SKILL.md

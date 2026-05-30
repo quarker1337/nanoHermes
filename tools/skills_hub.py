@@ -2721,7 +2721,7 @@ class BrowseShSource(SkillSource):
 
 class OptionalSkillSource(SkillSource):
     """
-    Fetch skills from the optional-skills/ directory shipped with the repo.
+    Fetch skills from the resources/optional-skills/ directory shipped with the repo.
 
     These skills are official (maintained by Nous Research) but not activated
     by default — they don't appear in the system prompt and aren't copied to
@@ -2733,7 +2733,7 @@ class OptionalSkillSource(SkillSource):
         from hermes_constants import get_optional_skills_dir
 
         self._optional_dir = get_optional_skills_dir(
-            Path(__file__).parent.parent / "optional-skills"
+            Path(__file__).parent.parent / "resources" / "optional-skills"
         )
 
     def source_id(self) -> str:
@@ -2823,7 +2823,7 @@ class OptionalSkillSource(SkillSource):
     # -- internal helpers -------------------------------------------------
 
     def _find_skill_dir(self, name: str) -> Optional[Path]:
-        """Find a skill directory by name anywhere in optional-skills/."""
+        """Find a skill directory by name anywhere in resources/optional-skills/."""
         if not self._optional_dir.is_dir():
             return None
         for skill_md in self._optional_dir.rglob("SKILL.md"):

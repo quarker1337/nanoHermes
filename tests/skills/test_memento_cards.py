@@ -1,4 +1,4 @@
-"""Tests for optional-skills/productivity/memento-flashcards/scripts/memento_cards.py"""
+"""Tests for resources/optional-skills/productivity/memento-flashcards/scripts/memento_cards.py"""
 
 import csv
 import json
@@ -11,7 +11,7 @@ from unittest import mock
 import pytest
 
 # Add the scripts dir so we can import the module directly
-SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "optional-skills" / "productivity" / "memento-flashcards" / "scripts"
+SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "resources" / "optional-skills" / "productivity" / "memento-flashcards" / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import memento_cards

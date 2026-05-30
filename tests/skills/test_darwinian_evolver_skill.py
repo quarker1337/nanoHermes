@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-SKILL_DIR = Path(__file__).resolve().parents[2] / "optional-skills" / "research" / "darwinian-evolver"
+SKILL_DIR = Path(__file__).resolve().parents[2] / "resources" / "optional-skills" / "research" / "darwinian-evolver"
 
 
 @pytest.fixture(scope="module")

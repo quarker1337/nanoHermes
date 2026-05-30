@@ -1496,7 +1496,7 @@ Delete the contents (or this file) to use the default personality.
             Write-Success "Skills synced to ~/.hermes/skills/"
         } catch {
             # Fallback: simple directory copy
-            $bundledSkills = "$InstallDir\skills"
+            $bundledSkills = "$InstallDir\resources\skills"
             $userSkills = "$HermesHome\skills"
             if ((Test-Path $bundledSkills) -and -not (Get-ChildItem $userSkills -Exclude '.bundled_manifest' -ErrorAction SilentlyContinue)) {
                 Copy-Item -Path "$bundledSkills\*" -Destination $userSkills -Recurse -Force -ErrorAction SilentlyContinue

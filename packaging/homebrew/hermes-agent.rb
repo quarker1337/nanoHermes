@@ -24,15 +24,15 @@ class HermesAgent < Formula
     venv.pip_install resources
     venv.pip_install buildpath
 
-    pkgshare.install "skills", "optional-skills"
+    pkgshare.install "resources"
 
     %w[hermes hermes-agent hermes-acp].each do |exe|
       next unless (libexec/"bin"/exe).exist?
 
       (bin/exe).write_env_script(
         libexec/"bin"/exe,
-        HERMES_BUNDLED_SKILLS: pkgshare/"skills",
-        HERMES_OPTIONAL_SKILLS: pkgshare/"optional-skills",
+        HERMES_BUNDLED_SKILLS: pkgshare/"resources"/"skills",
+        HERMES_OPTIONAL_SKILLS: pkgshare/"resources"/"optional-skills",
         HERMES_MANAGED: "homebrew"
       )
     end

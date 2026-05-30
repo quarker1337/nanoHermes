@@ -1,14 +1,14 @@
 """MCP catalog — curated, Nous-approved MCP servers shipped with the repo.
 
-Mirrors the optional-skills/ pattern: each catalog entry lives under
-``optional-mcps/<name>/manifest.yaml`` and ships disabled. Users discover
+Mirrors the optional-skills pattern: each catalog entry lives under
+``resources/optional-mcps/<name>/manifest.yaml`` and ships disabled. Users discover
 entries via ``hermes mcp catalog`` or the interactive ``hermes mcp picker``,
 and install them with ``hermes mcp install <name>`` (or by toggling in the
 picker, which flows them through any required env/OAuth setup).
 
 Catalog policy:
 - Entries are added only by merging a PR into hermes-agent. Presence in the
-  ``optional-mcps/`` directory = Nous approval. No community tier, no trust
+  ``resources/optional-mcps/`` directory = Nous approval. No community tier, no trust
   signals beyond "it's in the catalog".
 - Manifests pin transport details (commands, args, refs). MCPs are never
   auto-updated; users explicitly re-run ``hermes mcp install <name>`` to
@@ -126,10 +126,10 @@ class CatalogError(Exception):
 
 
 def _catalog_root() -> Path:
-    """Return the optional-mcps/ directory shipped with this Hermes install."""
+    """Return the resources/optional-mcps/ directory shipped with this Hermes install."""
     # Prefer the env-var override / packaged location; fall back to the repo's
-    # optional-mcps/ next to the package (source checkout).
-    return get_optional_mcps_dir(Path(__file__).parent.parent / "optional-mcps")
+    # resources/optional-mcps/ next to the package (source checkout).
+    return get_optional_mcps_dir(Path(__file__).parent.parent / "resources" / "optional-mcps")
 
 
 def _parse_env_spec(raw: Any) -> EnvVarSpec:

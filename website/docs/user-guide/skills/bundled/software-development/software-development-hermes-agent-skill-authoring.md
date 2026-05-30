@@ -15,7 +15,7 @@ Author in-repo SKILL.md: frontmatter, validator, structure.
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/software-development/hermes-agent-skill-authoring` |
+| Path | `resources/skills/software-development/hermes-agent-skill-authoring` |
 | Version | `1.0.0` |
 | Author | Hermes Agent |
 | License | MIT |

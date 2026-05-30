@@ -15,7 +15,7 @@ import pytest
 
 SCRIPT_PATH = (
     Path(__file__).resolve().parents[2]
-    / "skills/productivity/google-workspace/scripts/setup.py"
+    / "resources/skills/productivity/google-workspace/scripts/setup.py"
 )
 
 
@@ -263,7 +263,7 @@ class TestHermesConstantsFallback:
 
     HELPER_PATH = (
         Path(__file__).resolve().parents[2]
-        / "skills/productivity/google-workspace/scripts/_hermes_home.py"
+        / "resources/skills/productivity/google-workspace/scripts/_hermes_home.py"
     )
 
     def _load_helper(self, monkeypatch):

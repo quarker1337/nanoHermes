@@ -26,7 +26,7 @@ terminal commands) AND a library imported by ``google_chat.py``:
         list_authorized_emails() -> List[str]
 
     CLI commands (driven by the agent through the /setup-files slash
-    command, modeled on skills/productivity/google-workspace/scripts/setup.py):
+    command, modeled on resources/skills/productivity/google-workspace/scripts/setup.py):
         --check                          Exit 0 if auth is valid, else 1
         --client-secret /path/to.json    Persist OAuth client credentials
         --auth-url                       Print the OAuth URL for the user
@@ -167,7 +167,7 @@ _REQUIRED_PACKAGES = [
 # Out-of-band redirect: Google deprecated the ``urn:ietf:wg:oauth:2.0:oob``
 # flow, so we use a localhost redirect that's expected to FAIL. The user
 # copies the auth code from the failed browser URL bar back into chat.
-# Same trick used by skills/productivity/google-workspace/scripts/setup.py.
+# Same trick used by resources/skills/productivity/google-workspace/scripts/setup.py.
 _REDIRECT_URI = "http://localhost:1"
 
 

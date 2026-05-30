@@ -122,7 +122,7 @@ def test_kanban_swarm_uses_existing_humanizer_skill():
     crashed with 'Unknown skill(s): avoid-ai-writing' on every retry.
 
     Verify the synthesizer card now uses the bundled 'humanizer' skill
-    which actually exists at skills/creative/humanizer/SKILL.md."""
+    which actually exists at resources/skills/creative/humanizer/SKILL.md."""
     import pathlib
 
     swarm_path = (
@@ -141,7 +141,7 @@ def test_kanban_swarm_uses_existing_humanizer_skill():
 
     # And the replacement skill must actually exist on disk.
     skills_root = (
-        pathlib.Path(__file__).resolve().parent.parent.parent / "skills"
+        pathlib.Path(__file__).resolve().parent.parent.parent / "resources" / "skills"
     )
     humanizer_path = skills_root / "creative" / "humanizer" / "SKILL.md"
     assert humanizer_path.is_file(), (

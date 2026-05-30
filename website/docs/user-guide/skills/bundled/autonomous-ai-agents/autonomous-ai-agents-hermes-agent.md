@@ -15,7 +15,7 @@ Configure, extend, or contribute to Hermes Agent.
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/autonomous-ai-agents/hermes-agent` |
+| Path | `resources/skills/autonomous-ai-agents/hermes-agent` |
 | Version | `2.1.0` |
 | Author | Hermes Agent + Teknium |
 | License | MIT |

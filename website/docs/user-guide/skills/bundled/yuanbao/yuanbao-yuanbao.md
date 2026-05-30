@@ -15,7 +15,7 @@ Yuanbao (元宝) groups: @mention users, query info/members.
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/yuanbao` |
+| Path | `resources/skills/yuanbao` |
 | Version | `1.0.0` |
 | Platforms | linux, macos, windows |
 | Tags | `yuanbao`, `mention`, `at`, `group`, `members`, `元宝`, `派`, `艾特` |

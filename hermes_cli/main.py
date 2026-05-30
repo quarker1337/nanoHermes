@@ -448,7 +448,7 @@ def _termux_bundled_skills_fingerprint() -> str:
     git_fp = _read_git_revision_fingerprint(PROJECT_ROOT)
     if git_fp:
         return git_fp
-    skills_dir = PROJECT_ROOT / "skills"
+    skills_dir = PROJECT_ROOT / "resources" / "skills"
     try:
         stat = skills_dir.stat()
         return f"skills:{__version__}:{__release_date__}:{stat.st_mtime_ns}:{stat.st_size}"
@@ -12783,7 +12783,7 @@ Examples:
         description=(
             "Repair official optional skill provenance. By default, only backfills "
             "hub metadata for exact matches. Pass --restore to replace missing or "
-            "mutated active copies from optional-skills/, moving existing copies to "
+            "mutated active copies from resources/optional-skills/, moving existing copies to "
             "a restore backup first. Use name 'all' to repair every optional skill."
         ),
     )

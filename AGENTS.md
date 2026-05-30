@@ -49,8 +49,10 @@ hermes-agent/
 │   ├── image_gen/        # Image-generation providers
 │   └── <others>/         # disk-cleanup, example-dashboard, google_meet, platforms,
 │                         #   spotify, strike-freedom-cockpit, ...
-├── optional-skills/      # Heavier/niche skills shipped but NOT active by default
-├── skills/               # Built-in skills bundled with the repo
+├── resources/            # Bundled corpora and optional payloads kept out of root
+│   ├── skills/           # Built-in skills bundled with the repo
+│   ├── optional-skills/  # Heavier/niche skills shipped but NOT active by default
+│   └── optional-mcps/    # Curated MCP manifests shipped disabled
 ├── ui-tui/               # Ink (React) terminal UI — `hermes --tui`
 │   └── src/              # entry.tsx, app.tsx, gatewayClient.ts + app/components/hooks/lib
 ├── tui_gateway/          # Python JSON-RPC backend for the TUI
@@ -588,9 +590,9 @@ companion repo, not in this tree.
 
 Two parallel surfaces:
 
-- **`skills/`** — built-in skills shipped and loadable by default.
-  Organized by category directories (e.g. `skills/github/`, `skills/mlops/`).
-- **`optional-skills/`** — heavier or niche skills shipped with the repo but
+- **`resources/skills/`** — built-in skills shipped and loadable by default.
+  Organized by category directories (e.g. `resources/skills/github/`, `resources/skills/mlops/`).
+- **`resources/optional-skills/`** — heavier or niche skills shipped with the repo but
   NOT active by default. Installed explicitly via
   `hermes skills install official/<category>/<skill>`. Adapter lives in
   `tools/skills_hub.py` (`OptionalSkillSource`). Categories include
@@ -599,7 +601,7 @@ Two parallel surfaces:
   `research`, `security`, `web-development`.
 
 When reviewing skill PRs, check which directory they target — heavy-dep or
-niche skills belong in `optional-skills/`.
+niche skills belong in `resources/optional-skills/`.
 
 ### SKILL.md frontmatter
 
@@ -628,7 +630,7 @@ violate them.
    ```python
    import re, pathlib
    m = re.search(r'^description: (.*)$',
-                 pathlib.Path('skills/<cat>/<name>/SKILL.md').read_text(),
+                 pathlib.Path('resources/skills/<cat>/<name>/SKILL.md').read_text(),
                  re.MULTILINE)
    assert len(m.group(1)) <= 60, len(m.group(1))
    ```

@@ -1,4 +1,4 @@
-"""Tests for optional-skills/productivity/memento-flashcards/scripts/youtube_quiz.py"""
+"""Tests for resources/optional-skills/productivity/memento-flashcards/scripts/youtube_quiz.py"""
 
 import json
 import sys
@@ -7,7 +7,7 @@ from unittest import mock
 
 import pytest
 
-SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "optional-skills" / "productivity" / "memento-flashcards" / "scripts"
+SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "resources" / "optional-skills" / "productivity" / "memento-flashcards" / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import youtube_quiz

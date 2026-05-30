@@ -78,7 +78,7 @@ EXCLUDED_DIRS = {
     ".pytest_cache",
     "site-packages",
     "website/build",
-    "optional-skills",  # external skills
+    "optional-skills",  # external skills (under resources/optional-skills)
 }
 
 # File globs we never scan (beyond the dirs above).

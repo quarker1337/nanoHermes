@@ -15,7 +15,7 @@ Delegate coding to OpenAI Codex CLI (features, PRs).
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/autonomous-ai-agents/codex` |
+| Path | `resources/skills/autonomous-ai-agents/codex` |
 | Version | `1.0.0` |
 | Author | Hermes Agent |
 | License | MIT |

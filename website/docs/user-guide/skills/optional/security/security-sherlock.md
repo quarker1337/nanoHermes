@@ -15,7 +15,7 @@ OSINT username search across 400+ social networks. Hunt down social media accoun
 | | |
 |---|---|
 | Source | Optional — install with `hermes skills install official/security/sherlock` |
-| Path | `optional-skills/security/sherlock` |
+| Path | `resources/optional-skills/security/sherlock` |
 | Version | `1.0.0` |
 | Author | unmodeled-tyler |
 | License | MIT |

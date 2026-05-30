@@ -171,8 +171,8 @@ google = [
   "google-auth-httplib2==0.3.1",
 ]
 youtube = [
-  # Required by skills/media/youtube-content and
-  # optional-skills/productivity/memento-flashcards (youtube_quiz.py).
+  # Required by resources/skills/media/youtube-content and
+  # resources/optional-skills/productivity/memento-flashcards (youtube_quiz.py).
   # Without this declaration uv sync omits the package and both skills fail
   # at first invocation with ModuleNotFoundError (issue #22243).
   "youtube-transcript-api==1.2.4",
@@ -272,6 +272,6 @@ select = ["PLW1514"]
 # Tests can intentionally exercise locale-encoding edge cases.
 "tests/**" = ["PLW1514"]
 # Skills and plugins are partially user-authored — their own conventions.
-"skills/**" = ["PLW1514"]
-"optional-skills/**" = ["PLW1514"]
+"resources/skills/**" = ["PLW1514"]
+"resources/optional-skills/**" = ["PLW1514"]
 "plugins/**" = ["PLW1514"]

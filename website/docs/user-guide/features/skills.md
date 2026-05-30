@@ -422,7 +422,7 @@ Hermes currently integrates with these skills ecosystems and discovery sources:
 These are maintained in the Hermes repository itself and install with builtin trust.
 
 - Catalog: [Official Optional Skills Catalog](../../reference/optional-skills-catalog)
-- Source in repo: `optional-skills/`
+- Source in repo: `resources/optional-skills/`
 - Example:
 
 ```bash
@@ -576,7 +576,7 @@ Important behavior:
 | Level | Source | Policy |
 |-------|--------|--------|
 | `builtin` | Ships with Hermes | Always trusted |
-| `official` | `optional-skills/` in the repo | Builtin trust, no third-party warning |
+| `official` | `resources/optional-skills/` in the repo | Builtin trust, no third-party warning |
 | `trusted` | Trusted registries/repos such as `openai/skills`, `anthropics/skills`, `huggingface/skills` | More permissive policy than community sources |
 | `community` | Everything else (`skills.sh`, well-known endpoints, custom GitHub repos, most marketplaces) | Non-dangerous findings can be overridden with `--force`; `dangerous` verdicts stay blocked |
 

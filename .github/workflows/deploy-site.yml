@@ -7,8 +7,8 @@ on:
     branches: [main]
     paths:
       - 'website/**'
-      - 'skills/**'
-      - 'optional-skills/**'
+      - 'resources/skills/**'
+      - 'resources/optional-skills/**'
       - '.github/workflows/deploy-site.yml'
   workflow_dispatch:
 

@@ -18,5 +18,5 @@ def test_faster_whisper_is_not_a_base_dependency():
 def test_manifest_includes_bundled_skills():
     manifest = (REPO_ROOT / "MANIFEST.in").read_text(encoding="utf-8")
 
-    assert "graft skills" in manifest
-    assert "graft optional-skills" in manifest
+    assert "graft resources/skills" in manifest
+    assert "graft resources/optional-skills" not in manifest

@@ -15,7 +15,7 @@ Generate project ideas via creative constraints.
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/creative/creative-ideation` |
+| Path | `resources/skills/creative/creative-ideation` |
 | Version | `1.0.0` |
 | Author | SHL0MS |
 | License | MIT |

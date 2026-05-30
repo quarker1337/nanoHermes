@@ -2647,7 +2647,7 @@ def _skip_configured_section(
 
 
 _OPENCLAW_SCRIPT = (
-    get_optional_skills_dir(PROJECT_ROOT / "optional-skills")
+    get_optional_skills_dir(PROJECT_ROOT / "resources" / "optional-skills")
     / "migration"
     / "openclaw-migration"
     / "scripts"

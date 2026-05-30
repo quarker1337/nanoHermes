@@ -24,10 +24,10 @@ Make it a **Tool** when:
 
 ## Skill Directory Structure
 
-Bundled skills live in `skills/` organized by category. Official optional skills use the same structure in `optional-skills/`:
+Bundled skills live in `resources/skills/` organized by category. Official optional skills use the same structure in `resources/optional-skills/`:
 
 ```text
-skills/
+resources/skills/
 ├── research/
 │   └── arxiv/
 │       ├── SKILL.md              # Required: main instructions
@@ -156,7 +156,7 @@ terminal:
     - ANOTHER_VAR
 ```
 
-See `skills/apple/` for examples of macOS-only skills.
+See `resources/skills/apple/` for examples of macOS-only skills.
 
 ## Secure Setup on Load
 
@@ -256,7 +256,7 @@ When loaded, Hermes checks if these files exist. Missing files trigger `setup_ne
 Use `required_environment_variables` for simple API keys and tokens (strings stored in `~/.hermes/.env`). Use `required_credential_files` for OAuth token files, client secrets, service account JSON, certificates, or any credential that's a file on disk.
 :::
 
-See the `skills/productivity/google-workspace/SKILL.md` for a complete example using both.
+See the `resources/skills/productivity/google-workspace/SKILL.md` for a complete example using both.
 
 ## Skill Guidelines
 
@@ -325,12 +325,12 @@ hermes chat --toolsets skills -q "Use the X skill to do Y"
 
 ## Where Should the Skill Live?
 
-Bundled skills (in `skills/`) ship with every Hermes install. They should be **broadly useful to most users**:
+Bundled skills (in `resources/skills/`) ship with every Hermes install. They should be **broadly useful to most users**:
 
 - Document handling, web research, common dev workflows, system administration
 - Used regularly by a wide range of people
 
-If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`optional-skills/`** — it ships with the repo, is discoverable via `hermes skills browse` (labeled "official"), and installs with builtin trust.
+If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`resources/optional-skills/`** — it ships with the repo, is discoverable via `hermes skills browse` (labeled "official"), and installs with builtin trust.
 
 If your skill is specialized, community-contributed, or niche, it's better suited for a **Skills Hub** — upload it to a registry and share it via `hermes skills install`.
 
@@ -363,7 +363,7 @@ All hub-installed skills go through a security scanner that checks for:
 
 Trust levels:
 - `builtin` — ships with Hermes (always trusted)
-- `official` — from `optional-skills/` in the repo (builtin trust, no third-party warning)
+- `official` — from `resources/optional-skills/` in the repo (builtin trust, no third-party warning)
 - `trusted` — from openai/skills, anthropics/skills, huggingface/skills
 - `community` — non-dangerous findings can be overridden with `--force`; `dangerous` verdicts remain blocked
 

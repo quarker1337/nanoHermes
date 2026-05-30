@@ -1,4 +1,4 @@
-"""Tests for skills/media/youtube-content/scripts/fetch_transcript.py (issue #22243)."""
+"""Tests for resources/skills/media/youtube-content/scripts/fetch_transcript.py (issue #22243)."""
 
 import sys
 from pathlib import Path
@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 
-SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "skills" / "media" / "youtube-content" / "scripts"
+SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "resources" / "skills" / "media" / "youtube-content" / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import fetch_transcript

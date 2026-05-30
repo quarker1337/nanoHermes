@@ -1,6 +1,6 @@
 """Tests for website/scripts/generate-skill-docs.py.
 
-The generator turns every `skills/**/SKILL.md` into a Docusaurus page before
+The generator turns every `resources/skills/**/SKILL.md` into a Docusaurus page before
 the `docs-site-checks` CI workflow runs `ascii-guard lint` on the result. If
 a SKILL.md contains ASCII diagrams (box-drawing chars in a fenced code block)
 without its own `<!-- ascii-guard-ignore -->` markers, the generator must

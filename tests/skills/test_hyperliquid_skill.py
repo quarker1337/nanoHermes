@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 SCRIPT_PATH = (
     Path(__file__).resolve().parents[2]
+    / "resources"
     / "optional-skills"
     / "blockchain"
     / "hyperliquid"

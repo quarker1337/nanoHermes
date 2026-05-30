@@ -15,7 +15,7 @@ Pixel art w/ era palettes (NES, Game Boy, PICO-8).
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/creative/pixel-art` |
+| Path | `resources/skills/creative/pixel-art` |
 | Version | `2.0.0` |
 | Author | dodo-reach |
 | License | MIT |

@@ -15,7 +15,7 @@ Review PRs: diffs, inline comments via gh or REST.
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/github/github-code-review` |
+| Path | `resources/skills/github/github-code-review` |
 | Version | `1.1.0` |
 | Author | Hermes Agent |
 | License | MIT |

@@ -2,7 +2,7 @@
 """
 Skills Sync -- Manifest-based seeding and updating of bundled skills.
 
-Copies bundled skills from the repo's skills/ directory into ~/.hermes/skills/
+Copies bundled skills from the repo's resources/skills/ directory into ~/.hermes/skills/
 and uses a manifest to track which skills have been synced and their origin hash.
 
 Manifest format (v2): each line is "skill_name:origin_hash" where origin_hash
@@ -42,18 +42,18 @@ MANIFEST_FILE = SKILLS_DIR / ".bundled_manifest"
 
 
 def _get_bundled_dir() -> Path:
-    """Locate the bundled skills/ directory.
+    """Locate the bundled resources/skills/ directory.
 
     Checks HERMES_BUNDLED_SKILLS env var first (set by Nix wrapper),
     then a wheel-installed data dir, then falls back to the relative
     path from this source file.
     """
-    return get_bundled_skills_dir(Path(__file__).parent.parent / "skills")
+    return get_bundled_skills_dir(Path(__file__).parent.parent / "resources" / "skills")
 
 
 def _get_optional_dir() -> Path:
-    """Locate the official optional-skills/ directory."""
-    return get_optional_skills_dir(Path(__file__).parent.parent / "optional-skills")
+    """Locate the official resources/optional-skills/ directory."""
+    return get_optional_skills_dir(Path(__file__).parent.parent / "resources" / "optional-skills")
 
 
 def _read_manifest() -> Dict[str, str]:
@@ -328,7 +328,7 @@ def _backfill_optional_provenance(quiet: bool = False) -> List[str]:
 
     This covers the migration case where a skill used to be bundled (or was
     manually copied into the active skills tree) and later lives under
-    optional-skills/. If the active copy is byte-identical to the official
+    resources/optional-skills/. If the active copy is byte-identical to the official
     optional source, record official hub provenance without copying or
     reinstalling anything. Modified/local skills are left alone.
     """

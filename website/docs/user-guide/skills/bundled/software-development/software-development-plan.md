@@ -15,7 +15,7 @@ Plan mode: write markdown plan to .hermes/plans/, no exec.
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/software-development/plan` |
+| Path | `resources/skills/software-development/plan` |
 | Version | `1.0.0` |
 | Author | Hermes Agent |
 | License | MIT |

@@ -15,7 +15,7 @@ Modify, debug, or extend the s6-overlay supervision tree inside the Hermes Agent
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/software-development/hermes-s6-container-supervision` |
+| Path | `resources/skills/software-development/hermes-s6-container-supervision` |
 | Version | `1.0.0` |
 | Author | Hermes Agent |
 | License | MIT |

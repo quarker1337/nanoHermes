@@ -15,7 +15,7 @@ Throwaway HTML mockups: 2-3 design variants to compare.
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/creative/sketch` |
+| Path | `resources/skills/creative/sketch` |
 | Version | `1.0.0` |
 | Author | Hermes Agent (adapted from gsd-build/get-shit-done) |
 | License | MIT |

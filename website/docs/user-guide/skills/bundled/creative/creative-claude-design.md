@@ -15,7 +15,7 @@ Design one-off HTML artifacts (landing, deck, prototype).
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/creative/claude-design` |
+| Path | `resources/skills/creative/claude-design` |
 | Version | `1.0.0` |
 | Author | BadTechBandit |
 | License | MIT |

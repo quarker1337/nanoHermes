@@ -15,7 +15,7 @@ Execute plans via delegate_task subagents (2-stage review).
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/software-development/subagent-driven-development` |
+| Path | `resources/skills/software-development/subagent-driven-development` |
 | Version | `1.1.0` |
 | Author | Hermes Agent (adapted from obra/superpowers) |
 | License | MIT |

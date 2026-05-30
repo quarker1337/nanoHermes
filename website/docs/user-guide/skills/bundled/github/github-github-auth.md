@@ -15,7 +15,7 @@ GitHub auth setup: HTTPS tokens, SSH keys, gh CLI login.
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/github/github-auth` |
+| Path | `resources/skills/github/github-auth` |
 | Version | `1.1.0` |
 | Author | Hermes Agent |
 | License | MIT |

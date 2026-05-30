@@ -15,7 +15,7 @@ Use when a Hermes Kanban worker wants to run Codex CLI as an isolated implementa
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/autonomous-ai-agents/kanban-codex-lane` |
+| Path | `resources/skills/autonomous-ai-agents/kanban-codex-lane` |
 | Version | `1.0.0` |
 | Author | Hermes Agent |
 | License | MIT |

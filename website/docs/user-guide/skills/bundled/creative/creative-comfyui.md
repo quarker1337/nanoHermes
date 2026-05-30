@@ -15,7 +15,7 @@ Generate images, video, and audio with ComfyUI — install, launch, manage nodes
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/creative/comfyui` |
+| Path | `resources/skills/creative/comfyui` |
 | Version | `5.1.0` |
 | Author | ['kshitijk4poor', 'alt-glitch', 'purzbeats'] |
 | License | MIT |

@@ -15,7 +15,7 @@ Control a running TouchDesigner instance via twozero MCP — create operators, s
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/creative/touchdesigner-mcp` |
+| Path | `resources/skills/creative/touchdesigner-mcp` |
 | Version | `1.1.0` |
 | Author | kshitijk4poor |
 | License | MIT |

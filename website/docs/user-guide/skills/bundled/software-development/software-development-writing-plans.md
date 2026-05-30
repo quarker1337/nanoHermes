@@ -15,7 +15,7 @@ Write implementation plans: bite-sized tasks, paths, code.
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/software-development/writing-plans` |
+| Path | `resources/skills/software-development/writing-plans` |
 | Version | `1.1.0` |
 | Author | Hermes Agent (adapted from obra/superpowers) |
 | License | MIT |

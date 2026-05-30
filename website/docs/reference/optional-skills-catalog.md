@@ -6,7 +6,7 @@ description: "Official optional skills shipped with hermes-agent — install via
 
 # Optional Skills Catalog
 
-Optional skills ship with hermes-agent under `optional-skills/` but are **not active by default**. Install them explicitly:
+Optional skills ship with hermes-agent under `resources/optional-skills/` but are **not active by default**. Install them explicitly:
 
 ```bash
 hermes skills install official/<category>/<skill>
@@ -202,7 +202,7 @@ hermes skills uninstall <skill-name>
 
 To add a new optional skill to the repository:
 
-1. Create a directory under `optional-skills/<category>/<skill-name>/`
+1. Create a directory under `resources/optional-skills/<category>/<skill-name>/`
 2. Add a `SKILL.md` with standard frontmatter (name, description, version, author)
 3. Include any supporting files in `references/`, `templates/`, or `scripts/` subdirectories
 4. Submit a pull request — the skill will appear in this catalog and get its own docs page once merged

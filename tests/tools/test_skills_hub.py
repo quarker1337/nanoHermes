@@ -1495,7 +1495,7 @@ class TestSkillMetaToDict:
 
 class TestOptionalSkillSourceBinaryAssets:
     def test_fetch_preserves_binary_assets(self, tmp_path):
-        optional_root = tmp_path / "optional-skills"
+        optional_root = tmp_path / "resources" / "optional-skills"
         skill_dir = optional_root / "mlops" / "models" / "neutts"
         (skill_dir / "assets" / "neutts-cli" / "samples").mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text(

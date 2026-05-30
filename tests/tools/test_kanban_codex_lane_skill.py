@@ -8,7 +8,7 @@ from tools.skill_manager_tool import _validate_frontmatter
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILL_DIR = REPO_ROOT / "skills" / "autonomous-ai-agents" / "kanban-codex-lane"
+SKILL_DIR = REPO_ROOT / "resources" / "skills" / "autonomous-ai-agents" / "kanban-codex-lane"
 SKILL_MD = SKILL_DIR / "SKILL.md"
 TEMPLATE = SKILL_DIR / "templates" / "pmb-codex-lane-prompt.md"
 
@@ -28,7 +28,7 @@ def test_kanban_codex_lane_skill_frontmatter_is_valid():
 def test_kanban_codex_lane_skill_is_discoverable_with_template(monkeypatch, tmp_path):
     local_skills = tmp_path / "skills"
     local_skills.mkdir()
-    bundled_skills = REPO_ROOT / "skills"
+    bundled_skills = REPO_ROOT / "resources" / "skills"
 
     monkeypatch.setattr(skills_tool, "SKILLS_DIR", local_skills)
     monkeypatch.setattr(

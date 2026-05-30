@@ -15,7 +15,7 @@ Create, triage, label, assign GitHub issues via gh or REST.
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/github/github-issues` |
+| Path | `resources/skills/github/github-issues` |
 | Version | `1.1.0` |
 | Author | Hermes Agent |
 | License | MIT |

@@ -15,7 +15,7 @@ Search personal knowledge bases, notes, docs, and meeting transcripts locally us
 | | |
 |---|---|
 | Source | Optional — install with `hermes skills install official/research/qmd` |
-| Path | `optional-skills/research/qmd` |
+| Path | `resources/optional-skills/research/qmd` |
 | Version | `1.0.0` |
 | Author | Hermes Agent + Teknium |
 | License | MIT |

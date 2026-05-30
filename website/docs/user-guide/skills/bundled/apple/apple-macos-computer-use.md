@@ -18,7 +18,7 @@ Space. Works with any tool-capable model. Load this skill whenever the
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/apple/macos-computer-use` |
+| Path | `resources/skills/apple/macos-computer-use` |
 | Version | `1.0.0` |
 | Platforms | macos |
 | Tags | `computer-use`, `macos`, `desktop`, `automation`, `gui` |

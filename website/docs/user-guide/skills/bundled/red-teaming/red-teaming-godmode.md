@@ -15,7 +15,7 @@ Jailbreak LLMs: Parseltongue, GODMODE, ULTRAPLINIAN.
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/red-teaming/godmode` |
+| Path | `resources/skills/red-teaming/godmode` |
 | Version | `1.0.0` |
 | Author | Hermes Agent + Teknium |
 | License | MIT |

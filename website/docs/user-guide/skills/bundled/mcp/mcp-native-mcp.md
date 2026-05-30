@@ -15,7 +15,7 @@ MCP client: connect servers, register tools (stdio/HTTP).
 | | |
 |---|---|
 | Source | Bundled (installed by default) |
-| Path | `skills/mcp/native-mcp` |
+| Path | `resources/skills/mcp/native-mcp` |
 | Version | `1.0.0` |
 | Author | Hermes Agent |
 | License | MIT |

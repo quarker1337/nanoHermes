@@ -15,7 +15,7 @@ OpenAI's model connecting vision and language. Enables zero-shot image classific
 | | |
 |---|---|
 | Source | Optional — install with `hermes skills install official/mlops/clip` |
-| Path | `optional-skills/mlops/clip` |
+| Path | `resources/optional-skills/mlops/clip` |
 | Version | `1.0.0` |
 | Author | Orchestra Research |
 | License | MIT |

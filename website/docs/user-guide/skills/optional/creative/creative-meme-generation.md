@@ -15,7 +15,7 @@ Generate real meme images by picking a template and overlaying text with Pillow.
 | | |
 |---|---|
 | Source | Optional — install with `hermes skills install official/creative/meme-generation` |
-| Path | `optional-skills/creative/meme-generation` |
+| Path | `resources/optional-skills/creative/meme-generation` |
 | Version | `2.0.0` |
 | Author | adanaleycio |
 | License | MIT |

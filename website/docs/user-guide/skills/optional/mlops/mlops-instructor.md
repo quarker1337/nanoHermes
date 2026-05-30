@@ -15,7 +15,7 @@ Extract structured data from LLM responses with Pydantic validation, retry faile
 | | |
 |---|---|
 | Source | Optional — install with `hermes skills install official/mlops/instructor` |
-| Path | `optional-skills/mlops/instructor` |
+| Path | `resources/optional-skills/mlops/instructor` |
 | Version | `1.0.0` |
 | Author | Orchestra Research |
 | License | MIT |

@@ -9,8 +9,8 @@ This repo is a downstream Hermes Agent snapshot plus NanoHermes-specific package
 | `agent/`, `tools/`, `hermes_cli/`, `gateway/`, `tui_gateway/`, `cron/`, `acp_adapter/`, `acp_registry/`, `providers/`, `plugins/` | Runtime Python packages inherited from Hermes Agent. | Treat as core runtime. Moving these requires `pyproject.toml`, imports, tests, and upstream-sync review. |
 | `nanohermes/` | NanoHermes-specific runtime code. | Package-manager client lives in `nanohermes/package_manager/`; keep this surface small and heavily tested. |
 | Root Python modules: `cli.py`, `run_agent.py`, `toolsets.py`, `toolset_distributions.py`, `hermes_bootstrap.py`, `hermes_constants.py`, `hermes_state.py`, `hermes_time.py`, `hermes_logging.py`, `utils.py`, `model_tools.py`, `batch_runner.py`, `trajectory_compressor.py`, `mcp_serve.py`, `mini_swe_runner.py` | Legacy import/entrypoint modules listed in `pyproject.toml` or used by scripts. | Do not move casually; first confirm imports and `tool.setuptools.py-modules`. |
-| `skills/` | Bundled base skill corpus installed with the base distribution. | Size-sensitive. If base install grows, audit here first. |
-| `optional-skills/`, `optional-mcps/` | Optional payload candidates for package-managed install. | Should not be bundled into every base wheel/sdist. Check `MANIFEST.in` and `setup.py`. |
+| `resources/skills/` | Bundled base skill corpus installed with the base distribution. | Size-sensitive. If base install grows, audit here first. Kept out of root so code/packages are visually separate from corpus payloads. |
+| `resources/optional-skills/`, `resources/optional-mcps/` | Optional payload candidates for package-managed install. | Should not be bundled into every base wheel/sdist. Check `MANIFEST.in` and `setup.py`. |
 | `tests/` | Test suite. | Focused NanoHermes package-manager tests are under `tests/package_manager/`. |
 | `scripts/` | Maintainer scripts, installer scripts, sync scripts, and small operational helpers. | Public installer scripts are packaging-sensitive; sync scripts are NanoHermes-critical. |
 | `docker/`, `Dockerfile`, `docker-compose*.yml` | Container runtime and compose entrypoints. | Kept at root because Docker tooling and tests expect the default paths. |
@@ -55,9 +55,9 @@ This repo is a downstream Hermes Agent snapshot plus NanoHermes-specific package
 - `uv.lock`
 - `setup.py`
 - `MANIFEST.in`
-- `skills/`
-- `optional-skills/`
-- `optional-mcps/`
+- `resources/skills/`
+- `resources/optional-skills/`
+- `resources/optional-mcps/`
 
 ### Tool availability and runtime surface
 
@@ -83,4 +83,5 @@ This repo is a downstream Hermes Agent snapshot plus NanoHermes-specific package
 2. Do not add new one-off markdown files to root. Put them under `docs/nanohermes/`, `docs/notes/`, `docs/plans/`, or `docs/releases/`.
 3. Keep generated output out of git: `.hermes/`, `.venv/`, `build/`, `dist/`, web build outputs, and scratch examples.
 4. Keep NanoHermes-specific code under `nanohermes/` unless it must wire into upstream Hermes CLI/runtime paths.
-5. When moving files, update references in docs/tests in the same commit and run at least the focused package-manager gate.
+5. Keep large corpus/resource payloads under `resources/` instead of root-level folders.
+6. When moving files, update references in docs/tests in the same commit and run at least the focused package-manager gate.

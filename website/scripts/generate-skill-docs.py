@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate per-skill Docusaurus pages from skills/ and optional-skills/ SKILL.md files.
+"""Generate per-skill Docusaurus pages from resources/skills/ and resources/optional-skills/ SKILL.md files.
 
 Each skill gets website/docs/user-guide/skills/<source>/<category>/<skill-name>.md
 where <source> is "bundled" or "optional".
@@ -25,8 +25,8 @@ DOCS = REPO / "website" / "docs"
 SKILLS_PAGES = DOCS / "user-guide" / "skills"
 
 SKILL_SOURCES = [
-    ("bundled", REPO / "skills"),
-    ("optional", REPO / "optional-skills"),
+    ("bundled", REPO / "resources" / "skills"),
+    ("optional", REPO / "resources" / "optional-skills"),
 ]
 
 # Pages the user had previously hand-written in user-guide/skills/.
@@ -226,12 +226,13 @@ def mdx_escape_body(body: str) -> str:
 def rewrite_relative_links(body: str, meta: dict[str, Any]) -> str:
     """Rewrite references/foo.md style links in the SKILL.md body.
 
-    The source SKILL.md lives in `skills/<...>` and references sibling files
+    The source SKILL.md lives in `resources/skills/<...>` or
+    `resources/optional-skills/<...>` and references sibling files
     with paths like `references/foo.md` or `./templates/bar.md`. Those files
     are NOT copied into docs/, so we rewrite these to absolute GitHub URLs
     pointing to the file in the repo.
     """
-    source_dir = "skills" if meta["source_kind"] == "bundled" else "optional-skills"
+    source_dir = "resources/skills" if meta["source_kind"] == "bundled" else "resources/optional-skills"
     base = f"https://github.com/NousResearch/hermes-agent/blob/main/{source_dir}/{meta['rel_path']}"
 
     def sub_link(m: re.Match) -> str:
@@ -277,14 +278,14 @@ def sanitize_yaml_string(s: str) -> str:
 def derive_skill_meta(skill_path: Path, source_dir: Path, source_kind: str) -> dict[str, Any]:
     """Extract category + skill slug from filesystem layout.
 
-    skills/<cat>/<skill>/SKILL.md           -> cat=<cat>, slug=<skill>
-    skills/<cat>/<sub>/<skill>/SKILL.md     -> cat=<cat>, sub=<sub>, slug=<skill>
-    optional-skills/<cat>/<skill>/SKILL.md  -> cat=<cat>, slug=<skill>
+    resources/skills/<cat>/<skill>/SKILL.md           -> cat=<cat>, slug=<skill>
+    resources/skills/<cat>/<sub>/<skill>/SKILL.md     -> cat=<cat>, sub=<sub>, slug=<skill>
+    resources/optional-skills/<cat>/<skill>/SKILL.md  -> cat=<cat>, slug=<skill>
     """
     rel = skill_path.parent.relative_to(source_dir)
     parts = rel.parts
     if len(parts) == 1:
-        # Top-level skill (e.g. skills/dogfood/SKILL.md) -- rare
+        # Top-level skill (e.g. resources/skills/dogfood/SKILL.md) -- rare
         category = parts[0]
         sub = None
         slug = parts[0]
@@ -365,7 +366,7 @@ def render_skill_page(
                 + "`",
             )
         )
-    source_dir = "skills" if meta["source_kind"] == "bundled" else "optional-skills"
+    source_dir = "resources/skills" if meta["source_kind"] == "bundled" else "resources/optional-skills"
     info_rows.append(("Path", f"`{source_dir}/{meta['rel_path']}`"))
     if version:
         info_rows.append(("Version", f"`{version}`"))
@@ -523,7 +524,7 @@ def build_catalog_md_optional(entries: list[tuple[dict[str, Any], dict[str, Any]
         "",
         "# Optional Skills Catalog",
         "",
-        "Optional skills ship with hermes-agent under `optional-skills/` but are **not active by default**. Install them explicitly:",
+        "Optional skills ship with hermes-agent under `resources/optional-skills/` but are **not active by default**. Install them explicitly:",
         "",
         "```bash",
         "hermes skills install official/<category>/<skill>",
@@ -569,7 +570,7 @@ def build_catalog_md_optional(entries: list[tuple[dict[str, Any], dict[str, Any]
             "",
             "To add a new optional skill to the repository:",
             "",
-            "1. Create a directory under `optional-skills/<category>/<skill-name>/`",
+            "1. Create a directory under `resources/optional-skills/<category>/<skill-name>/`",
             "2. Add a `SKILL.md` with standard frontmatter (name, description, version, author)",
             "3. Include any supporting files in `references/`, `templates/`, or `scripts/` subdirectories",
             "4. Submit a pull request — the skill will appear in this catalog and get its own docs page once merged",

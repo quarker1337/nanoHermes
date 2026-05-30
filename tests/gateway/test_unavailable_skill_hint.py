@@ -139,17 +139,17 @@ def test_slug_normalization_strips_non_alnum(
 def test_optional_skill_uses_frontmatter_slug(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Same drift bug applies to the optional-skills branch.
+    """Same drift bug applies to the resources/optional-skills branch.
 
     Before: directory name was matched against the typed command, so an
-    optional skill at ``optional-skills/mlops/stable-diffusion/SKILL.md``
+    optional skill at ``resources/optional-skills/mlops/stable-diffusion/SKILL.md``
     with frontmatter ``Stable Diffusion Image Generation`` returned None
     when the user typed the real slug.
     """
     from gateway import run as gateway_run
 
-    # Build an isolated optional-skills dir
-    optional = tmp_path / "optional-skills"
+    # Build an isolated resources/optional-skills dir
+    optional = tmp_path / "resources" / "optional-skills"
     skill_dir = optional / "mlops" / "stable-diffusion"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
@@ -158,7 +158,7 @@ def test_optional_skill_uses_frontmatter_slug(
     )
 
     # Point the optional lookup at our tmp dir. The source reads from
-    # ``get_optional_skills_dir(repo_root / "optional-skills")`` — we
+    # ``get_optional_skills_dir(repo_root / "resources" / "optional-skills")`` — we
     # can't easily retarget ``repo_root``, so patch the resolver.
     monkeypatch.setattr(
         "hermes_constants.get_optional_skills_dir",
@@ -178,7 +178,7 @@ def test_optional_skill_uses_frontmatter_slug(
         msg = gateway_run._check_unavailable_skill("stable-diffusion-image-generation")
 
     assert msg is not None, (
-        "optional-skills branch should recognize the frontmatter-derived slug; "
+        "resources/optional-skills branch should recognize the frontmatter-derived slug; "
         "the old dir-name-based check returned None here too"
     )
     assert "not installed" in msg.lower()

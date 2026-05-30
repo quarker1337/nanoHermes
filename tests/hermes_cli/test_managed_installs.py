@@ -52,8 +52,8 @@ def test_cmd_update_blocks_managed_homebrew(monkeypatch, capsys):
 
 
 def test_optional_skill_source_honors_env_override(monkeypatch, tmp_path):
-    optional_dir = tmp_path / "optional-skills"
-    optional_dir.mkdir()
+    optional_dir = tmp_path / "resources" / "optional-skills"
+    optional_dir.mkdir(parents=True)
     monkeypatch.setenv("HERMES_OPTIONAL_SKILLS", str(optional_dir))
 
     source = OptionalSkillSource()

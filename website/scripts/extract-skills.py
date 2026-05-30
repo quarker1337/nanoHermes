@@ -3,8 +3,8 @@
 
 Two data sources:
 
-1. Local SKILL.md files under ``skills/`` (built-in) and ``optional-skills/``
-   (official optional). These give us full metadata — overview prose, version,
+1. Local SKILL.md files under ``resources/skills/`` (built-in) and
+   ``resources/optional-skills/`` (official optional). These give us full metadata — overview prose, version,
    license, env vars, commands — that the unified index doesn't carry.
 
 2. The unified Hermes Skills Index at ``website/static/api/skills-index.json``,
@@ -13,7 +13,7 @@ Two data sources:
    LobeHub, Claude Marketplace, well-known endpoints, and the GitHub taps
    (openai/skills, anthropics/skills, huggingface/skills, VoltAgent, etc.).
 
-Legacy fallback: if the unified index is missing AND ``skills/index-cache/``
+Legacy fallback: if the unified index is missing AND ``resources/skills/index-cache/``
 contains pre-baked JSON dumps, we read those (preserves behaviour from before
 the unified index existed).
 """
@@ -27,11 +27,11 @@ import yaml
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 LOCAL_SKILL_DIRS = [
-    ("skills", "built-in"),
-    ("optional-skills", "optional"),
+    ("resources/skills", "built-in"),
+    ("resources/optional-skills", "optional"),
 ]
 UNIFIED_INDEX_PATH = os.path.join(REPO_ROOT, "website", "static", "api", "skills-index.json")
-LEGACY_INDEX_CACHE_DIR = os.path.join(REPO_ROOT, "skills", "index-cache")
+LEGACY_INDEX_CACHE_DIR = os.path.join(REPO_ROOT, "resources", "skills", "index-cache")
 # Output to static/api/ so the file is CDN-served at /api/skills.json
 # rather than bundled into the page's JS chunk. At 50k+ skills the
 # bundled payload was ~26 MB; lazy-fetch keeps the initial page load
@@ -100,7 +100,7 @@ GITHUB_TAP_LABELS = {
     "MiniMax-AI/cli": "MiniMax",
 }
 
-# Legacy filename -> label mapping for the deprecated skills/index-cache/
+# Legacy filename -> label mapping for the deprecated resources/skills/index-cache/
 # fallback. Used only when website/static/api/skills-index.json is absent.
 LEGACY_SOURCE_LABELS = {
     "anthropics_skills": "Anthropic",
@@ -141,9 +141,9 @@ def _docs_page_path(rel_dir: str, source_label: str) -> str:
     """Compute the per-skill docs-site URL slug for a given SKILL.md location.
 
     Mirrors the slug logic in website/scripts/generate-skill-docs.py:
-      bundled  + skills/<cat>/<slug>/SKILL.md          -> bundled/<cat>/<cat>-<slug>
-      bundled  + skills/<cat>/<sub>/<slug>/SKILL.md    -> bundled/<cat>/<cat>-<sub>-<slug>
-      optional + optional-skills/<cat>/<slug>/SKILL.md -> optional/<cat>/<cat>-<slug>
+      bundled  + resources/skills/<cat>/<slug>/SKILL.md          -> bundled/<cat>/<cat>-<slug>
+      bundled  + resources/skills/<cat>/<sub>/<slug>/SKILL.md    -> bundled/<cat>/<cat>-<sub>-<slug>
+      optional + resources/optional-skills/<cat>/<slug>/SKILL.md -> optional/<cat>/<cat>-<slug>
     """
     parts = [p for p in rel_dir.split(os.sep) if p]
     if not parts:
@@ -328,7 +328,7 @@ def extract_unified_index_skills():
             tags = []
 
         # Skip official entries here — extract_local_skills() already covered
-        # those from optional-skills/ with full metadata (overview, version, etc.).
+        # those from resources/optional-skills/ with full metadata (overview, version, etc.).
         if source_id == "official":
             continue
 
@@ -375,7 +375,7 @@ def extract_unified_index_skills():
 
 
 def extract_legacy_cache_skills():
-    """Read the deprecated skills/index-cache/ snapshots — fallback only."""
+    """Read the deprecated resources/skills/index-cache/ snapshots — fallback only."""
     skills = []
 
     if not os.path.isdir(LEGACY_INDEX_CACHE_DIR):
