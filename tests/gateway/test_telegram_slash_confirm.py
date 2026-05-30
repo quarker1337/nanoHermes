@@ -38,6 +38,11 @@ from gateway.platforms.telegram import TelegramAdapter
 from gateway.config import PlatformConfig
 
 
+def _assert_markdown_v2(parse_mode):
+    """Accept both python-telegram-bot enum and string constants."""
+    assert parse_mode == "MarkdownV2" or "MARKDOWN_V2" in repr(parse_mode)
+
+
 def _make_adapter():
     config = PlatformConfig(enabled=True, token="test-token", extra={})
     adapter = TelegramAdapter(config)
@@ -71,7 +76,7 @@ class TestSendSlashConfirm:
         )
 
         assert result.success is True
-        assert "MARKDOWN_V2" in repr(sent["parse_mode"])
+        _assert_markdown_v2(sent["parse_mode"])
         # Underscores and dots must be escaped by format_message
         assert "script\\_name" in sent["text"]
         assert "\\." in sent["text"]

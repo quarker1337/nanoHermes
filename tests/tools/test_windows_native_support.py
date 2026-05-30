@@ -495,7 +495,7 @@ class TestEntryPointsConfigureStdio:
 
     @pytest.mark.parametrize(
         "relpath",
-        ["cli.py", "hermes_cli/main.py", "gateway/run.py"],
+        ["cli.py", "hermes_cli/main.py", "runtime/gateway/run.py"],
     )
     def test_entry_point_calls_configure_stdio(self, relpath):
         root = Path(__file__).resolve().parents[2]
@@ -588,7 +588,7 @@ class TestTuiGatewayEntrySignalGuards:
 
     def test_source_guards_each_signal_installation(self):
         root = Path(__file__).resolve().parents[2]
-        source = (root / "tui_gateway" / "entry.py").read_text(encoding="utf-8")
+        source = (root / "runtime" / "tui_gateway" / "entry.py").read_text(encoding="utf-8")
         # Every signal.signal(...) at module scope must be preceded by a
         # hasattr check.  We look at the text: no bare "signal.signal("
         # call should appear outside a function body without a guard.
@@ -683,7 +683,7 @@ class TestCronSchedulerBashResolution:
 
     def test_source_uses_shutil_which_for_bash(self):
         root = Path(__file__).resolve().parents[2]
-        source = (root / "cron" / "scheduler.py").read_text(encoding="utf-8")
+        source = (root / "runtime" / "cron" / "scheduler.py").read_text(encoding="utf-8")
         # The old hardcoded path should be gone as the sole bash source.
         # It may still appear as a POSIX fallback after shutil.which(), so
         # we check for the shutil.which call near the .sh/.bash branch.
@@ -693,7 +693,7 @@ class TestCronSchedulerBashResolution:
 
     def test_error_message_when_bash_missing(self):
         root = Path(__file__).resolve().parents[2]
-        source = (root / "cron" / "scheduler.py").read_text(encoding="utf-8")
+        source = (root / "runtime" / "cron" / "scheduler.py").read_text(encoding="utf-8")
         # The graceful-failure message must mention "bash not found" so
         # Windows users without Git Bash see an actionable error instead
         # of a WinError 2 traceback.
@@ -715,7 +715,7 @@ class TestNpmBareSpawnsResolved:
         [
             "hermes_cli/tools_config.py",
             "hermes_cli/doctor.py",
-            "gateway/platforms/whatsapp.py",
+            "runtime/gateway/platforms/whatsapp.py",
             "tools/browser_tool.py",
         ],
     )
@@ -875,7 +875,7 @@ class TestGatewayDetachedWatcherWindowsFlags:
 
     def test_gateway_run_update_has_windows_branch(self):
         root = Path(__file__).resolve().parents[2]
-        source = (root / "gateway" / "run.py").read_text(encoding="utf-8")
+        source = (root / "runtime" / "gateway" / "run.py").read_text(encoding="utf-8")
         # Both the /restart and /update paths must have sys.platform=='win32' branches.
         assert 'if sys.platform == "win32":' in source
         # Windows branch uses windows_detach_popen_kwargs

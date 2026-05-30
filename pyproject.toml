@@ -233,6 +233,7 @@ plugins = [
 ]
 
 [tool.setuptools.packages.find]
+where = [".", "runtime"]
 include = ["agent", "agent.*", "tools", "tools.*", "hermes_cli", "hermes_cli.*", "gateway", "gateway.*", "tui_gateway", "tui_gateway.*", "cron", "acp_adapter", "plugins", "plugins.*", "providers", "providers.*"]
 
 [tool.pytest.ini_options]
@@ -274,4 +275,4 @@ select = ["PLW1514"]
 # Skills and plugins are partially user-authored — their own conventions.
 "resources/skills/**" = ["PLW1514"]
 "resources/optional-skills/**" = ["PLW1514"]
-"plugins/**" = ["PLW1514"]
+"runtime/plugins/**" = ["PLW1514"]

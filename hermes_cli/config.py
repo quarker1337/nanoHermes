@@ -5818,10 +5818,13 @@ def _inject_platform_plugin_env_vars() -> None:
     try:
         import yaml  # type: ignore
 
-        # Resolve the bundled plugins dir from this file's location so the
+        # Resolve the bundled runtime/plugins dir from this file's location so the
         # injector works regardless of CWD.
         repo_root = Path(__file__).resolve().parents[1]
-        platforms_dir = repo_root / "plugins" / "platforms"
+        plugins_dir = repo_root / "runtime" / "plugins"
+        if not plugins_dir.is_dir():
+            plugins_dir = repo_root / "plugins"
+        platforms_dir = plugins_dir / "platforms"
         if not platforms_dir.is_dir():
             return
         for child in platforms_dir.iterdir():

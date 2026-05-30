@@ -2,13 +2,14 @@
 
 This repo is a downstream Hermes Agent snapshot plus NanoHermes-specific package-management work.
 
-The guiding rule is: keep the root readable. Root-level directories should either be Python import roots that still need to stay stable for upstream sync, or broad buckets that explain what is inside them.
+The guiding rule is: keep the root readable. Root-level directories should be broad buckets; legacy Python import names stay stable through small root shim files that point at `runtime/`.
 
 ## Root buckets
 
 | Path | What belongs here |
 |---|---|
-| `agent/`, `tools/`, `hermes_cli/`, `gateway/`, `tui_gateway/`, `cron/`, `acp_adapter/`, `providers/`, `plugins/` | Runtime Python packages inherited from Hermes Agent. These stay at root for now to keep imports, editable installs, and upstream patch-sync sane. |
+| `runtime/` | Relocated runtime Python packages inherited from Hermes Agent: `agent/`, `gateway/`, `tui_gateway/`, `cron/`, `acp_adapter/`, `providers/`, and `plugins/`. Root shim files preserve legacy imports and `python -m ...` entrypoints. |
+| `tools/`, `hermes_cli/` | Runtime packages still left at root because they own many repo-root-relative paths and frontend/package-manager surfaces. |
 | `hermes_cli/package_manager/` | NanoHermes package-manager implementation. The `nanohermes` executable is just an alias into `hermes_cli.main`; there is no separate root `nanohermes/` package anymore. |
 | `apps/dashboard/` | Browser dashboard frontend. Formerly root `web/`. |
 | `apps/tui/` | Terminal UI frontend. Formerly root `ui-tui/`. |
@@ -37,7 +38,7 @@ The guiding rule is: keep the root readable. Root-level directories should eithe
 | `package.json`, `package-lock.json` | Root Node dependency surface for browser tooling. |
 | `Dockerfile`, `docker-compose*.yml`, `.dockerignore` | Standard Docker defaults expect these at root. The implementation files are in `infra/docker/`. |
 | `flake.nix`, `flake.lock`, `.envrc` | Standard Nix/dev-shell entrypoints. Implementation files are in `infra/nix/`. |
-| Root Python modules such as `cli.py`, `run_agent.py`, `toolsets.py`, `hermes_constants.py`, `utils.py` | Legacy import/entrypoint modules listed in `pyproject.toml` or used by scripts. Move only in a dedicated import-migration branch. |
+| Root Python modules such as `cli.py`, `run_agent.py`, `toolsets.py`, `hermes_constants.py`, `utils.py` plus shim files such as `agent.py`, `gateway.py`, and `tui_gateway.py` | Legacy import/entrypoint modules listed in `pyproject.toml` or compatibility shims for packages relocated under `runtime/`. |
 
 ## Fast audit entry points
 

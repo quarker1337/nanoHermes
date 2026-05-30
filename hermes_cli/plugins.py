@@ -4,7 +4,7 @@ Hermes Plugin System
 
 Discovers, loads, and manages plugins from four sources:
 
-1. **Bundled plugins** – ``<repo>/plugins/<name>/`` (shipped with hermes-agent;
+1. **Bundled plugins** – ``<repo>/runtime/plugins/<name>/`` (shipped with hermes-agent;
    ``memory/`` and ``context_engine/`` subdirs are excluded — they have their
    own discovery paths)
 2. **User plugins**   – ``~/.hermes/plugins/<name>/``
@@ -52,7 +52,7 @@ from hermes_cli.config import cfg_get
 
 
 def get_bundled_plugins_dir() -> Path:
-    """Locate the bundled ``plugins/`` directory.
+    """Locate the bundled ``runtime/plugins/`` directory.
 
     Honours ``HERMES_BUNDLED_PLUGINS`` (set by the Nix wrapper / packaged
     installs) so read-only store paths are consulted first.  Falls back to
@@ -61,7 +61,11 @@ def get_bundled_plugins_dir() -> Path:
     env_override = os.getenv("HERMES_BUNDLED_PLUGINS")
     if env_override:
         return Path(env_override)
-    return Path(__file__).resolve().parent.parent / "plugins"
+    base = Path(__file__).resolve().parent.parent
+    source_checkout = base / "runtime" / "plugins"
+    if source_checkout.is_dir():
+        return source_checkout
+    return base / "plugins"
 
 try:
     import yaml

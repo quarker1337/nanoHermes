@@ -129,7 +129,7 @@ def test_production_code_contains_hydration_block():
     """
     from pathlib import Path
     repo = Path(__file__).resolve().parents[2]
-    cl_path = repo / "agent" / "conversation_loop.py"
+    cl_path = repo / "runtime" / "agent" / "conversation_loop.py"
     src_cl = cl_path.read_text(encoding="utf-8")
     # Anchor on the unique comment + the modulo line.
     assert "Hydrate per-session nudge counters from persisted history" in src_cl, (

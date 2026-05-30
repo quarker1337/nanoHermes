@@ -3754,7 +3754,7 @@ def test_gateway_dispatcher_retries_corrupt_board_after_quarantine(
         caller = inspect.currentframe().f_back  # type: ignore[union-attr]
         code = caller.f_code if caller is not None else None
         filename = code.co_filename if code is not None else ""
-        if filename.endswith("gateway/run.py"):
+        if filename.endswith("runtime/gateway/run.py"):
             return next(time_values, 1301.0)
         return real_monotonic()
 

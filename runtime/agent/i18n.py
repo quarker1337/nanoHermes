@@ -90,8 +90,8 @@ def _locales_dir() -> Path:
     Lives next to the repo root so both the bundled install and editable
     checkouts find it without PYTHONPATH gymnastics.
     """
-    # agent/i18n.py -> agent/ -> repo root
-    return Path(__file__).resolve().parent.parent / "resources" / "locales"
+    # runtime/agent/i18n.py -> runtime/agent/ -> runtime/ -> repo root
+    return Path(__file__).resolve().parents[2] / "resources" / "locales"
 
 
 def _normalize_lang(value: Any) -> str:

@@ -305,6 +305,7 @@ def _scan_gateway_pids(exclude_pids: set[int], all_profiles: bool = False) -> li
         "hermes_cli/main.py --profile",
         "hermes_cli/main.py -p",
         "hermes gateway",
+        "runtime/gateway/run.py",
         "gateway/run.py",
     ]
     current_home = str(get_hermes_home().resolve())
@@ -1607,6 +1608,7 @@ _LEGACY_SERVICE_NAMES: tuple[str, ...] = ("hermes.service",)
 _LEGACY_UNIT_EXECSTART_MARKERS: tuple[str, ...] = (
     "hermes_cli.main gateway",
     "hermes_cli/main.py gateway",
+    "runtime/gateway/run.py",
     "gateway/run.py",
     " hermes gateway ",
     "/hermes gateway ",

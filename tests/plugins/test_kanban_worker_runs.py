@@ -30,7 +30,7 @@ from hermes_cli import kanban_db as kb
 def _load_plugin_router():
     """Dynamically load plugins/kanban/dashboard/plugin_api.py and return its router."""
     repo_root = Path(__file__).resolve().parents[2]
-    plugin_file = repo_root / "plugins" / "kanban" / "dashboard" / "plugin_api.py"
+    plugin_file = repo_root / "runtime" / "plugins" / "kanban" / "dashboard" / "plugin_api.py"
     assert plugin_file.exists(), f"plugin file missing: {plugin_file}"
 
     mod_name = "hermes_dashboard_plugin_kanban_worker_runs_test"

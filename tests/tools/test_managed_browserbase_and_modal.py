@@ -14,7 +14,7 @@ from hermes_cli.nous_account import NousPortalAccountInfo
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TOOLS_DIR = REPO_ROOT / "tools"
-PLUGINS_DIR = REPO_ROOT / "plugins"
+PLUGINS_DIR = REPO_ROOT / "runtime" / "plugins"
 
 
 def _load_tool_module(module_name: str, filename: str):

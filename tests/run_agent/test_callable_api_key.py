@@ -304,7 +304,7 @@ class TestInlinedDisplayMasks:
         crash ``len(api_key)``."""
         from pathlib import Path
         src = (Path(__file__).resolve().parent.parent.parent
-               / "agent" / "agent_init.py").read_text()
+               / "runtime" / "agent" / "agent_init.py").read_text()
         assert src.count("is_token_provider(") >= 2, (
             "agent/agent_init.py must guard BOTH masked-banner paths "
             "(chat_completions and anthropic_messages) with "
@@ -364,7 +364,7 @@ class TestInlinedDisplayMasks:
         Anthropic-style mode that's a callable; slicing crashes."""
         from pathlib import Path
         src = (Path(__file__).resolve().parent.parent.parent
-               / "agent" / "conversation_loop.py").read_text()
+               / "runtime" / "agent" / "conversation_loop.py").read_text()
         # The Anthropic 401 block now branches on is_token_provider
         # before slicing the key.
         assert "Microsoft Entra ID (httpx event hook)" in src, (

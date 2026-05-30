@@ -1,7 +1,7 @@
 """
 Interface compliance tests for all plugin-based gateway platforms.
 
-Discovers platforms dynamically under ``plugins/platforms/`` — no manual
+Discovers platforms dynamically under ``runtime/plugins/platforms/`` — no manual
 enumeration — and verifies each one implements the required contract.
 """
 
@@ -14,8 +14,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
-PLATFORMS_DIR = PROJECT_ROOT / "plugins" / "platforms"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PLATFORMS_DIR = PROJECT_ROOT / "runtime" / "plugins" / "platforms"
 
 
 def _discover_platform_plugins() -> list[str]:

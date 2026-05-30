@@ -741,8 +741,8 @@ os.environ["_HERMES_GATEWAY"] = "1"
 
 _ensure_ssl_certs()
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add repository root to path for direct script execution from runtime/gateway/.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 # Resolve Hermes home directory (respects HERMES_HOME override)
 from hermes_constants import get_hermes_home
@@ -754,7 +754,7 @@ _hermes_home = get_hermes_home()
 from dotenv import load_dotenv  # noqa: F401  # backward-compat for tests that monkeypatch this symbol
 from hermes_cli.env_loader import load_hermes_dotenv
 _env_path = _hermes_home / '.env'
-load_hermes_dotenv(hermes_home=_hermes_home, project_env=Path(__file__).resolve().parents[1] / '.env')
+load_hermes_dotenv(hermes_home=_hermes_home, project_env=Path(__file__).resolve().parents[2] / '.env')
 
 
 def _reload_runtime_env_preserving_config_authority() -> None:
@@ -767,7 +767,7 @@ def _reload_runtime_env_preserving_config_authority() -> None:
     """
     load_hermes_dotenv(
         hermes_home=_hermes_home,
-        project_env=Path(__file__).resolve().parents[1] / '.env',
+        project_env=Path(__file__).resolve().parents[2] / '.env',
     )
 
     config_path = _hermes_home / 'config.yaml'
@@ -1373,7 +1373,7 @@ def _check_unavailable_skill(command_name: str) -> str | None:
 
         # Check optional skills (shipped with repo but not installed)
         from hermes_constants import get_optional_skills_dir
-        repo_root = Path(__file__).resolve().parent.parent
+        repo_root = Path(__file__).resolve().parents[2]
         optional_dir = get_optional_skills_dir(repo_root / "resources" / "optional-skills")
         if optional_dir.exists():
             for skill_md in optional_dir.rglob("SKILL.md"):
@@ -14149,7 +14149,7 @@ class GatewayRunner:
         if is_managed():
             return f"✗ {format_managed_message('update Hermes Agent')}"
 
-        project_root = Path(__file__).parent.parent.resolve()
+        project_root = Path(__file__).resolve().parents[2]
         git_dir = project_root / '.git'
 
         if not git_dir.exists():

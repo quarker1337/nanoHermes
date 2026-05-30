@@ -3823,6 +3823,11 @@ def _main_model_supports_vision(provider: str, model: Optional[str]) -> bool:
     behaviour of attempting the call, so providers we haven't catalogued yet
     don't silently regress to text-only.
     """
+    if (provider or "").strip().lower() == "deepseek":
+        # Native DeepSeek is text/reasoning-only. Some new variants can be
+        # absent from models.dev briefly (e.g. deepseek-v4-pro), but auto vision
+        # still must not send image_url content to the DeepSeek endpoint.
+        return False
     try:
         from agent.image_routing import _lookup_supports_vision
         from hermes_cli.config import load_config

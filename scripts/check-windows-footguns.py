@@ -569,13 +569,15 @@ def main(argv: list[str]) -> int:
         # Scan main Python packages + scripts
         roots = [
             REPO_ROOT / "hermes_cli",
-            REPO_ROOT / "gateway",
             REPO_ROOT / "tools",
-            REPO_ROOT / "cron",
-            REPO_ROOT / "agent",
-            REPO_ROOT / "plugins",
+            REPO_ROOT / "runtime" / "gateway",
+            REPO_ROOT / "runtime" / "cron",
+            REPO_ROOT / "runtime" / "agent",
+            REPO_ROOT / "runtime" / "plugins",
             REPO_ROOT / "scripts",
-            REPO_ROOT / "acp_adapter",
+            REPO_ROOT / "runtime" / "acp_adapter",
+            REPO_ROOT / "runtime" / "tui_gateway",
+            REPO_ROOT / "runtime" / "providers",
             REPO_ROOT / "resources" / "acp" / "registry",
         ]
         roots = [r for r in roots if r.exists()]

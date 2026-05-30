@@ -646,7 +646,7 @@ def _live_system_guard(request, monkeypatch):
         "hermes.service",
         "hermes_cli.main gateway",
         "hermes_cli/main.py gateway",
-        "gateway/run.py",
+        "runtime/gateway/run.py",
         "hermes gateway",
     )
     _MUTATING_VERBS = (

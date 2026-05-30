@@ -76,6 +76,13 @@ hermes --help
 nanohermes --help
 ```
 
+On Windows, use PowerShell and the repository installer script once the repo is
+checked out:
+
+```powershell
+.\scripts\install.ps1
+```
+
 Then try the package manager:
 
 ```bash

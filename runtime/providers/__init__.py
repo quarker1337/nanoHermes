@@ -2,7 +2,8 @@
 
 Provider profiles can live in two places:
 
-1. Bundled plugins: ``plugins/model-providers/<name>/`` (shipped with hermes-agent)
+1. Bundled plugins: ``runtime/plugins/model-providers/<name>/`` in a source checkout,
+   or ``plugins/model-providers/<name>/`` in an installed wheel
 2. User plugins: ``$HERMES_HOME/plugins/model-providers/<name>/``
 
 Each plugin directory contains:
@@ -44,7 +45,8 @@ _REGISTRY: dict[str, ProviderProfile] = {}
 _ALIASES: dict[str, str] = {}
 _discovered = False
 
-# Repo-root ``plugins/model-providers/`` — populated at discovery time.
+# Bundled ``plugins/model-providers/`` — source checkout path resolves to
+# ``runtime/plugins``; installed wheels resolve to sibling site-packages package.
 _BUNDLED_PLUGINS_DIR = (
     Path(__file__).resolve().parent.parent / "plugins" / "model-providers"
 )
