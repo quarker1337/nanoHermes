@@ -29,10 +29,12 @@ def test_default_install_mode_is_runtime_wheel_with_explicit_source_escape_hatch
     text = _script()
 
     assert 'INSTALL_MODE="${HERMES_INSTALL_MODE:-runtime}"' in text
-    assert 'RUNTIME_PACKAGE_SPEC="${HERMES_PACKAGE_SPEC:-hermes-agent[all]}"' in text
+    assert 'RUNTIME_PACKAGE_SPEC="${HERMES_PACKAGE_SPEC:-hermes-agent}"' in text
+    assert 'hermes-agent[all]' not in text.split('RUNTIME_PACKAGE_SPEC=', 1)[1].split('\n', 1)[0]
     assert "--source|--dev|--editable)" in text
     assert "--runtime|--wheel)" in text
-    assert "Default: runtime wheel install" in text
+    assert "Runtime package spec (default: hermes-agent)" in text
+    assert "Default: lean runtime wheel install" in text
     assert "Source/dev mode: clones the repo" in text
 
 

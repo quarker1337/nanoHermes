@@ -75,7 +75,7 @@ ENSURE_DEPS=""
 POSTINSTALL_MODE=false
 INSTALL_MODE="${HERMES_INSTALL_MODE:-runtime}"
 INSTALL_MODE_EXPLICIT=false
-RUNTIME_PACKAGE_SPEC="${HERMES_PACKAGE_SPEC:-hermes-agent[all]}"
+RUNTIME_PACKAGE_SPEC="${HERMES_PACKAGE_SPEC:-hermes-agent}"
 
 # Detect non-interactive mode (e.g. curl | bash)
 # When stdin is not a terminal, read -p will fail with EOF,
@@ -153,7 +153,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --dev          Alias for --source"
             echo "  --editable     Alias for --source"
             echo "  --branch NAME  Git branch to install (implies --source; default: main)"
-            echo "  --package SPEC Runtime package spec (default: hermes-agent[all])"
+            echo "  --package SPEC Runtime package spec (default: hermes-agent)"
             echo "  --dir PATH     Installation directory"
             echo "                   default (non-root):  ~/.hermes/hermes-agent"
             echo "                   default (root, Linux): /usr/local/lib/hermes-agent"
@@ -161,7 +161,7 @@ while [[ $# -gt 0 ]]; do
             echo "  -h, --help     Show this help"
             echo ""
             echo "Notes:"
-            echo "  Default: runtime wheel install. This avoids downloading docs, tests,"
+            echo "  Default: lean runtime wheel install. This avoids downloading docs, tests,"
             echo "  git history, and other contributor-only files. Use --source/--dev"
             echo "  when you want a checkout you can edit or update by branch."
             echo "  When running as root on Linux, Hermes installs the code under"
