@@ -1231,7 +1231,7 @@ _TUI_BUILD_INPUT_SUFFIXES = frozenset(
 
 
 def _iter_tui_build_inputs(root: Path):
-    """Yield source/config files that affect ``ui-tui/dist/entry.js``."""
+    """Yield source/config files that affect ``apps/tui/dist/entry.js``."""
     for rel in _TUI_BUILD_INPUT_FILES:
         path = root / rel
         if path.is_file():
@@ -1505,7 +1505,7 @@ def _launch_tui(
     accept_hooks: bool = False,
 ):
     """Replace current process with the TUI."""
-    tui_dir = PROJECT_ROOT / "ui-tui"
+    tui_dir = PROJECT_ROOT / "apps" / "tui"
 
     import tempfile
 
@@ -1598,7 +1598,7 @@ def _launch_tui(
     # in the user's shell would otherwise make a plain `hermes --tui` try to
     # resume a non-existent session and leave the UI at "error: session not
     # found" with no live session.  Only forward a resume id that argparse
-    # resolved for this invocation; direct `node ui-tui/dist/entry.js` users can
+    # resolved for this invocation; direct `node apps/tui/dist/entry.js` users can
     # still set HERMES_TUI_RESUME themselves.
     env.pop("HERMES_TUI_RESUME", None)
     if resume_session_id:
@@ -6483,11 +6483,11 @@ def _web_ui_build_needed(web_dir: Path) -> bool:
     """Return True if the web UI dist is missing or stale.
 
     The Vite build outputs to ``hermes_cli/web_dist/`` (per vite.config.ts
-    outDir: "../hermes_cli/web_dist"), NOT to ``web/dist/``.  Uses the Vite
+    outDir: "../../hermes_cli/web_dist"), NOT to ``apps/dashboard/dist/``.  Uses the Vite
     manifest as the sentinel because it is written last and therefore has the
     newest mtime of any build output.
     """
-    dist_dir = web_dir.parent / "hermes_cli" / "web_dist"
+    dist_dir = web_dir.parent.parent / "hermes_cli" / "web_dist"
     sentinel = dist_dir / ".vite" / "manifest.json"
     if not sentinel.exists():
         sentinel = dist_dir / "index.html"
@@ -6661,7 +6661,7 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
     """Build the web UI frontend if npm is available.
 
     Args:
-        web_dir: Path to the ``web/`` source directory.
+        web_dir: Path to the ``apps/dashboard/`` source directory.
         fatal: If True, print error guidance and return False on failure
                instead of a soft warning (used by ``hermes web``).
 
@@ -6689,7 +6689,7 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
     if not npm:
         if fatal:
             _say("Web UI frontend not built and npm is not available.")
-            _say("Install Node.js, then run:  cd web && npm install && npm run build")
+            _say("Install Node.js, then run:  cd apps/dashboard && npm install && npm run build")
         return not fatal
     _say("→ Building web UI...")
 
@@ -6716,7 +6716,7 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
         )
         _relay(r1)
         if fatal:
-            _say("  Run manually:  cd web && npm install && npm run build")
+            _say("  Run manually:  cd apps/dashboard && npm install && npm run build")
         return False
     # First attempt — stream output via idle-timeout helper (issue #33788).
     # capture_output=True on a long Vite build looks identical to a hang;
@@ -6739,7 +6739,7 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
         build_output = (r2.stderr or "") + (r2.stdout or "")
         stderr_preview = build_output.strip()
         stderr_tail = "\n  ".join(stderr_preview.splitlines()[-10:]) if stderr_preview else ""
-        dist_dir = web_dir.parent / "hermes_cli" / "web_dist"
+        dist_dir = web_dir.parent.parent / "hermes_cli" / "web_dist"
         dist_index = dist_dir / "index.html"
 
         # If a stale dist exists, serve it as a fallback instead of failing.
@@ -6757,7 +6757,7 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
         )
         _relay(r2)
         if fatal:
-            _say("  Run manually:  cd web && npm install && npm run build")
+            _say("  Run manually:  cd apps/dashboard && npm install && npm run build")
         return False
     _say("  ✓ Web UI built")
     return True
@@ -7233,7 +7233,7 @@ def _update_via_zip(args):
     # optional — a failure here only affects ``hermes dashboard``. Make
     # that visible so users don't panic and reboot mid-build (#33788).
     print("→ Core update complete. Building dashboard (optional)...")
-    _build_web_ui(PROJECT_ROOT / "web")
+    _build_web_ui(PROJECT_ROOT / "apps" / "dashboard")
 
     # Sync skills
     try:
@@ -8300,7 +8300,7 @@ def _update_node_dependencies() -> None:
 
     paths = (
         ("repo root", PROJECT_ROOT),
-        ("ui-tui", PROJECT_ROOT / "ui-tui"),
+        ("apps/tui", PROJECT_ROOT / "apps" / "tui"),
     )
     if not any((path / "package.json").exists() for _, path in paths):
         return
@@ -9311,7 +9311,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # optional from a CLI perspective. Telegraphing this avoids the
         # "stuck at webui-build → reboot → broken install" trap (#33788).
         print("→ Core update complete. Building dashboard (optional)...")
-        _build_web_ui(PROJECT_ROOT / "web")
+        _build_web_ui(PROJECT_ROOT / "apps" / "dashboard")
 
         print()
         print("✓ Code updated!")
@@ -10899,7 +10899,7 @@ def cmd_dashboard(args):
         sys.exit(1)
 
     if "HERMES_WEB_DIST" not in os.environ and not getattr(args, "skip_build", False):
-        if not _build_web_ui(PROJECT_ROOT / "web", fatal=True):
+        if not _build_web_ui(PROJECT_ROOT / "apps" / "dashboard", fatal=True):
             sys.exit(1)
     elif getattr(args, "skip_build", False):
         # --skip-build trusts the caller to have pre-built the web UI.
@@ -10912,7 +10912,7 @@ def cmd_dashboard(args):
         )
         if not (_dist_root / "index.html").exists():
             print(f"✗ --skip-build was passed but no web dist found at: {_dist_root}")
-            print("  Pre-build first:  cd web && npm install && npm run build")
+            print("  Pre-build first:  cd apps/dashboard && npm install && npm run build")
             print("  Or drop --skip-build to build automatically.")
             sys.exit(1)
         print(f"→ Skipping web UI build (--skip-build); using dist at {_dist_root}")
@@ -11312,7 +11312,7 @@ def main():
     # =========================================================================
     # pkg / plug command — NanoHermes package manager
     # =========================================================================
-    from nanohermes.package_manager.cli import register_parser
+    from hermes_cli.package_manager.cli import register_parser
 
     register_parser(subparsers, "pkg", help_text="Manage NanoHermes packages")
     register_parser(subparsers, "plug", help_text="Alias for `hermes pkg`")
@@ -14099,7 +14099,7 @@ Examples:
         help=(
             "Skip the web UI build step and serve the existing dist directly. "
             "Useful for non-interactive contexts (Windows Scheduled Tasks, CI) "
-            "where npm may not be available. Pre-build with: cd web && npm run build"
+            "where npm may not be available. Pre-build with: cd apps/dashboard && npm run build"
         ),
     )
     # Lifecycle flags — mutually exclusive with each other and with the

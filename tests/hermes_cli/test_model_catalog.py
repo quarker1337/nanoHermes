@@ -183,7 +183,7 @@ class TestFallbackChain:
     PRIMARY = "https://hermes-agent.nousresearch.com/docs/api/model-catalog.json"
     FALLBACK = (
         "https://raw.githubusercontent.com/NousResearch/hermes-agent"
-        "/main/website/static/api/model-catalog.json"
+        "/main/docs/site/static/api/model-catalog.json"
     )
 
     def test_uses_primary_when_it_succeeds(self, isolated_home):
@@ -416,10 +416,10 @@ class TestIntegrationWithModelsModule:
 
 # -----------------------------------------------------------------------------
 # Drift guard — prevent the in-repo curated lists from going out of sync with
-# the docs-hosted manifest at website/static/api/model-catalog.json.
+# the docs-hosted manifest at docs/site/static/api/model-catalog.json.
 #
 # History: qwen/qwen3.6-plus was added to _PROVIDER_MODELS["nous"] in commit
-# 9dd6e5510 but website/static/api/model-catalog.json was not regenerated for
+# 9dd6e5510 but docs/site/static/api/model-catalog.json was not regenerated for
 # weeks, so free-tier users on a new install fetched a stale manifest and the
 # free-tier picker showed "No free models currently available." even though
 # the Portal was serving qwen/qwen3.6-plus as free. CI must catch this.
@@ -440,11 +440,11 @@ class TestManifestMatchesInRepoLists:
         """``scripts/build_model_catalog.py`` output must match the committed file.
 
         If this fails, run ``python scripts/build_model_catalog.py`` and
-        commit the regenerated ``website/static/api/model-catalog.json``.
+        commit the regenerated ``docs/site/static/api/model-catalog.json``.
         """
         # Resolve the repo root from this test file's location.
         repo_root = Path(__file__).resolve().parents[2]
-        manifest_path = repo_root / "website" / "static" / "api" / "model-catalog.json"
+        manifest_path = repo_root / "docs" / "site" / "static" / "api" / "model-catalog.json"
 
         if not manifest_path.exists():
             pytest.skip(f"manifest missing at {manifest_path}")
@@ -462,8 +462,8 @@ class TestManifestMatchesInRepoLists:
             actual = json.load(fh)
 
         assert self._strip_volatile(actual) == self._strip_volatile(expected), (
-            "website/static/api/model-catalog.json is out of sync with "
+            "docs/site/static/api/model-catalog.json is out of sync with "
             "_PROVIDER_MODELS['nous'] / OPENROUTER_MODELS. "
             "Run: python scripts/build_model_catalog.py && "
-            "git add website/static/api/model-catalog.json"
+            "git add docs/site/static/api/model-catalog.json"
         )

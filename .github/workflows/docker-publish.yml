@@ -8,7 +8,7 @@ on:
       - 'pyproject.toml'
       - 'uv.lock'
       - 'Dockerfile'
-      - 'docker/**'
+      - 'infra/docker/**'
       - '.github/workflows/docker-publish.yml'
       - '.github/actions/hermes-smoke-test/**'
   pull_request:
@@ -18,7 +18,7 @@ on:
       - 'pyproject.toml'
       - 'uv.lock'
       - 'Dockerfile'
-      - 'docker/**'
+      - 'infra/docker/**'
       - '.github/workflows/docker-publish.yml'
       - '.github/actions/hermes-smoke-test/**'
   release:

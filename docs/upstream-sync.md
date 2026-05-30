@@ -5,7 +5,7 @@ NanoHermes is a downstream Hermes distribution. The GitHub repo is intentionally
 The currently integrated upstream commit is tracked in:
 
 ```text
-.nanohermes/upstream-base.txt
+infra/nanohermes/upstream-base.txt
 ```
 
 ## Routine
@@ -23,7 +23,7 @@ The script creates a branch named:
 sync/upstream-YYYYMMDD
 ```
 
-Then it applies the patch range from the tracked upstream base to the target upstream commit with `git apply --3way --index`, updates `.nanohermes/upstream-base.txt`, and writes a report under `.hermes/upstream-sync/`.
+Then it applies the patch range from the tracked upstream base to the target upstream commit with `git apply --3way --index`, updates `infra/nanohermes/upstream-base.txt`, and writes a report under `.hermes/upstream-sync/`.
 
 This is intentionally not a `git merge upstream/main`: merging would make the slim downstream branch reference upstream history and would turn future pushes back into full Hermes-history pushes.
 
@@ -56,7 +56,7 @@ Broad gate before release:
 
 ```bash
 HOME=$(mktemp -d /tmp/nanohermes-clean-home-XXXXXX) uv run --extra all python -m pytest -o 'addopts=' -m 'not integration' -q
-npm test --prefix ui-tui
+npm test --prefix apps/tui
 ```
 
 ## Rules

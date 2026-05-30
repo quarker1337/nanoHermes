@@ -11,7 +11,7 @@ This release also folds in all the highlights deferred from v0.10.0 (which shipp
 
 ## ✨ Highlights
 
-- **New Ink-based TUI** — `hermes --tui` is now a full React/Ink rewrite of the interactive CLI, with a Python JSON-RPC backend (`tui_gateway`). Sticky composer, live streaming with OSC-52 clipboard support, stable picker keys, status bar with per-turn stopwatch and git branch, `/clear` confirm, light-theme preset, and a subagent spawn observability overlay. ~310 commits to `ui-tui/` + `tui_gateway/`. (@OutThisLife + Teknium)
+- **New Ink-based TUI** — `hermes --tui` is now a full React/Ink rewrite of the interactive CLI, with a Python JSON-RPC backend (`tui_gateway`). Sticky composer, live streaming with OSC-52 clipboard support, stable picker keys, status bar with per-turn stopwatch and git branch, `/clear` confirm, light-theme preset, and a subagent spawn observability overlay. ~310 commits to `apps/tui/` + `tui_gateway/`. (@OutThisLife + Teknium)
 
 - **Transport ABC + Native AWS Bedrock** — Format conversion and HTTP transport were extracted from `run_agent.py` into a pluggable `agent/transports/` layer. `AnthropicTransport`, `ChatCompletionsTransport`, `ResponsesApiTransport`, and `BedrockTransport` each own their own format conversion and API shape. Native AWS Bedrock support via the Converse API ships on top of the new abstraction. ([#10549](https://github.com/NousResearch/hermes-agent/pull/10549), [#13347](https://github.com/NousResearch/hermes-agent/pull/13347), [#13366](https://github.com/NousResearch/hermes-agent/pull/13366), [#13430](https://github.com/NousResearch/hermes-agent/pull/13430), [#13805](https://github.com/NousResearch/hermes-agent/pull/13805), [#13814](https://github.com/NousResearch/hermes-agent/pull/13814) — @kshitijk4poor + Teknium)
 
@@ -121,11 +121,11 @@ This release also folds in all the highlights deferred from v0.10.0 (which shipp
 
 ## 🖥️ New Ink-based TUI
 
-A full React/Ink rewrite of the interactive CLI — invoked via `hermes --tui` or `HERMES_TUI=1`. Shipped across ~310 commits to `ui-tui/` and `tui_gateway/`.
+A full React/Ink rewrite of the interactive CLI — invoked via `hermes --tui` or `HERMES_TUI=1`. Shipped across ~310 commits to `apps/tui/` and `tui_gateway/`.
 
 ### TUI Foundations
 - New TUI based on Ink + Python JSON-RPC backend
-- Prettier + ESLint + vitest tooling for `ui-tui/`
+- Prettier + ESLint + vitest tooling for `apps/tui/`
 - Entry split between `src/entry.tsx` (TTY gate) and `src/app.tsx` (state machine)
 - Persistent `_SlashWorker` subprocess for slash command dispatch
 

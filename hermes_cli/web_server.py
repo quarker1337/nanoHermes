@@ -3342,7 +3342,7 @@ async def get_models_analytics(days: int = 30):
 # The endpoint spawns the same ``hermes --tui`` binary the CLI uses, behind
 # a POSIX pseudo-terminal, and forwards bytes + resize escapes across a
 # WebSocket.  The browser renders the ANSI through xterm.js (see
-# web/src/pages/ChatPage.tsx).
+# apps/dashboard/src/pages/ChatPage.tsx).
 #
 # Auth: ``?token=<session_token>`` query param (browsers can't set
 # Authorization on the WS upgrade).  Same ephemeral ``_SESSION_TOKEN`` as
@@ -3494,7 +3494,7 @@ def _resolve_chat_argv(
 
     Session resume is propagated via the ``HERMES_TUI_RESUME`` env var —
     matching what ``hermes_cli.main._launch_tui`` does for the CLI path.
-    Appending ``--resume <id>`` to argv doesn't work because ``ui-tui`` does
+    Appending ``--resume <id>`` to argv doesn't work because ``apps/tui`` does
     not parse its argv.
 
     `sidecar_url` (when set) is forwarded as ``HERMES_TUI_SIDECAR_URL`` so
@@ -3503,7 +3503,7 @@ def _resolve_chat_argv(
     """
     from hermes_cli.main import PROJECT_ROOT, _make_tui_argv
 
-    argv, cwd = _make_tui_argv(PROJECT_ROOT / "ui-tui", tui_dev=False)
+    argv, cwd = _make_tui_argv(PROJECT_ROOT / "apps" / "tui", tui_dev=False)
     env = os.environ.copy()
     env.setdefault("NODE_ENV", "production")
     # Browser-embedded chat should prefer stable wheel-based scrollback over
@@ -3835,7 +3835,7 @@ def mount_spa(application: FastAPI):
         @application.get("/{full_path:path}")
         async def no_frontend(full_path: str):
             return JSONResponse(
-                {"error": "Frontend not built. Run: cd web && npm run build"},
+                {"error": "Frontend not built. Run: cd apps/dashboard && npm run build"},
                 status_code=404,
             )
         return
@@ -3934,7 +3934,7 @@ def mount_spa(application: FastAPI):
 # ---------------------------------------------------------------------------
 
 # Built-in dashboard themes — label + description only.  The actual color
-# definitions live in the frontend (web/src/themes/presets.ts).
+# definitions live in the frontend (apps/dashboard/src/themes/presets.ts).
 _BUILTIN_DASHBOARD_THEMES = [
     {"name": "default",       "label": "Hermes Teal",         "description": "Classic dark teal — the canonical Hermes look"},
     {"name": "default-large", "label": "Hermes Teal (Large)", "description": "Hermes Teal with bigger fonts and roomier spacing"},
@@ -4187,7 +4187,7 @@ async def get_dashboard_themes():
     """Return available themes and the currently active one.
 
     Built-in entries ship name/label/description only (the frontend owns
-    their full definitions in `web/src/themes/presets.ts`).  User themes
+    their full definitions in `apps/dashboard/src/themes/presets.ts`).  User themes
     from `~/.hermes/dashboard-themes/*.yaml` ship with their full
     normalised definition under `definition`, so the client can apply
     them without a stub.

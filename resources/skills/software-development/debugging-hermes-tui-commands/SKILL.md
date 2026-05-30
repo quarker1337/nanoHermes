@@ -36,7 +36,7 @@ Python backend (hermes_cli/commands.py)     <- canonical COMMAND_REGISTRY
 TUI gateway (tui_gateway/server.py)         <- slash.exec / command.dispatch
        │
        ▼
-TUI frontend (ui-tui/src/app/slash/)        <- local handlers + fallthrough
+TUI frontend (apps/tui/src/app/slash/)        <- local handlers + fallthrough
 ```
 
 Command definitions must be registered consistently across Python and TypeScript to work properly. The Python `COMMAND_REGISTRY` is the source of truth for: CLI dispatch, gateway help, Telegram BotCommand menu, Slack subcommand map, and autocomplete data shipped to Ink.
@@ -45,15 +45,15 @@ Command definitions must be registered consistently across Python and TypeScript
 
 1. **Check if the command exists in the TUI frontend:**
    ```bash
-   search_files --pattern "/commandname" --file_glob "*.ts" --path ui-tui/
-   search_files --pattern "/commandname" --file_glob "*.tsx" --path ui-tui/
+   search_files --pattern "/commandname" --file_glob "*.ts" --path apps/tui/
+   search_files --pattern "/commandname" --file_glob "*.tsx" --path apps/tui/
    ```
 
 2. **Examine the TUI command definition:**
    ```bash
-   read_file ui-tui/src/app/slash/commands/core.ts
+   read_file apps/tui/src/app/slash/commands/core.ts
    # If not there:
-   search_files --pattern "commandname" --path ui-tui/src/app/slash/commands --target files
+   search_files --pattern "commandname" --path apps/tui/src/app/slash/commands --target files
    ```
 
 3. **Check if the command exists in the Python backend:**
@@ -103,7 +103,7 @@ If a command exists in the TUI but doesn't show in autocomplete:
 
 1. **Command shows in TUI but not in autocomplete.** The command is defined in the TUI codebase but missing from `COMMAND_REGISTRY` in `hermes_cli/commands.py`. Autocomplete data ships from Python.
 
-2. **Command shows in autocomplete but doesn't work.** Check the command handler in `tui_gateway/server.py` and the frontend handler in `ui-tui/src/app/createSlashHandler.ts`. If the command is local-only in Ink, it must be handled in `app.tsx` built-in branch; otherwise it falls through to `slash.exec` and must have a Python handler.
+2. **Command shows in autocomplete but doesn't work.** Check the command handler in `tui_gateway/server.py` and the frontend handler in `apps/tui/src/app/createSlashHandler.ts`. If the command is local-only in Ink, it must be handled in `app.tsx` built-in branch; otherwise it falls through to `slash.exec` and must have a Python handler.
 
 3. **Command behavior differs between CLI and TUI.** The command might have different implementations. Check both `cli.py::process_command` and the TUI's local handler. Local TUI handlers take precedence over gateway dispatch.
 
@@ -126,7 +126,7 @@ When surface-level inspection doesn't reveal the bug:
 - For commands with subcommands, ensure the `subcommands` tuple in `CommandDef` matches what's in the TUI code
 - `cli_only=True` commands won't work in gateway/messaging platforms — unless you add a `gateway_config_gate` and the gate is truthy
 - After adding live UI state, search every consumer of the old prop/helper and thread the new state through all render paths, not just the active streaming path. TUI detail rendering has at least two important paths: live `StreamingAssistant`/`ToolTrail` and transcript/pending `MessageLine` rows. A `/clean` pass should explicitly check both.
-- Rebuild the TUI (`npm --prefix ui-tui run build`) before testing — tsx watch mode may lag on first launch
+- Rebuild the TUI (`npm --prefix apps/tui run build`) before testing — tsx watch mode may lag on first launch
 
 ## Verification
 
@@ -134,7 +134,7 @@ After fixing:
 
 1. Rebuild the TUI:
    ```bash
-   cd /home/bb/hermes-agent && npm --prefix ui-tui run build
+   cd /home/bb/hermes-agent && npm --prefix apps/tui run build
    ```
 
 2. Run the TUI and test the command:

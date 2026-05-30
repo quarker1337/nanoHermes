@@ -6,7 +6,7 @@ command replies, restart-drain notices.  Agent-generated output, log lines,
 error tracebacks, tool outputs, and slash-command descriptions all stay in
 English.
 
-Catalog files live under ``locales/<lang>.yaml`` at the repo root.  Each
+Catalog files live under ``resources/locales/<lang>.yaml``.  Each
 catalog is a flat dict keyed by dotted paths (e.g. ``approval.choose`` or
 ``gateway.approval_expired``).  Missing keys fall back to English; if English
 is missing too, the key path itself is returned so a broken catalog never
@@ -91,7 +91,7 @@ def _locales_dir() -> Path:
     checkouts find it without PYTHONPATH gymnastics.
     """
     # agent/i18n.py -> agent/ -> repo root
-    return Path(__file__).resolve().parent.parent / "locales"
+    return Path(__file__).resolve().parent.parent / "resources" / "locales"
 
 
 def _normalize_lang(value: Any) -> str:

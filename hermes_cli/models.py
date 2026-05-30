@@ -1177,7 +1177,7 @@ def get_curated_nous_model_ids() -> list[str]:
     """Return the curated Nous Portal model-id list.
 
     Prefers the remotely-hosted catalog manifest (published under
-    ``website/static/api/model-catalog.json``); falls back to the in-repo
+    ``docs/site/static/api/model-catalog.json``); falls back to the in-repo
     snapshot in ``_PROVIDER_MODELS["nous"]`` when the manifest is
     unreachable. Always returns a list (never None).
     """

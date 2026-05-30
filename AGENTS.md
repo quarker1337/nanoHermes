@@ -53,13 +53,13 @@ hermes-agent/
 │   ├── skills/           # Built-in skills bundled with the repo
 │   ├── optional-skills/  # Heavier/niche skills shipped but NOT active by default
 │   └── optional-mcps/    # Curated MCP manifests shipped disabled
-├── ui-tui/               # Ink (React) terminal UI — `hermes --tui`
+├── apps/tui/               # Ink (React) terminal UI — `hermes --tui`
 │   └── src/              # entry.tsx, app.tsx, gatewayClient.ts + app/components/hooks/lib
 ├── tui_gateway/          # Python JSON-RPC backend for the TUI
 ├── acp_adapter/          # ACP server (VS Code / Zed / JetBrains integration)
 ├── cron/                 # Scheduler — jobs.py, scheduler.py
 ├── scripts/              # run_tests.sh, release.py, auxiliary scripts
-├── website/              # Docusaurus docs site
+├── docs/site/            # Docusaurus docs site
 └── tests/                # Pytest suite (~17k tests across ~900 files as of May 2026)
 ```
 
@@ -196,7 +196,7 @@ if canonical == "mycommand":
 
 ---
 
-## TUI Architecture (ui-tui + tui_gateway)
+## TUI Architecture (apps/tui + tui_gateway)
 
 The TUI is a full replacement for the classic (prompt_toolkit) CLI, activated via `hermes --tui` or `HERMES_TUI=1`.
 
@@ -236,7 +236,7 @@ Newline-delimited JSON-RPC over stdio. Requests from Ink, events from Python. Se
 ### Dev Commands
 
 ```bash
-cd ui-tui
+cd apps/tui
 npm install       # first time
 npm run dev       # watch mode (rebuilds hermes-ink + tsx --watch)
 npm start         # production
@@ -251,7 +251,7 @@ npm test          # vitest
 
 The dashboard embeds the real `hermes --tui` — **not** a rewrite.  See `hermes_cli/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `hermes_cli/web_server.py`.
 
-- Browser loads `web/src/pages/ChatPage.tsx`, which mounts xterm.js's `Terminal` with the WebGL renderer, `@xterm/addon-fit` for container-driven resize, and `@xterm/addon-unicode11` for modern wide-character widths.
+- Browser loads `apps/dashboard/src/pages/ChatPage.tsx`, which mounts xterm.js's `Terminal` with the WebGL renderer, `@xterm/addon-fit` for container-driven resize, and `@xterm/addon-unicode11` for modern wide-character widths.
 - `/api/pty?token=…` upgrades to a WebSocket; auth uses the same ephemeral `_SESSION_TOKEN` as REST, via query param (browsers can't set `Authorization` on WS upgrade).
 - The server spawns whatever `hermes --tui` would spawn, through `ptyprocess` (POSIX PTY — WSL works, native Windows does not).
 - Frames: raw PTY bytes each direction; resize via `\x1b[RESIZE:<cols>;<rows>]` intercepted on the server and applied with `TIOCSWINSZ`.
@@ -571,7 +571,7 @@ NOT import them (would double-instantiate `ProviderProfile`). Plugins
 without an explicit `kind:` get auto-coerced via a source-text heuristic
 (`register_provider` + `ProviderProfile` in `__init__.py`).
 
-Full authoring guide: `website/docs/developer-guide/model-provider-plugin.md`.
+Full authoring guide: `docs/site/docs/developer-guide/model-provider-plugin.md`.
 
 ### Dashboard / context-engine / image-gen plugin directories
 
@@ -779,7 +779,7 @@ Config section (`curator:` in `config.yaml`):
 `enabled`, `interval_hours`, `min_idle_hours`, `stale_after_days`,
 `archive_after_days`, `backup.*`.
 
-Full user-facing docs: `website/docs/user-guide/features/curator.md`.
+Full user-facing docs: `docs/site/docs/user-guide/features/curator.md`.
 
 ---
 
@@ -856,7 +856,7 @@ Isolation model:
   same task (default: 2), the dispatcher auto-blocks it to prevent spin
   loops.
 
-Full user-facing docs: `website/docs/user-guide/features/kanban.md`.
+Full user-facing docs: `docs/site/docs/user-guide/features/kanban.md`.
 
 ---
 

@@ -618,7 +618,7 @@ terminal(command="tmux new-session -d -s resumed 'hermes --resume 20260225_14305
 
 Four systems run alongside the main conversation loop. Quick reference
 here; full developer notes live in `AGENTS.md`, user-facing docs under
-`website/docs/user-guide/features/`.
+`docs/site/docs/user-guide/features/`.
 
 ### Delegation (`delegate_task`)
 
@@ -898,7 +898,7 @@ hermes-agent/
 │   └── platforms/        # Platform adapters (telegram, discord, etc.)
 ├── cron/                 # Job scheduler
 ├── tests/                # ~3000 pytest tests
-└── website/              # Docusaurus docs site
+└── docs/site/            # Docusaurus docs site
 ```
 
 Config: `~/.hermes/config.yaml` (settings), `~/.hermes/.env` (API keys).

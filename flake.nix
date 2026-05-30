@@ -35,11 +35,11 @@
       ];
 
       imports = [
-        ./nix/packages.nix
-        ./nix/overlays.nix
-        ./nix/nixosModules.nix
-        ./nix/checks.nix
-        ./nix/devShell.nix
+        ./infra/nix/packages.nix
+        ./infra/nix/overlays.nix
+        ./infra/nix/nixosModules.nix
+        ./infra/nix/checks.nix
+        ./infra/nix/devShell.nix
       ];
     };
 }

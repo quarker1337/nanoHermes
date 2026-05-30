@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE_FILE = ROOT / ".nanohermes" / "upstream-base.txt"
+BASE_FILE = ROOT / "infra" / "nanohermes" / "upstream-base.txt"
 
 
 def git(*args: str, check: bool = True, input_text: str | None = None) -> subprocess.CompletedProcess[str]:

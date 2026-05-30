@@ -1,50 +1,61 @@
 # NanoHermes repository layout
 
-This repo is a downstream Hermes Agent snapshot plus NanoHermes-specific package-management work. The layout intentionally keeps Python import roots at the repository root for now so upstream patch-syncs stay reviewable and editable installs keep working.
+This repo is a downstream Hermes Agent snapshot plus NanoHermes-specific package-management work.
 
-## Top-level buckets
+The guiding rule is: keep the root readable. Root-level directories should either be Python import roots that still need to stay stable for upstream sync, or broad buckets that explain what is inside them.
 
-| Path | Role | Audit notes |
-|---|---|---|
-| `agent/`, `tools/`, `hermes_cli/`, `gateway/`, `tui_gateway/`, `cron/`, `acp_adapter/`, `acp_registry/`, `providers/`, `plugins/` | Runtime Python packages inherited from Hermes Agent. | Treat as core runtime. Moving these requires `pyproject.toml`, imports, tests, and upstream-sync review. |
-| `nanohermes/` | NanoHermes-specific runtime code. | Package-manager client lives in `nanohermes/package_manager/`; keep this surface small and heavily tested. |
-| Root Python modules: `cli.py`, `run_agent.py`, `toolsets.py`, `toolset_distributions.py`, `hermes_bootstrap.py`, `hermes_constants.py`, `hermes_state.py`, `hermes_time.py`, `hermes_logging.py`, `utils.py`, `model_tools.py`, `batch_runner.py`, `trajectory_compressor.py`, `mcp_serve.py`, `mini_swe_runner.py` | Legacy import/entrypoint modules listed in `pyproject.toml` or used by scripts. | Do not move casually; first confirm imports and `tool.setuptools.py-modules`. |
-| `resources/skills/` | Bundled base skill corpus installed with the base distribution. | Size-sensitive. If base install grows, audit here first. Kept out of root so code/packages are visually separate from corpus payloads. |
-| `resources/optional-skills/`, `resources/optional-mcps/` | Optional payload candidates for package-managed install. | Should not be bundled into every base wheel/sdist. Check `MANIFEST.in` and `setup.py`. |
-| `tests/` | Test suite. | Focused NanoHermes package-manager tests are under `tests/package_manager/`. |
-| `scripts/` | Maintainer scripts, installer scripts, sync scripts, and small operational helpers. | Public installer scripts are packaging-sensitive; sync scripts are NanoHermes-critical. |
-| `docker/`, `Dockerfile`, `docker-compose*.yml` | Container runtime and compose entrypoints. | Kept at root because Docker tooling and tests expect the default paths. |
-| `nix/`, `packaging/`, `setup.py`, `pyproject.toml`, `uv.lock`, `MANIFEST.in` | Build, packaging, dependency, and distro surfaces. | High-risk audit area for base-size and supply-chain changes. |
-| `web/`, `ui-tui/`, `website/`, `locales/` | Web dashboard, terminal UI, documentation site, and translations. | Large but mostly product/docs surface; keep generated build outputs ignored. |
-| `.github/` | CI/workflow automation. | Review whenever test gates or release automation changes. |
-| `.nanohermes/` | Downstream metadata. | `upstream-base.txt` records the upstream commit represented by the squashed snapshot. |
-| `docs/` | Human-readable docs, notes, release history, plans, and audit maps. | Prefer adding maintainer docs here instead of root-level one-off files. |
-| `examples/` | Curated runnable examples. | Scratch/generated example output belongs in `examples/generated/` or `examples/local/`, both ignored. |
-| `assets/` | Root README assets. | Kept only for files directly referenced by root-facing docs. |
+## Root buckets
 
-## Docs substructure
-
-| Path | Contents |
+| Path | What belongs here |
 |---|---|
-| `docs/nanohermes/` | NanoHermes overview and downstream-specific maintainer docs. |
-| `docs/releases/` | Historical release notes moved out of the repository root. |
-| `docs/plans/` | Implementation plans worth keeping in git. |
-| `docs/notes/` | Historical notes and design scraps that should not clutter root. |
-| `docs/security/` | Security hardening docs. |
-| `docs/assets/` | Images and other assets referenced by docs. |
+| `agent/`, `tools/`, `hermes_cli/`, `gateway/`, `tui_gateway/`, `cron/`, `acp_adapter/`, `acp_registry/`, `providers/`, `plugins/` | Runtime Python packages inherited from Hermes Agent. These stay at root for now to keep imports, editable installs, and upstream patch-sync sane. |
+| `hermes_cli/package_manager/` | NanoHermes package-manager implementation. The `nanohermes` executable is just an alias into `hermes_cli.main`; there is no separate root `nanohermes/` package anymore. |
+| `apps/dashboard/` | Browser dashboard frontend. Formerly root `web/`. |
+| `apps/tui/` | Terminal UI frontend. Formerly root `ui-tui/`. |
+| `docs/` | Human-readable docs, notes, release history, plans, assets, and the docs site. |
+| `docs/site/` | Docusaurus documentation site. Formerly root `website/`. |
+| `docs/assets/` | Images/assets referenced by README/docs, including `banner.png`. |
+| `examples/` | Curated runnable examples only. Scratch/generated examples belong in ignored subdirectories. |
+| `infra/docker/` | Container support files used by the root `Dockerfile`. |
+| `infra/nix/` | Nix expressions used by root `flake.nix`. |
+| `infra/packaging/` | Distro/package-manager packaging helpers such as Homebrew formula files. |
+| `infra/nanohermes/` | Downstream metadata such as `upstream-base.txt`. |
+| `resources/locales/` | Runtime translation catalogs. Formerly root `locales/`. |
+| `resources/skills/` | Bundled base skill corpus installed with the base distribution. |
+| `resources/optional-skills/`, `resources/optional-mcps/` | Optional payloads for package-managed install, not base-wheel payloads. |
+| `scripts/` | Maintainer scripts, installer scripts, sync scripts, and operational helpers. |
+| `tests/` | Test suite. Focused package-manager tests live under `tests/package_manager/`. |
+| `.github/` | CI/workflow automation. |
+
+## Root files that remain intentionally
+
+| Path | Why it stays at root |
+|---|---|
+| `README.md`, `README.zh-CN.md`, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `AGENTS.md` | Project identity and contributor entrypoints. |
+| `pyproject.toml`, `setup.py`, `MANIFEST.in`, `uv.lock` | Python build/install contract. |
+| `package.json`, `package-lock.json` | Root Node dependency surface for browser tooling. |
+| `Dockerfile`, `docker-compose*.yml`, `.dockerignore` | Standard Docker defaults expect these at root. The implementation files are in `infra/docker/`. |
+| `flake.nix`, `flake.lock`, `.envrc` | Standard Nix/dev-shell entrypoints. Implementation files are in `infra/nix/`. |
+| Root Python modules such as `cli.py`, `run_agent.py`, `toolsets.py`, `hermes_constants.py`, `utils.py` | Legacy import/entrypoint modules listed in `pyproject.toml` or used by scripts. Move only in a dedicated import-migration branch. |
 
 ## Fast audit entry points
 
 ### Package manager
 
-- `nanohermes/package_manager/`
+- `hermes_cli/package_manager/`
 - `hermes_cli/main.py` (`pkg` / `plug` command wiring)
 - `tests/package_manager/`
 - `docs/packages.md`
 
+### Frontends
+
+- Dashboard: `apps/dashboard/`
+- TUI: `apps/tui/`
+- Docs site: `docs/site/`
+
 ### Upstream sync
 
-- `.nanohermes/upstream-base.txt`
+- `infra/nanohermes/upstream-base.txt`
 - `scripts/sync_upstream.py`
 - `scripts/upstream_sync_report.py`
 - `docs/upstream-sync.md`
@@ -55,6 +66,7 @@ This repo is a downstream Hermes Agent snapshot plus NanoHermes-specific package
 - `uv.lock`
 - `setup.py`
 - `MANIFEST.in`
+- `resources/locales/`
 - `resources/skills/`
 - `resources/optional-skills/`
 - `resources/optional-mcps/`
@@ -74,14 +86,17 @@ This repo is a downstream Hermes Agent snapshot plus NanoHermes-specific package
 - `scripts/install.ps1`
 - `setup-hermes.sh`
 - `Dockerfile`
-- `docker/`
+- `infra/docker/`
 - `docker-compose*.yml`
 
 ## Layout rules for future changes
 
-1. Keep runtime Python packages at root until there is a dedicated `src/` migration branch with broad import tests.
-2. Do not add new one-off markdown files to root. Put them under `docs/nanohermes/`, `docs/notes/`, `docs/plans/`, or `docs/releases/`.
-3. Keep generated output out of git: `.hermes/`, `.venv/`, `build/`, `dist/`, web build outputs, and scratch examples.
-4. Keep NanoHermes-specific code under `nanohermes/` unless it must wire into upstream Hermes CLI/runtime paths.
-5. Keep large corpus/resource payloads under `resources/` instead of root-level folders.
-6. When moving files, update references in docs/tests in the same commit and run at least the focused package-manager gate.
+1. Do not add new top-level directories unless they are broad buckets like `apps/`, `docs/`, `infra/`, or stable Python import roots.
+2. Keep runtime Python packages at root until there is a dedicated `src/` migration branch with broad import/package tests.
+3. Put product frontends under `apps/`, not root.
+4. Put docs/static websites under `docs/`, not root.
+5. Put container, Nix, and distro packaging support under `infra/`, while keeping standard root entrypoint files (`Dockerfile`, `flake.nix`) where tools expect them.
+6. Do not add one-off markdown files to root. Put them under `docs/nanohermes/`, `docs/notes/`, `docs/plans/`, or `docs/releases/`.
+7. Keep generated output out of git: `.hermes/`, `.venv/`, `build/`, `dist/`, frontend build outputs, and scratch examples.
+8. Keep large corpus/resource payloads under `resources/` instead of root-level folders.
+9. When moving files, update references in docs/tests in the same commit and run focused gates for every affected surface.

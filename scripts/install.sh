@@ -1688,9 +1688,9 @@ install_node_deps() {
     fi
 
     # Install TUI dependencies
-    if [ -f "$INSTALL_DIR/ui-tui/package.json" ]; then
+    if [ -f "$INSTALL_DIR/apps/tui/package.json" ]; then
         log_info "Installing TUI dependencies..."
-        cd "$INSTALL_DIR/ui-tui"
+        cd "$INSTALL_DIR/apps/tui"
         npm install --silent 2>/dev/null || {
             log_warn "TUI npm install failed (hermes --tui may not work)"
         }

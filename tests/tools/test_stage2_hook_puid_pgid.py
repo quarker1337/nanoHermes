@@ -8,8 +8,8 @@ ignored, the s6-setuidgid drop lands on UID 10000, and the runtime cannot read
 the volume.  HERMES_UID/HERMES_GID must still take precedence when both are
 set.
 
-The s6-overlay rework moved bootstrap from docker/entrypoint.sh (now a shim)
-to docker/stage2-hook.sh, which is installed as /etc/cont-init.d/01-hermes-setup
+The s6-overlay rework moved bootstrap from infra/docker/entrypoint.sh (now a shim)
+to infra/docker/stage2-hook.sh, which is installed as /etc/cont-init.d/01-hermes-setup
 by the Dockerfile.  This test targets the post-rework location.
 """
 from __future__ import annotations
@@ -28,7 +28,7 @@ STAGE2_HOOK = REPO_ROOT / "docker" / "stage2-hook.sh"
 @pytest.fixture(scope="module")
 def stage2_text() -> str:
     if not STAGE2_HOOK.exists():
-        pytest.skip("docker/stage2-hook.sh not present in this checkout")
+        pytest.skip("infra/docker/stage2-hook.sh not present in this checkout")
     return STAGE2_HOOK.read_text()
 
 
@@ -44,10 +44,10 @@ def _alias_lines(text: str) -> list[str]:
 def test_stage2_hook_resolves_puid_pgid_aliases(stage2_text: str) -> None:
     alias_lines = _alias_lines(stage2_text)
     assert any("PUID" in line for line in alias_lines), (
-        "docker/stage2-hook.sh must resolve HERMES_UID from a PUID alias; see #15290"
+        "infra/docker/stage2-hook.sh must resolve HERMES_UID from a PUID alias; see #15290"
     )
     assert any("PGID" in line for line in alias_lines), (
-        "docker/stage2-hook.sh must resolve HERMES_GID from a PGID alias; see #15290"
+        "infra/docker/stage2-hook.sh must resolve HERMES_GID from a PGID alias; see #15290"
     )
 
 

@@ -476,7 +476,7 @@
 - Propagate env through s6 to cont-init and main CMD. ([#32412](https://github.com/NousResearch/hermes-agent/pull/32412))
 - Targeted chown to preserve host file ownership in `HERMES_HOME`. ([#33033](https://github.com/NousResearch/hermes-agent/pull/33033))
 - `mkdir HERMES_HOME` as root in stage2 before chown / privilege drop. ([#33078](https://github.com/NousResearch/hermes-agent/pull/33078))
-- chown `ui-tui` and `node_modules` on UID remap so TUI esbuild works. ([#33045](https://github.com/NousResearch/hermes-agent/pull/33045))
+- chown `apps/tui` and `node_modules` on UID remap so TUI esbuild works. ([#33045](https://github.com/NousResearch/hermes-agent/pull/33045))
 - Include `anthropic`, `bedrock`, `azure-identity` extras in image. ([#30504](https://github.com/NousResearch/hermes-agent/pull/30504))
 - Stop pushing per-commit SHA tags to Docker Hub. ([#29387](https://github.com/NousResearch/hermes-agent/pull/29387))
 - Simplify Docker tagging — push both `:main` and `:latest` on main push. ([#33225](https://github.com/NousResearch/hermes-agent/pull/33225))

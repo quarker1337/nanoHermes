@@ -1715,7 +1715,7 @@ function Install-NodeDeps {
     }
 
     # TUI
-    $tuiDir = "$InstallDir\ui-tui"
+    $tuiDir = "$InstallDir\apps/tui"
     if (Test-Path "$tuiDir\package.json") {
         Write-Info "Installing TUI dependencies..."
         $tuiLog = "$env:TEMP\hermes-npm-tui-$(Get-Random).log"

@@ -14,7 +14,7 @@ Usage::
 
     python scripts/build_model_catalog.py
 
-Output: ``website/static/api/model-catalog.json``
+Output: ``docs/site/static/api/model-catalog.json``
 
 Live URL (after ``deploy-site.yml`` runs on merge to main):
 ``https://hermes-agent.nousresearch.com/docs/api/model-catalog.json``
@@ -35,7 +35,7 @@ os.environ.setdefault("HERMES_HOME", os.path.join(os.path.expanduser("~"), ".her
 
 from hermes_cli.models import OPENROUTER_MODELS, _PROVIDER_MODELS  # noqa: E402
 
-OUTPUT_PATH = os.path.join(REPO_ROOT, "website", "static", "api", "model-catalog.json")
+OUTPUT_PATH = os.path.join(REPO_ROOT, "docs", "site", "static", "api", "model-catalog.json")
 CATALOG_VERSION = 1
 
 

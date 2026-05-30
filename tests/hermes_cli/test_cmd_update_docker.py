@@ -8,7 +8,7 @@ host-side Hermes, not an update to the running container, so the message
 was actively misleading.
 
 These tests pin the new behaviour: when ``detect_install_method`` reports
-``"docker"`` (stamped by ``docker/stage2-hook.sh``), both the apply path
+``"docker"`` (stamped by ``infra/docker/stage2-hook.sh``), both the apply path
 (``cmd_update``) and the check path (``_cmd_update_check``) print the
 ``docker pull`` guidance from ``format_docker_update_message`` and exit
 with status 1, without running ``git fetch`` / ``subprocess.run``.

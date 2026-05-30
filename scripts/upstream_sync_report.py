@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE_FILE = ROOT / ".nanohermes" / "upstream-base.txt"
+BASE_FILE = ROOT / "infra" / "nanohermes" / "upstream-base.txt"
 
 
 def run(*args: str) -> str:
@@ -40,7 +40,7 @@ def main() -> int:
     if upstream_base:
         stat = run("diff", "--stat", upstream_base, "HEAD") or "no downstream diff"
     else:
-        stat = "missing .nanohermes/upstream-base.txt"
+        stat = "missing infra/nanohermes/upstream-base.txt"
     content = f"""# Upstream sync report
 
 Generated: {datetime.now(timezone.utc).isoformat()}
@@ -50,7 +50,7 @@ HEAD: `{head}`
 Tracked upstream base: `{upstream_short}`
 
 NanoHermes uses a squashed downstream history. The upstream base is stored in
-`.nanohermes/upstream-base.txt`; sync branches apply an upstream patch range
+`infra/nanohermes/upstream-base.txt`; sync branches apply an upstream patch range
 instead of merging `upstream/main`, so pushes stay small.
 
 ## Working tree

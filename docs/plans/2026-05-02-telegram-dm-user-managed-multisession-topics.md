@@ -426,8 +426,8 @@ Normal Hermes agent flow for that topic's session lane.
 
 **Files likely touched:**
 
-- `website/docs/user-guide/messaging/telegram.md`
-- maybe `website/docs/user-guide/sessions.md`
+- `docs/site/docs/user-guide/messaging/telegram.md`
+- maybe `docs/site/docs/user-guide/sessions.md`
 
 Docs must explain:
 

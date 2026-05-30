@@ -35,7 +35,7 @@ _EXCLUDED_DIRS = {
     "hermes-agent",     # the codebase repo — re-clone instead
     "__pycache__",      # bytecode caches — regenerated on import
     ".git",             # nested git dirs (profiles shouldn't have these, but safety)
-    "node_modules",     # js deps if website/ somehow leaks in
+    "node_modules",     # js deps if docs/site/ somehow leaks in
     "backups",          # prior auto-backups — don't nest backups exponentially
     "checkpoints",      # session-local trajectory caches — regenerated per-session,
                         # session-hash-keyed so they don't port to another machine anyway

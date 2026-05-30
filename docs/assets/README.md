@@ -1,5 +1,5 @@
 # Docs assets
 
-Images and binary assets referenced by documents under `docs/` live here.
+Images and binary assets referenced by repository docs live here.
 
-Root-facing assets, such as images referenced by the root README files, may remain under the repository-level `assets/` directory.
+Root-facing assets, such as README images, also live here so the repository root does not need a separate `assets/` directory.

@@ -1105,7 +1105,7 @@ display:
 # runs (gateway, cron) need --accept-hooks, HERMES_ACCEPT_HOOKS=1, or the
 # hooks_auto_accept key below.
 #
-# See website/docs/user-guide/features/hooks.md for the full JSON wire
+# See docs/site/docs/user-guide/features/hooks.md for the full JSON wire
 # protocol and worked examples.
 #
 # hooks:

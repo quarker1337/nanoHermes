@@ -98,14 +98,14 @@ WORKDIR /opt/hermes
 # Copy only package manifests first so npm install + Playwright are cached
 # unless the lockfiles themselves change.
 #
-# ui-tui/packages/hermes-ink/ is copied IN FULL (not just its manifests)
+# apps/tui/packages/hermes-ink/ is copied IN FULL (not just its manifests)
 # because it is referenced as a `file:` workspace dependency from
-# ui-tui/package.json.  Copying the tree up front lets npm resolve the
+# apps/tui/package.json.  Copying the tree up front lets npm resolve the
 # workspace to real content instead of stopping at a bare package.json.
 COPY package.json package-lock.json ./
-COPY web/package.json web/package-lock.json web/
-COPY ui-tui/package.json ui-tui/package-lock.json ui-tui/
-COPY ui-tui/packages/hermes-ink/ ui-tui/packages/hermes-ink/
+COPY apps/dashboard/package.json apps/dashboard/package-lock.json apps/dashboard/
+COPY apps/tui/package.json apps/tui/package-lock.json apps/tui/
+COPY apps/tui/packages/hermes-ink/ apps/tui/packages/hermes-ink/
 
 # `npm_config_install_links=false` forces npm to install `file:` deps as
 # symlinks instead of copies.  This is the default since npm 10+, which is
@@ -121,8 +121,8 @@ ENV npm_config_install_links=false
 
 RUN npm install --prefer-offline --no-audit && \
     npx playwright install --with-deps chromium --only-shell && \
-    (cd web && npm install --prefer-offline --no-audit) && \
-    (cd ui-tui && npm install --prefer-offline --no-audit) && \
+    (cd apps/dashboard && npm install --prefer-offline --no-audit) && \
+    (cd apps/tui && npm install --prefer-offline --no-audit) && \
     npm cache clean --force
 
 # ---------- Layer-cached Python dependency install ----------
@@ -159,15 +159,15 @@ RUN uv sync --frozen --no-install-project --extra all --extra messaging --extra 
 COPY --chown=hermes:hermes . .
 
 # Build browser dashboard and terminal UI assets.
-RUN cd web && npm run build && \
-    cd ../ui-tui && npm run build
+RUN (cd apps/dashboard && npm run build) && \
+    (cd apps/tui && npm run build)
 
 # ---------- Permissions ----------
 # Make install dir world-readable so any HERMES_UID can read it at runtime.
 # The venv needs to be traversable too.
 # node_modules trees additionally need to be writable by the hermes user
 # so the runtime `npm install` triggered by _tui_need_npm_install() in
-# hermes_cli/main.py succeeds (see #18800). /opt/hermes/web is build-time
+# hermes_cli/main.py succeeds (see #18800). /opt/hermes/apps/dashboard is build-time
 # only (HERMES_WEB_DIST points at hermes_cli/web_dist) and is intentionally
 # not chowned here.
 # The .venv MUST remain hermes-writable so lazy_deps.py can install
@@ -176,7 +176,7 @@ RUN cd web && npm run build && \
 # fail to load.  See tools/lazy_deps.py.
 USER root
 RUN chmod -R a+rX /opt/hermes && \
-    chown -R hermes:hermes /opt/hermes/.venv /opt/hermes/ui-tui /opt/hermes/node_modules
+    chown -R hermes:hermes /opt/hermes/.venv /opt/hermes/apps/tui /opt/hermes/node_modules
 # Start as root so the s6-overlay stage2 hook can usermod/groupmod and chown
 # the data volume. Each supervised service then drops to the hermes user via
 # `s6-setuidgid hermes` in its run script. If HERMES_UID is unset, services
@@ -216,7 +216,7 @@ RUN if [ -n "${HERMES_GIT_SHA}" ]; then \
 # the profile create/delete hooks (Phase 4); they live under
 # /run/service/ (tmpfs) and are reconciled on container restart by
 # /etc/cont-init.d/02-reconcile-profiles (Phase 4 Task 4.0).
-COPY docker/s6-rc.d/ /etc/s6-overlay/s6-rc.d/
+COPY infra/docker/s6-rc.d/ /etc/s6-overlay/s6-rc.d/
 
 # stage2-hook handles UID/GID remap, volume chown, config seeding,
 # skills sync — all the work the old entrypoint.sh did before
@@ -227,11 +227,11 @@ COPY docker/s6-rc.d/ /etc/s6-overlay/s6-rc.d/
 # slots from $HERMES_HOME/profiles/<name>/ after a container restart
 # (the /run/service/ scandir is tmpfs and wiped on restart). Phase 4.
 RUN mkdir -p /etc/cont-init.d && \
-    printf '#!/command/with-contenv sh\nexec /opt/hermes/docker/stage2-hook.sh\n' \
+    printf '#!/command/with-contenv sh\nexec /opt/hermes/infra/docker/stage2-hook.sh\n' \
         > /etc/cont-init.d/01-hermes-setup && \
     chmod +x /etc/cont-init.d/01-hermes-setup
-COPY --chmod=0755 docker/cont-init.d/015-supervise-perms /etc/cont-init.d/015-supervise-perms
-COPY --chmod=0755 docker/cont-init.d/02-reconcile-profiles /etc/cont-init.d/02-reconcile-profiles
+COPY --chmod=0755 infra/docker/cont-init.d/015-supervise-perms /etc/cont-init.d/015-supervise-perms
+COPY --chmod=0755 infra/docker/cont-init.d/02-reconcile-profiles /etc/cont-init.d/02-reconcile-profiles
 
 # ---------- Runtime ----------
 ENV HERMES_WEB_DIST=/opt/hermes/hermes_cli/web_dist
@@ -248,7 +248,7 @@ ENV HERMES_HOME=/opt/data
 # Recursion is impossible because the shim exec's the venv binary by
 # absolute path (/opt/hermes/.venv/bin/hermes). See the shim source for
 # the opt-out env var (HERMES_DOCKER_EXEC_AS_ROOT=1).
-COPY --chmod=0755 docker/hermes-exec-shim.sh /opt/hermes/bin/hermes
+COPY --chmod=0755 infra/docker/hermes-exec-shim.sh /opt/hermes/bin/hermes
 
 # Pre-s6 entrypoint.sh did `source .venv/bin/activate` which exported
 # the venv bin onto PATH; Architecture B's main-wrapper.sh does the
@@ -287,5 +287,5 @@ VOLUME [ "/opt/data" ]
 # and exec's the final program so its exit code becomes the container
 # exit code. Without the wrapper-as-ENTRYPOINT, leading-dash args
 # like `--version` would be intercepted by /init's POSIX shell.
-ENTRYPOINT [ "/init", "/opt/hermes/docker/main-wrapper.sh" ]
+ENTRYPOINT [ "/init", "/opt/hermes/infra/docker/main-wrapper.sh" ]
 CMD [ ]

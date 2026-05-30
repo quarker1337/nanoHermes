@@ -53,7 +53,7 @@ fi
 The web UI defaults to `localhost:4747` for API calls. Patch it to use same-origin
 so it works through a tunnel/proxy:
 
-**File: `$GITNEXUS_DIR/gitnexus-web/src/config/ui-constants.ts`**
+**File: `$GITNEXUS_DIR/gitnexus-apps/dashboard/src/config/ui-constants.ts`**
 Change:
 ```typescript
 export const DEFAULT_BACKEND_URL = 'http://localhost:4747';
@@ -63,7 +63,7 @@ To:
 export const DEFAULT_BACKEND_URL = typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? window.location.origin : 'http://localhost:4747';
 ```
 
-**File: `$GITNEXUS_DIR/gitnexus-web/vite.config.ts`**
+**File: `$GITNEXUS_DIR/gitnexus-apps/dashboard/vite.config.ts`**
 Add `allowedHosts: true` inside the `server: { }` block (only needed if running dev
 mode instead of production build):
 ```typescript

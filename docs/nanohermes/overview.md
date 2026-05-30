@@ -22,7 +22,7 @@ The `quarker1337/nanoHermes` GitHub repo is intentionally slim/squashed. It cont
 The upstream commit represented by the snapshot is tracked in:
 
 ```text
-.nanohermes/upstream-base.txt
+infra/nanohermes/upstream-base.txt
 ```
 
 Do not merge `upstream/main` into `main`; use the patch-sync workflow in

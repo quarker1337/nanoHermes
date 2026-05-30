@@ -2094,7 +2094,7 @@ class TestPtyWebSocket:
         monkeypatch.setattr(
             main_mod,
             "_make_tui_argv",
-            lambda project_root, tui_dev=False: (["node", "dist/entry.js"], "/tmp/ui-tui"),
+            lambda project_root, tui_dev=False: (["node", "dist/entry.js"], "/tmp/apps/tui"),
         )
 
         _argv, _cwd, env = self.ws_module._resolve_chat_argv()

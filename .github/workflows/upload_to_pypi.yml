@@ -56,15 +56,15 @@ jobs:
           node-version: '22'
 
       - name: Build web dashboard
-        run: cd web && npm ci && npm run build
+        run: cd apps/dashboard && npm ci && npm run build
 
       - name: Build TUI bundle
-        run: cd ui-tui && npm ci && npm run build
+        run: cd apps/tui && npm ci && npm run build
 
       - name: Bundle TUI into hermes_cli
         run: |
           mkdir -p hermes_cli/tui_dist
-          cp ui-tui/dist/entry.js hermes_cli/tui_dist/entry.js
+          cp apps/tui/dist/entry.js hermes_cli/tui_dist/entry.js
 
       - name: Verify frontend assets exist
         run: |

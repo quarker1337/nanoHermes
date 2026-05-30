@@ -3149,7 +3149,7 @@ def _guard_official_docker_root_gateway() -> None:
     print(
         "  The image entrypoint normally drops privileges to the 'hermes' user. "
         "If you override entrypoint in Docker Compose, include "
-        "/opt/hermes/docker/entrypoint.sh before the Hermes command."
+        "/opt/hermes/infra/docker/entrypoint.sh before the Hermes command."
     )
     print(
         "  Running the gateway as root can leave root-owned files in "
@@ -5213,7 +5213,7 @@ def _maybe_redirect_run_to_s6_supervision(args) -> bool:
     # lifetime is independent of this process — s6-supervise restarts
     # it on crash, and we don't want the container to exit when the
     # gateway flaps. `sleep infinity` matches the static main-hermes
-    # service's pattern (see docker/s6-rc.d/main-hermes/run): the CMD
+    # service's pattern (see infra/docker/s6-rc.d/main-hermes/run): the CMD
     # process is a no-op heartbeat that keeps /init alive until
     # `docker stop` sends SIGTERM, at which point /init runs stage 3
     # shutdown (which tears down the supervised gateway cleanly).

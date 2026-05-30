@@ -6,7 +6,7 @@
 > for the architecture and the resolved design questions. The phase-by-phase
 > TDD walkthrough (≈2,800 lines) and the v2/v3 re-validation preambles have
 > been removed — the canonical implementation history is the PR commit log
-> (`git log --oneline a957ef083..a6f7171a5 -- 'docker/*' 'hermes_cli/service_manager.py' …`).
+> (`git log --oneline a957ef083..a6f7171a5 -- 'infra/docker/*' 'hermes_cli/service_manager.py' …`).
 > Open Questions are collapsed into a single Decision Log table; full
 > deliberations live in PR review comments.
 
@@ -76,9 +76,9 @@ service registration that only s6 implements.
 ### Pre-s6 container init (what we replaced)
 
 The original `Dockerfile` declared
-`ENTRYPOINT [ "/usr/bin/tini", "-g", "--", "/opt/hermes/docker/entrypoint.sh" ]`.
+`ENTRYPOINT [ "/usr/bin/tini", "-g", "--", "/opt/hermes/infra/docker/entrypoint.sh" ]`.
 tini was PID 1, reaped zombies, forwarded SIGTERM to the process group. The
-old `docker/entrypoint.sh`:
+old `infra/docker/entrypoint.sh`:
 
 1. `gosu` privilege drop from root → `hermes` UID.
 2. Copied `.env.example`, `cli-config.yaml.example`, `SOUL.md` into
@@ -192,7 +192,7 @@ service `finish` script that writes to
 | `bash` | interactive `bash` directly |
 | `docker run -it … --tui` | interactive Ink TUI with real TTY — see D9 |
 
-`docker/main-wrapper.sh` detects whether `$1` is an executable on PATH and
+`infra/docker/main-wrapper.sh` detects whether `$1` is an executable on PATH and
 routes either to "run this as a one-shot main service" or "wrap with
 hermes".
 
@@ -319,7 +319,7 @@ TTY. The stage2 hook detects the TUI case and short-circuits the
 main-hermes service so the hermes CMD becomes that main program.
 
 ```sh
-# In docker/stage2-hook.sh
+# In infra/docker/stage2-hook.sh
 _is_tui_invocation() {
     for arg in "$@"; do
         case "$arg" in --tui|-T) return 0 ;; esac
@@ -330,7 +330,7 @@ _is_tui_invocation() {
 }
 ```
 
-And in `docker/s6-rc.d/main-hermes/run`:
+And in `infra/docker/s6-rc.d/main-hermes/run`:
 
 ```sh
 if [ -f /var/run/s6/container_environment/HERMES_TUI_MODE ]; then

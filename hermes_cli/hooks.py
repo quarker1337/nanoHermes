@@ -57,7 +57,7 @@ def _cmd_list(_args) -> None:
     if not specs:
         print("No shell hooks configured in ~/.hermes/config.yaml.")
         print("See `hermes hooks --help` or")
-        print("    website/docs/user-guide/features/hooks.md")
+        print("    docs/site/docs/user-guide/features/hooks.md")
         print("for the config schema and worked examples.")
         return
 

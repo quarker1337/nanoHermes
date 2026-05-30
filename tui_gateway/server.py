@@ -648,7 +648,7 @@ def _normalize_completion_path(path_part: str) -> str:
 
 
 # Keep aligned with `INDICATOR_STYLES` / `DEFAULT_INDICATOR_STYLE` in
-# ``ui-tui/src/app/interfaces.ts`` — both ends validate against the
+# ``apps/tui/src/app/interfaces.ts`` — both ends validate against the
 # same shape so `config.get indicator` and the live TUI render agree.
 _INDICATOR_STYLES: tuple[str, ...] = ("ascii", "emoji", "kaomoji", "unicode")
 _INDICATOR_DEFAULT = "kaomoji"
@@ -3074,7 +3074,7 @@ def _(rid, params: dict) -> dict:
 
 
 # ── Delegation: subagent tree observability + controls ───────────────
-# Powers the TUI's /agents overlay (see ui-tui/src/components/agentsOverlay).
+# Powers the TUI's /agents overlay (see apps/tui/src/components/agentsOverlay).
 # The registry lives in tools/delegate_tool — these handlers are thin
 # translators between JSON-RPC and the Python API.
 

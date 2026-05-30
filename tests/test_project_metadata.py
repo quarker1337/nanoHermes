@@ -150,8 +150,10 @@ def test_optional_skills_not_grafted_into_base_sdist():
     setup_py = _load_setup_py_text()
 
     assert "graft resources/skills" in manifest_lines
+    assert "graft resources/locales" in manifest_lines
     assert "graft resources/optional-skills" not in manifest_lines
     assert '*_data_file_tree("resources/skills")' in setup_py
+    assert '*_data_file_tree("resources/locales")' in setup_py
     assert '*_data_file_tree("resources/optional-skills")' not in setup_py
 
 

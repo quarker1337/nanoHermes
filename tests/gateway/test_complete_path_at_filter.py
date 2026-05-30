@@ -5,7 +5,7 @@ Reported during the TUI v2 blitz retest:
     alongside directories — the gateway-side completion lives in
     `tui_gateway/server.py` and was never touched by the earlier fix to
     `hermes_cli/commands.py`.
-  - typing `@appChrome` required the full `@ui-tui/src/components/app…`
+  - typing `@appChrome` required the full `@apps/tui/src/components/app…`
     path to find the file — users expect Cmd-P-style fuzzy basename
     matching across the repo, not a strict directory prefix filter.
 
@@ -108,18 +108,18 @@ def test_bare_at_still_shows_static_refs(tmp_path, monkeypatch):
 
 # ── Fuzzy basename matching ──────────────────────────────────────────────
 # Users shouldn't have to know the full path — typing `@appChrome` should
-# find `ui-tui/src/components/appChrome.tsx`.
+# find `apps/tui/src/components/appChrome.tsx`.
 
 
 def _nested_fixture(tmp_path: Path):
     (tmp_path / "readme.md").write_text("x")
     (tmp_path / ".env").write_text("x")
-    (tmp_path / "ui-tui/src/components").mkdir(parents=True)
-    (tmp_path / "ui-tui/src/components/appChrome.tsx").write_text("x")
-    (tmp_path / "ui-tui/src/components/appLayout.tsx").write_text("x")
-    (tmp_path / "ui-tui/src/components/thinking.tsx").write_text("x")
-    (tmp_path / "ui-tui/src/hooks").mkdir(parents=True)
-    (tmp_path / "ui-tui/src/hooks/useCompletion.ts").write_text("x")
+    (tmp_path / "apps/tui/src/components").mkdir(parents=True)
+    (tmp_path / "apps/tui/src/components/appChrome.tsx").write_text("x")
+    (tmp_path / "apps/tui/src/components/appLayout.tsx").write_text("x")
+    (tmp_path / "apps/tui/src/components/thinking.tsx").write_text("x")
+    (tmp_path / "apps/tui/src/hooks").mkdir(parents=True)
+    (tmp_path / "apps/tui/src/hooks/useCompletion.ts").write_text("x")
     (tmp_path / "tui_gateway").mkdir()
     (tmp_path / "tui_gateway/server.py").write_text("x")
 
@@ -132,13 +132,13 @@ def test_fuzzy_at_finds_file_without_directory_prefix(tmp_path, monkeypatch):
     entries = _items("@appChrome")
     texts = [t for t, _, _ in entries]
 
-    assert "@file:ui-tui/src/components/appChrome.tsx" in texts, texts
+    assert "@file:apps/tui/src/components/appChrome.tsx" in texts, texts
 
     # Display is the basename, meta is the containing directory, so the
-    # picker can show `appChrome.tsx  ui-tui/src/components` on one row.
-    row = next(r for r in entries if r[0] == "@file:ui-tui/src/components/appChrome.tsx")
+    # picker can show `appChrome.tsx  apps/tui/src/components` on one row.
+    row = next(r for r in entries if r[0] == "@file:apps/tui/src/components/appChrome.tsx")
     assert row[1] == "appChrome.tsx"
-    assert row[2] == "ui-tui/src/components"
+    assert row[2] == "apps/tui/src/components"
 
 
 def test_fuzzy_ranks_exact_before_prefix_before_subseq(tmp_path, monkeypatch):
@@ -164,7 +164,7 @@ def test_fuzzy_camelcase_word_boundary(tmp_path, monkeypatch):
     texts = [t for t, _, _ in _items("@Chrome")]
 
     # `Chrome` starts a camelCase word inside `appChrome.tsx`.
-    assert "@file:ui-tui/src/components/appChrome.tsx" in texts, texts
+    assert "@file:apps/tui/src/components/appChrome.tsx" in texts, texts
 
 
 def test_fuzzy_subsequence_catches_sparse_queries(tmp_path, monkeypatch):
@@ -174,7 +174,7 @@ def test_fuzzy_subsequence_catches_sparse_queries(tmp_path, monkeypatch):
 
     texts = [t for t, _, _ in _items("@uCo")]
 
-    assert "@file:ui-tui/src/hooks/useCompletion.ts" in texts, texts
+    assert "@file:apps/tui/src/hooks/useCompletion.ts" in texts, texts
 
 
 def test_fuzzy_at_file_prefix_preserved(tmp_path, monkeypatch):
@@ -184,7 +184,7 @@ def test_fuzzy_at_file_prefix_preserved(tmp_path, monkeypatch):
 
     texts = [t for t, _, _ in _items("@file:appChrome")]
 
-    assert "@file:ui-tui/src/components/appChrome.tsx" in texts, texts
+    assert "@file:apps/tui/src/components/appChrome.tsx" in texts, texts
 
 
 def test_fuzzy_skipped_when_path_has_slash(tmp_path, monkeypatch):
@@ -192,7 +192,7 @@ def test_fuzzy_skipped_when_path_has_slash(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     _nested_fixture(tmp_path)
 
-    texts = [t for t, _, _ in _items("@ui-tui/src/components/app")]
+    texts = [t for t, _, _ in _items("@apps/tui/src/components/app")]
 
     # Directory-listing mode prefixes with `@file:` / `@folder:` per entry.
     # It should only surface direct children of the named dir — not the
@@ -202,15 +202,15 @@ def test_fuzzy_skipped_when_path_has_slash(tmp_path, monkeypatch):
 
 
 def test_fuzzy_skipped_when_folder_tag(tmp_path, monkeypatch):
-    """`@folder:<name>` still lists directories — fuzzy scanner only walks
+    """`@folder:<path>` still lists directories — fuzzy scanner only walks
     files (git-tracked + untracked), so defer to the dir-listing path."""
     monkeypatch.chdir(tmp_path)
     _nested_fixture(tmp_path)
 
-    texts = [t for t, _, _ in _items("@folder:ui")]
+    texts = [t for t, _, _ in _items("@folder:apps/t")]
 
-    # Root has `ui-tui/` as a directory; the listing branch should surface it.
-    assert any(t.startswith("@folder:ui-tui") for t in texts), texts
+    # `apps/` has `tui/` as a direct child; the listing branch should surface it.
+    assert any(t.startswith("@folder:apps/tui") for t in texts), texts
 
 
 def test_fuzzy_hides_dotfiles_unless_asked(tmp_path, monkeypatch):
@@ -237,9 +237,9 @@ def test_fuzzy_paths_relative_to_cwd_inside_subdir(tmp_path, monkeypatch):
     """When the gateway runs from a subdirectory of a git repo, fuzzy
     completion paths must resolve under that cwd — not under the repo root.
 
-    Without this, `@appChrome` from inside `apps/web/` would suggest
-    `@file:apps/web/src/foo.tsx` but the agent (resolving from cwd) would
-    look for `apps/web/apps/web/src/foo.tsx` and fail. We translate every
+    Without this, `@appChrome` from inside `apps/dashboard/` would suggest
+    `@file:apps/dashboard/src/foo.tsx` but the agent (resolving from cwd) would
+    look for `apps/dashboard/src/foo.tsx` and fail. We translate every
     `git ls-files` result back to a `relpath(root)` and drop anything
     outside `root` so the completion contract stays "paths are cwd-relative".
     """
@@ -249,8 +249,8 @@ def test_fuzzy_paths_relative_to_cwd_inside_subdir(tmp_path, monkeypatch):
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True)
     subprocess.run(["git", "config", "user.name", "test"], cwd=tmp_path, check=True)
 
-    (tmp_path / "apps" / "web" / "src").mkdir(parents=True)
-    (tmp_path / "apps" / "web" / "src" / "appChrome.tsx").write_text("x")
+    (tmp_path / "apps" / "dashboard" / "src").mkdir(parents=True)
+    (tmp_path / "apps" / "dashboard" / "src" / "appChrome.tsx").write_text("x")
     (tmp_path / "apps" / "api" / "src").mkdir(parents=True)
     (tmp_path / "apps" / "api" / "src" / "server.ts").write_text("x")
     (tmp_path / "README.md").write_text("x")
@@ -258,15 +258,15 @@ def test_fuzzy_paths_relative_to_cwd_inside_subdir(tmp_path, monkeypatch):
     subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
     subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=tmp_path, check=True)
 
-    # Run from `apps/web/` — completions should be relative to here, and
+    # Run from `apps/dashboard/` — completions should be relative to here, and
     # files outside this subtree (apps/api, README.md at root) shouldn't
     # appear at all.
-    monkeypatch.chdir(tmp_path / "apps" / "web")
+    monkeypatch.chdir(tmp_path / "apps" / "dashboard")
 
     texts = [t for t, _, _ in _items("@appChrome")]
 
     assert "@file:src/appChrome.tsx" in texts, texts
-    assert not any("apps/web/" in t for t in texts), texts
+    assert not any("apps/dashboard/" in t for t in texts), texts
 
     server._fuzzy_cache.clear()
     other_texts = [t for t, _, _ in _items("@server")]

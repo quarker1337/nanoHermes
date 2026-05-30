@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from nanohermes.package_manager import cli as pkg_cli
-from nanohermes.package_manager import registry as registry_module
-from nanohermes.package_manager.registry import PackageRegistry, PackageRegistryError
-from nanohermes.package_manager.state import PackageState
+from hermes_cli.package_manager import cli as pkg_cli
+from hermes_cli.package_manager import registry as registry_module
+from hermes_cli.package_manager.registry import PackageRegistry, PackageRegistryError
+from hermes_cli.package_manager.state import PackageState
 
 
 def _write_registry(tmp_path: Path) -> Path:

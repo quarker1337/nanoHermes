@@ -19,4 +19,5 @@ def test_manifest_includes_bundled_skills():
     manifest = (REPO_ROOT / "MANIFEST.in").read_text(encoding="utf-8")
 
     assert "graft resources/skills" in manifest
+    assert "graft resources/locales" in manifest
     assert "graft resources/optional-skills" not in manifest

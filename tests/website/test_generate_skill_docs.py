@@ -1,10 +1,10 @@
-"""Tests for website/scripts/generate-skill-docs.py.
+"""Tests for docs/site/scripts/generate-skill-docs.py.
 
 The generator turns every `resources/skills/**/SKILL.md` into a Docusaurus page before
 the `docs-site-checks` CI workflow runs `ascii-guard lint` on the result. If
 a SKILL.md contains ASCII diagrams (box-drawing chars in a fenced code block)
 without its own `<!-- ascii-guard-ignore -->` markers, the generator must
-add them defensively — otherwise every PR touching `website/**` fails lint
+add them defensively — otherwise every PR touching `docs/site/**` fails lint
 on unrelated skill content.
 
 Regression for issue #15305.
@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-GENERATOR = REPO_ROOT / "website" / "scripts" / "generate-skill-docs.py"
+GENERATOR = REPO_ROOT / "docs" / "site" / "scripts" / "generate-skill-docs.py"
 
 
 @pytest.fixture(scope="module")

@@ -150,6 +150,7 @@ class TestCmdUpdateBranchFallback:
         import subprocess as _subprocess
         build_ok = _subprocess.CompletedProcess([], 0, stdout="", stderr="")
         with patch.object(hm, "_is_termux_env", return_value=False), \
+             patch.object(hm, "_web_ui_build_needed", return_value=True), \
              patch.object(hm, "_run_with_idle_timeout", return_value=build_ok) as mock_idle:
             cmd_update(mock_args)
 
@@ -161,14 +162,14 @@ class TestCmdUpdateBranchFallback:
 
         # cmd_update runs npm commands in four locations:
         #   1. repo root  — slash-command / TUI bridge deps  (subprocess.run)
-        #   2. ui-tui/    — Ink TUI deps                     (subprocess.run)
-        #   3. web/       — npm install                      (subprocess.run)
-        #   4. web/       — npm run build                    (_run_with_idle_timeout)
+        #   2. apps/tui/    — Ink TUI deps                     (subprocess.run)
+        #   3. apps/dashboard/ — npm install                 (subprocess.run)
+        #   4. apps/dashboard/ — npm run build               (_run_with_idle_timeout)
         #
-        # Repo-root and ui-tui installs intentionally omit `--silent` and run
+        # Repo-root and apps/tui installs intentionally omit `--silent` and run
         # without `capture_output` so optional postinstall scripts (e.g.
         # `@askjo/camofox-browser`'s browser-binary fetch) print progress —
-        # otherwise long downloads look like a hang (#18840).  The web/ install
+        # otherwise long downloads look like a hang (#18840).  The dashboard install
         # keeps `--silent` because its build step is short and noisy.
         update_flags = [
             "/usr/bin/npm",
@@ -179,22 +180,22 @@ class TestCmdUpdateBranchFallback:
         ]
         assert npm_calls[:2] == [
             (update_flags, PROJECT_ROOT),
-            (update_flags, PROJECT_ROOT / "ui-tui"),
+            (update_flags, PROJECT_ROOT / "apps" / "tui"),
         ]
         if len(npm_calls) > 2:
-            # Only the web/ install is left in subprocess.run; the build moved
+            # Only the dashboard install is left in subprocess.run; the build moved
             # to _run_with_idle_timeout to make Vite progress visible (#33788).
             assert npm_calls[2:] == [
-                (["/usr/bin/npm", "ci", "--silent"], PROJECT_ROOT / "web"),
+                (["/usr/bin/npm", "ci", "--silent"], PROJECT_ROOT / "apps" / "dashboard"),
             ]
 
         # The web UI build itself went through the streaming helper.
         mock_idle.assert_called_once()
         idle_args, idle_kwargs = mock_idle.call_args
         assert idle_args[0] == ["/usr/bin/npm", "run", "build"]
-        assert idle_kwargs["cwd"] == PROJECT_ROOT / "web"
+        assert idle_kwargs["cwd"] == PROJECT_ROOT / "apps" / "dashboard"
 
-        # Regression for #18840: repo root + ui-tui installs must stream
+        # Regression for #18840: repo root + apps/tui installs must stream
         # output (capture_output=False) so postinstall progress is visible
         # to the user.
         repo_and_tui_calls = [
@@ -203,12 +204,12 @@ class TestCmdUpdateBranchFallback:
             if call.args
             and call.args[0][0] == "/usr/bin/npm"
             and call.args[0][1] == "ci"
-            and call.kwargs.get("cwd") in {PROJECT_ROOT, PROJECT_ROOT / "ui-tui"}
+            and call.kwargs.get("cwd") in {PROJECT_ROOT, PROJECT_ROOT / "apps" / "tui"}
         ]
         assert len(repo_and_tui_calls) == 2
         for call in repo_and_tui_calls:
             assert call.kwargs.get("capture_output") is False, (
-                "repo-root / ui-tui npm install must stream output "
+                "repo-root / apps/tui npm install must stream output "
                 "(no capture_output) so postinstall progress is visible"
             )
 

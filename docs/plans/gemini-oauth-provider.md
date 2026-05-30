@@ -63,9 +63,9 @@ Add a first-class `gemini` provider that authenticates via Google OAuth, using t
 11. `tests/test_api_key_providers.py` — Add gemini provider test
 
 ### Docs
-12. `website/docs/getting-started/quickstart.md` — Add gemini to provider table
-13. `website/docs/user-guide/configuration.md` — Gemini setup section
-14. `website/docs/reference/environment-variables.md` — New env vars
+12. `docs/site/docs/getting-started/quickstart.md` — Add gemini to provider table
+13. `docs/site/docs/user-guide/configuration.md` — Gemini setup section
+14. `docs/site/docs/reference/environment-variables.md` — New env vars
 
 ## Estimated scope
 ~400 lines new code, ~150 lines modifications, ~100 lines tests, ~50 lines docs = ~700 lines total
