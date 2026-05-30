@@ -657,7 +657,7 @@ agent:
 #   slack:         hermes-slack          (same as telegram)
 #   signal:        hermes-signal         (same as telegram)
 #   homeassistant: hermes-homeassistant  (same as telegram)
-#   qqbot:            hermes-qqbot            (same as telegram)
+#   qqbot:            qqbot-platform            (same as telegram)
 #   teams:            hermes-teams            (same as telegram)
 #   google_chat:      hermes-google_chat      (same as telegram)
 #
@@ -669,8 +669,8 @@ platform_toolsets:
   slack: [hermes-slack]
   signal: [hermes-signal]
   homeassistant: [hermes-homeassistant]
-  qqbot: [hermes-qqbot]
-  yuanbao: [hermes-yuanbao]
+  qqbot: [qqbot-platform]
+  yuanbao: [yuanbao-platform]
   teams: [hermes-teams]
   google_chat: [hermes-google_chat]
 

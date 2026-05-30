@@ -254,9 +254,9 @@ description: "Hermes 内置工具权威参考，按工具集分组"
 | `spotify_albums` | 获取 Spotify 专辑元数据或专辑曲目。 | Spotify OAuth |
 | `spotify_library` | 列出、保存或移除用户已保存的 Spotify 曲目或专辑。 | Spotify OAuth |
 
-## `hermes-yuanbao` 工具集
+## `yuanbao-platform` 工具集
 
-仅在 `hermes-yuanbao` 平台工具集上注册。元宝是腾讯的聊天应用；这些工具驱动其私信/群组/表情包 API。
+仅在 `yuanbao-platform` 平台工具集上注册。元宝是腾讯的聊天应用；这些工具驱动其私信/群组/表情包 API。
 
 | 工具 | 描述 | 所需环境 |
 |------|------|----------|

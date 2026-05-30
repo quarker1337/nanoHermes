@@ -10,6 +10,7 @@ from hermes_runtime.toolsets import (
     validate_toolset,
     create_custom_toolset,
     get_toolset_info,
+    canonical_toolset_name,
 )
 
 
@@ -103,6 +104,21 @@ class TestResolveToolset:
     def test_star_alias(self):
         tools = resolve_toolset("*")
         assert len(tools) > 10
+
+
+class TestToolsetAliases:
+    def test_chinese_platform_presets_use_non_hermes_public_names(self):
+        catalog = get_all_toolsets()
+
+        assert "yuanbao-platform" in catalog
+        assert "feishu-platform" in catalog
+        assert "hermes-yuanbao" not in catalog
+        assert "hermes-feishu" not in catalog
+
+    def test_legacy_chinese_hermes_names_remain_compatibility_aliases(self):
+        assert canonical_toolset_name("hermes-yuanbao") == "yuanbao-platform"
+        assert validate_toolset("hermes-yuanbao") is True
+        assert resolve_toolset("hermes-yuanbao") == resolve_toolset("yuanbao-platform")
 
 
 class TestResolveMultipleToolsets:

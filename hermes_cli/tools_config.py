@@ -134,6 +134,7 @@ def _xai_credentials_present() -> bool:
 _TOOLSET_PLATFORM_RESTRICTIONS: Dict[str, Set[str]] = {
     "discord": {"discord"},
     "discord_admin": {"discord"},
+    "yuanbao": {"yuanbao"},
 }
 
 
@@ -1120,7 +1121,7 @@ def _get_platform_tools(
     include_default_mcp_servers: bool = True,
 ) -> Set[str]:
     """Resolve which individual toolset names are enabled for a platform."""
-    from hermes_runtime.toolsets import resolve_toolset, TOOLSETS
+    from hermes_runtime.toolsets import resolve_toolset, TOOLSETS, canonical_toolset_name
 
     platform_toolsets = config.get("platform_toolsets") or {}
     toolset_names = platform_toolsets.get(platform)
@@ -1136,7 +1137,7 @@ def _get_platform_tools(
 
     # YAML may parse bare numeric names (e.g. ``12306:``) as int.
     # Normalise to str so downstream sorted() never mixes types.
-    toolset_names = [str(ts) for ts in toolset_names]
+    toolset_names = [canonical_toolset_name(str(ts)) for ts in toolset_names]
 
     configurable_keys = {ts_key for ts_key, _, _ in CONFIGURABLE_TOOLSETS}
     plugin_ts_keys = _get_plugin_toolset_keys()
@@ -3562,7 +3563,9 @@ def tools_disable_enable_command(args):
 
     successful = [
         t for t in targets
-        if t not in unknown_toolsets and (":" not in t or t.split(":")[0] not in failed_servers)
+        if t not in unknown_toolsets
+        and t not in restricted_targets
+        and (":" not in t or t.split(":")[0] not in failed_servers)
     ]
     if successful:
         verb = "Disabled" if action == "disable" else "Enabled"

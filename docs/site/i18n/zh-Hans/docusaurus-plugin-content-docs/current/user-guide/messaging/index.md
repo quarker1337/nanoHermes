@@ -432,14 +432,14 @@ launchd plist 是静态的——如果你在配置网关后安装了新工具（
 | Home Assistant | `hermes-homeassistant` | 完整工具 + HA 设备控制（ha_list_entities、ha_get_state、ha_call_service、ha_list_services） |
 | Mattermost | `hermes-mattermost` | 完整工具，包括终端 |
 | Matrix | `hermes-matrix` | 完整工具，包括终端 |
-| DingTalk | `hermes-dingtalk` | 完整工具，包括终端 |
-| Feishu/Lark | `hermes-feishu` | 完整工具，包括终端 |
-| WeCom | `hermes-wecom` | 完整工具，包括终端 |
-| WeCom Callback | `hermes-wecom-callback` | 完整工具，包括终端 |
-| Weixin | `hermes-weixin` | 完整工具，包括终端 |
+| DingTalk | `dingtalk-platform` | 完整工具，包括终端 |
+| Feishu/Lark | `feishu-platform` | 完整工具，包括终端 |
+| WeCom | `wecom-platform` | 完整工具，包括终端 |
+| WeCom Callback | `wecom-callback-platform` | 完整工具，包括终端 |
+| Weixin | `weixin-platform` | 完整工具，包括终端 |
 | BlueBubbles | `hermes-bluebubbles` | 完整工具，包括终端 |
-| QQBot | `hermes-qqbot` | 完整工具，包括终端 |
-| Yuanbao | `hermes-yuanbao` | 完整工具，包括终端 |
+| QQBot | `qqbot-platform` | 完整工具，包括终端 |
+| Yuanbao | `yuanbao-platform` | 完整工具，包括终端 |
 | Microsoft Teams | `hermes-teams` | 完整工具，包括终端 |
 | API Server | `hermes-api-server` | 完整工具（去除 `clarify`、`send_message`、`text_to_speech`——程序化访问没有交互用户） |
 | Webhooks | `hermes-webhook` | 完整工具，包括终端 |

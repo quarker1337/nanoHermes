@@ -162,8 +162,8 @@ COMMAND_REGISTRY: list[CommandDef] = [
     # Tools & Skills
     CommandDef("tools", "Manage tools: /tools [list|disable|enable] [name...]", "Tools & Skills",
                args_hint="[list|disable|enable] [name...]", cli_only=True),
-    CommandDef("toolsets", "List available toolsets", "Tools & Skills",
-               cli_only=True),
+    CommandDef("toolsets", "Show active toolsets; use /toolsets available for the full catalog", "Tools & Skills",
+               args_hint="[available]", subcommands=("available",), cli_only=True),
     CommandDef("skills", "Search, install, inspect, or manage skills",
                "Tools & Skills", cli_only=True,
                subcommands=("search", "browse", "inspect", "install", "audit")),

@@ -6186,35 +6186,128 @@ class HermesCLI:
         self.new_session()
         _cprint(f"{_DIM}Session reset. New tool configuration is active.{_RST}")
 
-    def show_toolsets(self):
-        """Display available toolsets with kawaii ASCII art."""
+    def _handle_toolsets_command(self, cmd: str):
+        """Handle /toolsets [available|all|catalog|active]."""
+        import shlex
+
+        try:
+            parts = shlex.split(cmd)
+        except ValueError:
+            parts = cmd.split()
+        mode = parts[1].lower() if len(parts) > 1 else "active"
+        if mode in {"available", "all", "catalog"}:
+            self.show_toolsets(mode="available")
+            return
+        if mode in {"active", "enabled", "installed"}:
+            self.show_toolsets(mode="active")
+            return
+        print("(._.) Usage: /toolsets [available]")
+        print("  /toolsets           Show active installed/runtime-available toolsets")
+        print("  /toolsets available Show the full static catalog")
+
+    def show_toolsets(self, mode: str = "active"):
+        """Display active or catalog toolsets with kawaii ASCII art."""
+        from hermes_runtime.toolsets import canonical_toolset_name
+
+        catalog_mode = mode in {"available", "all", "catalog"}
+        available_tool_names = None
         all_toolsets = get_all_toolsets()
+
+        def _safe_toolset_info(name: str):
+            definition = all_toolsets.get(name)
+            info = get_toolset_info(name)
+            if info:
+                if not info.get("resolved_tools") and definition:
+                    resolved_tools = list(definition.get("tools", []))
+                    info = {**info, "resolved_tools": resolved_tools, "tool_count": len(resolved_tools)}
+                return info
+            if not definition:
+                return None
+            resolved_tools = list(definition.get("tools", []))
+            return {
+                "name": name,
+                "description": definition.get("description", ""),
+                "resolved_tools": resolved_tools,
+                "tool_count": len(resolved_tools),
+            }
+
+        enabled = {
+            canonical_toolset_name(ts)
+            for ts in (self.enabled_toolsets or [])
+        }
+
+        if catalog_mode:
+            names = sorted(all_toolsets.keys())
+            title = "(^_^)b Available Toolsets Catalog"
+        else:
+            if not enabled:
+                try:
+                    from hermes_cli.config import load_config
+                    from hermes_cli.tools_config import _get_platform_tools
+
+                    enabled = {
+                        canonical_toolset_name(ts)
+                        for ts in _get_platform_tools(load_config(), "cli")
+                    }
+                except Exception:
+                    enabled = set()
+            names = sorted(enabled)
+            title = "(^_^)b Active Toolsets"
+            try:
+                available_tool_names = {
+                    tool["function"]["name"]
+                    for tool in get_tool_definitions(
+                        enabled_toolsets=sorted(enabled),
+                        quiet_mode=True,
+                    )
+                }
+                # Some lightweight/unit-test contexts cannot build schemas even
+                # for configured core toolsets. Treat an empty schema probe as
+                # "runtime availability unknown" rather than hiding every
+                # active toolset from /toolsets.
+                if not available_tool_names:
+                    available_tool_names = None
+            except Exception:
+                available_tool_names = None
+
         
         # Header
         print()
-        title = "(^_^)b Available Toolsets"
         width = 58
         pad = width - len(title)
         print("+" + "-" * width + "+")
-        print("|" + " " * (pad // 2) + title + " " * (pad - pad // 2) + "|")
+        print("|" + " " * max(pad // 2, 0) + title + " " * max(pad - pad // 2, 0) + "|")
         print("+" + "-" * width + "+")
         print()
         
-        for name in sorted(all_toolsets.keys()):
-            info = get_toolset_info(name)
+        runtime_schema_gated_toolsets = {"homeassistant", "kanban", "computer_use", "x_search"}
+        shown = 0
+        for name in names:
+            info = _safe_toolset_info(name)
             if info:
+                if (
+                    not catalog_mode
+                    and name in runtime_schema_gated_toolsets
+                    and available_tool_names is not None
+                    and not (set(info["resolved_tools"]) & available_tool_names)
+                ):
+                    continue
                 tool_count = info["tool_count"]
                 desc = info["description"]
-                
-                # Mark if currently enabled
-                marker = "(*)" if self.enabled_toolsets and name in self.enabled_toolsets else "   "
-                print(f"  {marker} {name:<18} [{tool_count:>2} tools] - {desc}")
+                marker = "(*)" if name in enabled else "   "
+                print(f"  {marker} {name:<22} [{tool_count:>2} tools] - {desc}")
+                shown += 1
         
         print()
-        print("  (*) = currently enabled")
-        print()
-        print("  Tip: Use 'all' or '*' to enable all toolsets")
-        print("  Example: python -m hermes_runtime.cli --toolsets web,terminal")
+        if catalog_mode:
+            print("  (*) = currently enabled")
+            print("  Tip: bare /toolsets shows only active installed/runtime-available toolsets")
+            print("  Example: python -m hermes_runtime.cli --toolsets web,terminal")
+        else:
+            if shown == 0:
+                print("  (;_;) No active toolsets found")
+            print("  Showing active installed/runtime-available toolsets only")
+            print("  Tip: use /toolsets available for the full catalog")
         print()
     
     def _handle_profile_command(self):
@@ -8348,7 +8441,7 @@ class HermesCLI:
         elif canonical == "tools":
             self._handle_tools_command(cmd_original)
         elif canonical == "toolsets":
-            self.show_toolsets()
+            self._handle_toolsets_command(cmd_original)
         elif canonical == "config":
             self.show_config()
         elif canonical == "redraw":

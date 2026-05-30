@@ -58,6 +58,47 @@ def _write_registry(tmp_path: Path) -> Path:
     return path
 
 
+def _write_registry_with_browser_dependency(tmp_path: Path) -> Path:
+    path = _write_registry(tmp_path)
+    registry = json.loads(path.read_text(encoding="utf-8"))
+    registry["package_count"] = 2
+    registry["packages"]["browser"] = {
+        "name": "browser",
+        "display_name": "Browser Automation",
+        "version": "0.2.0",
+        "type": "toolset",
+        "channel": "official",
+        "description": "Browser automation tools.",
+        "dependencies": ["web-search"],
+        "install": {
+            "python_extras": ["browser"],
+            "python_packages": [],
+            "system_packages": [],
+            "npm_packages": [],
+            "optional_assets": [],
+        },
+        "tools": {
+            "toolsets": ["browser"],
+            "tools": ["browser_navigate", "browser_snapshot"],
+        },
+        "permissions": {
+            "network": True,
+            "filesystem": False,
+            "shell": False,
+            "browser": True,
+            "audio": False,
+            "microphone": False,
+            "secrets": [],
+        },
+        "env": {"required": [], "optional": []},
+        "security": {"post_install_scripts": False, "signed": False, "checksum": ""},
+        "manifest_path": "packages/official/browser/package.toml",
+        "manifest_sha256": "1" * 64,
+    }
+    path.write_text(json.dumps(registry), encoding="utf-8")
+    return path
+
+
 def test_registry_update_search_and_show_use_local_source(tmp_path):
     source = _write_registry(tmp_path)
     home = tmp_path / "home"
@@ -147,6 +188,42 @@ def test_install_yes_no_pip_records_package_state(tmp_path, capsys):
     installed = PackageState(home=home).installed
     assert installed["web-search"]["version"] == "0.1.0"
     assert installed["web-search"]["toolsets"] == ["web"]
+    assert installed["web-search"]["status"] == "installed"
+    assert installed["web-search"]["install_reason"] == "manual"
+    assert installed["web-search"]["requested"] is True
+
+
+def test_install_records_core_package_database_with_dependency_reasons(tmp_path, capsys):
+    source = _write_registry_with_browser_dependency(tmp_path)
+    home = tmp_path / "home"
+
+    rc = pkg_cli.main([
+        "--home",
+        str(home),
+        "--source",
+        str(source),
+        "install",
+        "browser",
+        "--yes",
+        "--no-pip",
+    ])
+
+    capsys.readouterr()
+    assert rc == 0
+    state = PackageState(home=home)
+    db = state.load()
+    installed = db["installed"]
+    assert db["schema_version"] == 1
+    assert installed["browser"]["install_reason"] == "manual"
+    assert installed["browser"]["requested"] is True
+    assert installed["browser"]["dependencies"] == ["web-search"]
+    assert installed["browser"]["python_extras"] == ["browser"]
+    assert installed["web-search"]["install_reason"] == "dependency"
+    assert installed["web-search"]["requested"] is False
+    assert installed["web-search"]["source"] == str(source)
+    assert state.installed_toolsets() == ["browser", "web"]
+    assert state.installed_tools() == ["browser_navigate", "browser_snapshot", "web_extract", "web_search"]
+    assert state.package_for_toolset("web") == "web-search"
 
 
 def test_show_accepts_unhyphenated_package_name(tmp_path, capsys):

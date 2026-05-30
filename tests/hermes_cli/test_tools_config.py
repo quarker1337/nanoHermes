@@ -22,6 +22,7 @@ from hermes_cli.tools_config import (
     TOOL_CATEGORIES,
     _visible_providers,
     tools_command,
+    tools_disable_enable_command,
 )
 
 
@@ -131,6 +132,44 @@ def test_get_platform_tools_default_whatsapp_includes_web():
     enabled = _get_platform_tools({}, "whatsapp")
 
     assert "web" in enabled
+
+
+def test_chinese_platform_defaults_use_public_non_hermes_names():
+    from hermes_cli.tools_config import PLATFORMS
+
+    assert PLATFORMS["yuanbao"]["default_toolset"] == "yuanbao-platform"
+    assert PLATFORMS["feishu"]["default_toolset"] == "feishu-platform"
+
+
+def test_get_platform_tools_yuanbao_is_platform_scoped():
+    cli_enabled = _get_platform_tools(
+        {"platform_toolsets": {"cli": ["web", "yuanbao"]}},
+        "cli",
+        include_default_mcp_servers=False,
+    )
+    yuanbao_enabled = _get_platform_tools(
+        {"platform_toolsets": {"yuanbao": ["web", "yuanbao"]}},
+        "yuanbao",
+        include_default_mcp_servers=False,
+    )
+
+    assert "yuanbao" not in cli_enabled
+    assert "yuanbao" in yuanbao_enabled
+
+
+def test_tools_enable_does_not_report_restricted_yuanbao_as_success(capsys):
+    config = {"platform_toolsets": {"cli": ["web"]}}
+
+    with patch("hermes_cli.tools_config.load_config", return_value=config), \
+         patch("hermes_cli.tools_config.save_config"):
+        tools_disable_enable_command(
+            SimpleNamespace(tools_action="enable", names=["yuanbao"], platform="cli")
+        )
+
+    out = capsys.readouterr().out
+    assert "not available on platform 'cli'" in out
+    assert "Enabled: yuanbao" not in out
+    assert "yuanbao" not in config["platform_toolsets"]["cli"]
 
 
 def test_get_platform_tools_homeassistant_platform_keeps_homeassistant_toolset():

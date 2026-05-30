@@ -436,14 +436,14 @@ Each platform has its own toolset:
 | Home Assistant | `hermes-homeassistant` | Full tools + HA device control (ha_list_entities, ha_get_state, ha_call_service, ha_list_services) |
 | Mattermost | `hermes-mattermost` | Full tools including terminal |
 | Matrix | `hermes-matrix` | Full tools including terminal |
-| DingTalk | `hermes-dingtalk` | Full tools including terminal |
-| Feishu/Lark | `hermes-feishu` | Full tools including terminal |
-| WeCom | `hermes-wecom` | Full tools including terminal |
-| WeCom Callback | `hermes-wecom-callback` | Full tools including terminal |
-| Weixin | `hermes-weixin` | Full tools including terminal |
+| DingTalk | `dingtalk-platform` | Full tools including terminal |
+| Feishu/Lark | `feishu-platform` | Full tools including terminal |
+| WeCom | `wecom-platform` | Full tools including terminal |
+| WeCom Callback | `wecom-callback-platform` | Full tools including terminal |
+| Weixin | `weixin-platform` | Full tools including terminal |
 | BlueBubbles | `hermes-bluebubbles` | Full tools including terminal |
-| QQBot | `hermes-qqbot` | Full tools including terminal |
-| Yuanbao | `hermes-yuanbao` | Full tools including terminal |
+| QQBot | `qqbot-platform` | Full tools including terminal |
+| Yuanbao | `yuanbao-platform` | Full tools including terminal |
 | Microsoft Teams | `hermes-teams` | Full tools including terminal |
 | API Server | `hermes-api-server` | Full tools (drops `clarify`, `send_message`, `text_to_speech` — programmatic access doesn't have an interactive user) |
 | Webhooks | `hermes-webhook` | Full tools including terminal |

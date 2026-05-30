@@ -255,9 +255,9 @@ Registered by the bundled `spotify` plugin. Requires an OAuth token — run `her
 | `spotify_albums` | Fetch Spotify album metadata or album tracks. | Spotify OAuth |
 | `spotify_library` | List, save, or remove the user's saved Spotify tracks or albums. | Spotify OAuth |
 
-## `hermes-yuanbao` toolset
+## `yuanbao-platform` toolset
 
-Registered only on the `hermes-yuanbao` platform toolset. Yuanbao is Tencent's chat app; these tools drive its DM/group/sticker APIs.
+Registered only on the `yuanbao-platform` platform toolset. Yuanbao is Tencent's chat app; these tools drive its DM/group/sticker APIs.
 
 | Tool | Description | Requires environment |
 |------|-------------|----------------------|

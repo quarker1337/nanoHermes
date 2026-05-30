@@ -83,7 +83,7 @@ Or in-session:
 | `video` | `video_analyze` | Video analysis and understanding tools (opt-in, not in the default toolset — add explicitly via `--toolsets`). |
 | `web` | `web_extract`, `web_search` | Web search and page content extraction. |
 | `x_search` | `x_search` | Search X (Twitter) posts and threads via xAI's built-in `x_search` Responses tool. Off by default; opt in via `hermes tools`. Schema only registered when xAI credentials (SuperGrok OAuth or `XAI_API_KEY`) are configured. |
-| `yuanbao` | `yb_query_group_info`, `yb_query_group_members`, `yb_search_sticker`, `yb_send_dm`, `yb_send_sticker` | Yuanbao DM/group actions and sticker search. Registered only on `hermes-yuanbao`. |
+| `yuanbao` | `yb_query_group_info`, `yb_query_group_members`, `yb_search_sticker`, `yb_send_dm`, `yb_send_sticker` | Yuanbao DM/group actions and sticker search. Registered only on `yuanbao-platform`. |
 
 ## Platform Toolsets
 
@@ -105,13 +105,13 @@ Platform toolsets define the complete tool configuration for a deployment target
 | `hermes-email` | Same as `hermes-cli`. |
 | `hermes-sms` | Same as `hermes-cli`. |
 | `hermes-bluebubbles` | Same as `hermes-cli`. |
-| `hermes-dingtalk` | Same as `hermes-cli`. |
-| `hermes-feishu` | Adds the five `feishu_doc_*` / `feishu_drive_*` tools (only used by the document-comment handler, not the regular chat adapter). |
-| `hermes-qqbot` | Same as `hermes-cli`. |
-| `hermes-wecom` | Same as `hermes-cli`. |
-| `hermes-wecom-callback` | Same as `hermes-cli`. |
-| `hermes-weixin` | Same as `hermes-cli`. |
-| `hermes-yuanbao` | Adds the five `yb_*` tools (DM/group/sticker) on top of `hermes-cli`. |
+| `dingtalk-platform` | Same as `hermes-cli`. |
+| `feishu-platform` | Adds the five `feishu_doc_*` / `feishu_drive_*` tools (only used by the document-comment handler, not the regular chat adapter). |
+| `qqbot-platform` | Same as `hermes-cli`. |
+| `wecom-platform` | Same as `hermes-cli`. |
+| `wecom-callback-platform` | Same as `hermes-cli`. |
+| `weixin-platform` | Same as `hermes-cli`. |
+| `yuanbao-platform` | Adds the five `yb_*` tools (DM/group/sticker) on top of `hermes-cli`. |
 | `hermes-homeassistant` | Same as `hermes-cli` (the Home Assistant tools are already present by default and activate when `HASS_TOKEN` is set). |
 | `hermes-webhook` | Same as `hermes-cli`. |
 | `hermes-gateway` | Internal gateway orchestrator toolset — union of every `hermes-<platform>` toolset; used when the gateway needs to accept any message source. |

@@ -14,6 +14,56 @@ def _make_cli(enabled_toolsets=None):
     return cli_obj
 
 
+# ── /toolsets ───────────────────────────────────────────────────────────────
+
+
+class TestToolsetsSlashCommand:
+
+    def test_bare_toolsets_shows_active_only(self, capsys):
+        cli_obj = _make_cli(["web", "terminal"])
+
+        cli_obj.show_toolsets()
+
+        out = capsys.readouterr().out
+        assert "Active Toolsets" in out
+        assert "web" in out
+        assert "terminal" in out
+        assert "hermes-yuanbao" not in out
+        assert "yuanbao-platform" not in out
+        assert "use /toolsets available" in out
+
+    def test_bare_toolsets_hides_configured_but_runtime_unavailable(self, capsys):
+        cli_obj = _make_cli(["web", "homeassistant"])
+
+        with patch(
+            "hermes_runtime.cli.get_tool_definitions",
+            return_value=[{"function": {"name": "web_search"}}],
+        ):
+            cli_obj.show_toolsets()
+
+        out = capsys.readouterr().out
+        assert "web" in out
+        assert "homeassistant" not in out
+
+    def test_available_toolsets_shows_catalog_without_legacy_chinese_aliases(self, capsys):
+        cli_obj = _make_cli(["web"])
+
+        cli_obj.show_toolsets(mode="available")
+
+        out = capsys.readouterr().out
+        assert "Available Toolsets Catalog" in out
+        assert "yuanbao-platform" in out
+        assert "hermes-yuanbao" not in out
+        assert "hermes-feishu" not in out
+
+    def test_toolsets_subcommand_dispatches_available_mode(self):
+        cli_obj = _make_cli(["web"])
+
+        with patch.object(cli_obj, "show_toolsets") as mock_show:
+            cli_obj._handle_toolsets_command("/toolsets available")
+
+        mock_show.assert_called_once_with(mode="available")
+
 # ── /tools (no subcommand) ──────────────────────────────────────────────────
 
 

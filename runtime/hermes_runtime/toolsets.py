@@ -476,14 +476,14 @@ TOOLSETS = {
         "includes": []
     },
 
-    "hermes-dingtalk": {
-        "description": "DingTalk bot toolset - enterprise messaging platform (full access)",
+    "dingtalk-platform": {
+        "description": "DingTalk platform preset - enterprise messaging platform (full access)",
         "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-feishu": {
-        "description": "Feishu/Lark bot toolset - enterprise messaging via Feishu/Lark (full access)",
+    "feishu-platform": {
+        "description": "Feishu/Lark platform preset - enterprise messaging via Feishu/Lark (full access)",
         "tools": _HERMES_CORE_TOOLS + [
             "feishu_doc_read",
             "feishu_drive_list_comments",
@@ -494,32 +494,32 @@ TOOLSETS = {
         "includes": []
     },
 
-    "hermes-weixin": {
-        "description": "Weixin bot toolset - personal WeChat messaging via iLink (full access)",
+    "weixin-platform": {
+        "description": "Weixin platform preset - personal WeChat messaging via iLink (full access)",
         "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-qqbot": {
-        "description": "QQBot toolset - QQ messaging via Official Bot API v2 (full access)",
+    "qqbot-platform": {
+        "description": "QQBot platform preset - QQ messaging via Official Bot API v2 (full access)",
         "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-wecom": {
-        "description": "WeCom bot toolset - enterprise WeChat messaging (full access)",
+    "wecom-platform": {
+        "description": "WeCom platform preset - enterprise WeChat messaging (full access)",
         "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-wecom-callback": {
-        "description": "WeCom callback toolset - enterprise self-built app messaging (full access)",
+    "wecom-callback-platform": {
+        "description": "WeCom callback platform preset - enterprise self-built app messaging (full access)",
         "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-yuanbao": {
-        "description": "Yuanbao Bot 元宝消息平台工具集 - 群信息、成员查询、私聊、贴纸表情",
+    "yuanbao-platform": {
+        "description": "Yuanbao platform preset - 元宝群信息、成员查询、私聊、贴纸表情",
         "tools": _HERMES_CORE_TOOLS + [
             "yb_query_group_info",
             "yb_query_group_members",
@@ -546,9 +546,28 @@ TOOLSETS = {
     "hermes-gateway": {
         "description": "Gateway toolset - union of all messaging platform tools",
         "tools": [],
-        "includes": ["hermes-telegram", "hermes-discord", "hermes-whatsapp", "hermes-slack", "hermes-signal", "hermes-bluebubbles", "hermes-homeassistant", "hermes-email", "hermes-sms", "hermes-mattermost", "hermes-matrix", "hermes-dingtalk", "hermes-feishu", "hermes-wecom", "hermes-wecom-callback", "hermes-weixin", "hermes-qqbot", "hermes-webhook", "hermes-yuanbao"]
+        "includes": ["hermes-telegram", "hermes-discord", "hermes-whatsapp", "hermes-slack", "hermes-signal", "hermes-bluebubbles", "hermes-homeassistant", "hermes-email", "hermes-sms", "hermes-mattermost", "hermes-matrix", "dingtalk-platform", "feishu-platform", "wecom-platform", "wecom-callback-platform", "weixin-platform", "qqbot-platform", "hermes-webhook", "yuanbao-platform"]
     }
 }
+
+
+# Public names for non-core optional platform presets should not claim the
+# ``hermes-*`` namespace. Keep the historical names as compatibility aliases so
+# existing config.yaml files and CLI invocations continue to resolve.
+_TOOLSET_ALIASES = {
+    "hermes-dingtalk": "dingtalk-platform",
+    "hermes-feishu": "feishu-platform",
+    "hermes-weixin": "weixin-platform",
+    "hermes-qqbot": "qqbot-platform",
+    "hermes-wecom": "wecom-platform",
+    "hermes-wecom-callback": "wecom-callback-platform",
+    "hermes-yuanbao": "yuanbao-platform",
+}
+
+
+def canonical_toolset_name(name: str) -> str:
+    """Return the public/canonical name for a toolset or legacy alias."""
+    return _TOOLSET_ALIASES.get(str(name), str(name))
 
 
 
@@ -563,6 +582,7 @@ def get_toolset(name: str) -> Optional[Dict[str, Any]]:
         Dict: Toolset definition with description, tools, and includes
         None: If toolset not found
     """
+    name = canonical_toolset_name(name)
     toolset = TOOLSETS.get(name)
 
     try:
@@ -629,6 +649,8 @@ def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
             resolved = resolve_toolset(toolset_name, visited.copy())
             all_tools.update(resolved)
         return sorted(all_tools)
+
+    name = canonical_toolset_name(name)
 
     # Check for cycles / already-resolved (diamond deps).
     # Silently return [] — either this is a diamond (not a bug, tools already
@@ -783,7 +805,7 @@ def validate_toolset(name: str) -> bool:
     # Accept special alias names for convenience
     if name in {"all", "*"}:
         return True
-    if name in TOOLSETS:
+    if name in TOOLSETS or name in _TOOLSET_ALIASES:
         return True
     if name in _get_plugin_toolset_names():
         return True

@@ -285,12 +285,12 @@ class TestMediaModule:
 
 class TestToolset:
     def test_yuanbao_toolset_registered(self):
-        """runtime/hermes_runtime/toolsets.py 中存在 hermes-yuanbao 键"""
+        """runtime/hermes_runtime/toolsets.py 中存在 yuanbao-platform 键"""
         import importlib
-        ts = importlib.import_module("toolsets")
+        ts = importlib.import_module("hermes_runtime.toolsets")
         assert hasattr(ts, "TOOLSETS") or hasattr(ts, "toolsets")
         toolsets_dict = getattr(ts, "TOOLSETS", getattr(ts, "toolsets", {}))
-        assert "hermes-yuanbao" in toolsets_dict
+        assert "yuanbao-platform" in toolsets_dict
 
     def test_tools_import(self):
         from tools.yuanbao_tools import (

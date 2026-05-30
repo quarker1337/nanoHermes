@@ -143,6 +143,7 @@ def cmd_install(args: argparse.Namespace) -> int:
     if _update_registry(registry, source, timeout=_registry_timeout(args)) is None:
         return 1
     try:
+        requested_names = {registry.resolve_name(name) for name in args.packages}
         packages = registry.resolve_with_dependencies(args.packages)
     except PackageRegistryError as exc:
         return _print_registry_error(exc)
@@ -159,7 +160,11 @@ def cmd_install(args: argparse.Namespace) -> int:
         _install_python_extras(extras)
     state = PackageState(home=args.home)
     for package in packages:
-        state.mark_installed(package, source=str(source))
+        state.mark_installed(
+            package,
+            source=str(source),
+            requested=package["name"] in requested_names,
+        )
         print(f"Installed {package['name']} {package.get('version', '')}")
     return 0
 
