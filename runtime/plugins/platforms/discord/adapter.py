@@ -2253,7 +2253,7 @@ class DiscordAdapter(BasePlatformAdapter):
         """
         # ``getattr`` fallbacks here guard against test fixtures that build
         # an adapter via ``object.__new__(DiscordAdapter)`` and skip __init__
-        # (see AGENTS.md pitfall #17 — same pattern as gateway.run).
+        # (see docs/contributing/AGENTS.md pitfall #17 — same pattern as gateway.run).
         allowed_users = getattr(self, "_allowed_user_ids", set())
         allowed_roles = getattr(self, "_allowed_role_ids", set())
         has_users = bool(allowed_users)

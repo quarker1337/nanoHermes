@@ -121,7 +121,7 @@ hermes chat -q "Hello"
 ### Run tests
 
 ```bash
-# Preferred — matches CI (hermetic env, 4 xdist workers); see AGENTS.md
+# Preferred — matches CI (hermetic env, 4 xdist workers); see docs/contributing/AGENTS.md
 scripts/run_tests.sh
 
 # Alternative (activate the venv first). The wrapper is still recommended
@@ -199,7 +199,7 @@ hermes-agent/
 ├── docs/site/                # Documentation site (hermes-agent.nousresearch.com)
 │
 ├── config/cli-config.yaml.example   # Example configuration (copied to ~/.hermes/config.yaml)
-└── AGENTS.md                 # Development guide for AI coding assistants
+└── docs/contributing/AGENTS.md  # Development guide for AI coding assistants
 ```
 
 ### User configuration (stored in `~/.hermes/`)
@@ -317,7 +317,7 @@ You must still add the tool name to the appropriate list in `runtime/hermes_runt
 registers but is never exposed to the agent. If you introduce a new toolset,
 add it in `runtime/hermes_runtime/toolsets.py` and wire it into the relevant platform presets.
 
-See `AGENTS.md` (section **Adding New Tools**) for profile-aware paths and
+See `docs/contributing/AGENTS.md` (section **Adding New Tools**) for profile-aware paths and
 plugin vs core guidance.
 
 ---

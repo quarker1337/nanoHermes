@@ -192,7 +192,7 @@ jobs:
         run: |
           BODY="## ⚠️ Unbounded PyPI Dependency Detected
 
-          This PR adds PyPI dependencies without a \`<next_major\` upper bound. Per our [supply chain policy](../blob/main/CONTRIBUTING.md#dependency-pinning-policy-supply-chain-hardening), all PyPI deps must be pinned as \`>=floor,<next_major\`.
+          This PR adds PyPI dependencies without a \`<next_major\` upper bound. Per our [supply chain policy](https://github.com/NousResearch/hermes-agent/blob/main/.github/CONTRIBUTING.md#dependency-pinning-policy-supply-chain-hardening), all PyPI deps must be pinned as \`>=floor,<next_major\`.
 
           **Unbounded specs found:**
           \`\`\`
@@ -202,12 +202,12 @@ jobs:
           **Fix:** Add an upper bound, e.g. \`\"package>=1.2.0,<2\"\`
 
           ---
-          *See PR #2810 and CONTRIBUTING.md for the full policy rationale.*"
+          *See PR #2810 and .github/CONTRIBUTING.md for the full policy rationale.*"
 
           gh pr comment "${{ github.event.pull_request.number }}" --body "$BODY" || echo "::warning::Could not post PR comment (expected for fork PRs)"
 
       - name: Fail on unbounded deps
         if: steps.bounds.outputs.found == 'true'
         run: |
-          echo "::error::PyPI dependencies without upper bounds detected. Add <next_major ceiling per CONTRIBUTING.md policy."
+          echo "::error::PyPI dependencies without upper bounds detected. Add <next_major ceiling per .github/CONTRIBUTING.md policy."
           exit 1

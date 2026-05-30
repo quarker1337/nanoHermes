@@ -35,11 +35,18 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 
 | Path | Why it stays at root |
 |---|---|
-| `README.md`, `README.zh-CN.md`, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `AGENTS.md` | Project identity and contributor entrypoints. |
+| `README.md`, `LICENSE` | Project identity and legal entrypoints. |
 | `pyproject.toml`, `setup.py`, `MANIFEST.in`, `uv.lock` | Python build/install contract. |
-| `.dockerignore` | Root Docker ignore contract because Docker build context remains the repository root; Dockerfile, Compose files, and hadolint config live under `infra/docker/`. |
-| `flake.nix`, `flake.lock`, `.envrc` | Standard Nix/dev-shell entrypoints. Implementation files are in `infra/nix/`. |
-| `setup.py` | Minimal legacy Python build entrypoint; other Python implementation files should live in package buckets. |
+| `.dockerignore`, `.gitattributes`, `.gitignore` | Root-level Docker/Git ignore and attribute contracts. |
+| `.envrc`, `flake.nix`, `flake.lock` | Standard Nix/direnv dev-shell entrypoints. Implementation files are in `infra/nix/`. |
+| `hermes` | Root launcher for source-checkout CLI usage. |
+
+## Root-adjacent files moved into buckets
+
+| Path | Why it is not at root |
+|---|---|
+| `.github/CONTRIBUTING.md`, `.github/SECURITY.md` | GitHub-recognized community health files; `.github/` keeps them discoverable without root clutter. |
+| `docs/README.zh-CN.md`, `docs/contributing/AGENTS.md`, `docs/contributing/mailmap` | Localized README, agent contributor guide, and author map belong with docs/contributor material. |
 
 ## Fast audit entry points
 
@@ -98,7 +105,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 2. Keep runtime Python packages at root until there is a dedicated `src/` migration branch with broad import/package tests.
 3. Put product frontends under `apps/`, not root.
 4. Put docs/static websites under `docs/`, not root.
-5. Put container, Nix, and distro packaging support under `infra/`, while keeping only tool-discovery contracts such as `flake.nix` and `.dockerignore` at root when moving them would break default tooling.
+5. Put container, Nix, distro packaging, contributor guides, GitHub community files, and localized docs under `infra/`, `docs/`, or `.github/`, while keeping only tool-discovery contracts such as `flake.nix`, `.envrc`, `.dockerignore`, `.gitignore`, and `.gitattributes` at root when moving them would break default tooling.
 6. Do not add one-off markdown files to root. Put them under `docs/nanohermes/`, `docs/notes/`, `docs/plans/`, or `docs/releases/`.
 7. Keep generated output out of git: `.hermes/`, `.venv/`, `build/`, `dist/`, frontend build outputs, and scratch examples.
 8. Keep large corpus/resource payloads under `resources/` instead of root-level folders.

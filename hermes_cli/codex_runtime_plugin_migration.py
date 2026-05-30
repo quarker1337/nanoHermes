@@ -30,8 +30,9 @@ What does NOT translate (warned + skipped):
 
 What's NOT migrated (intentional):
   AGENTS.md — codex respects this file natively in its cwd. Hermes' own
-  AGENTS.md (project-level) is already in the worktree, so codex picks
-  it up without translation. No code needed.
+  contributor guide now lives at docs/contributing/AGENTS.md, not at the
+  worktree root, so codex will only pick up AGENTS.md when a target project
+  actually provides one. No migration code needed.
 """
 
 from __future__ import annotations
