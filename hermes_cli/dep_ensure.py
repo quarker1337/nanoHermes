@@ -15,6 +15,7 @@ browser tool needs agent-browser).
 """
 from __future__ import annotations
 
+import json
 import os
 import platform
 import shutil
@@ -100,9 +101,47 @@ def _find_install_script(
     return None, None
 
 
+def _declined_prompt_path() -> Path:
+    """Return the per-profile file that remembers declined install prompts."""
+    from hermes_runtime.hermes_constants import get_hermes_home
+
+    return get_hermes_home() / "install-prompt-declines.json"
+
+
+def _read_declined_prompts() -> set[str]:
+    path = _declined_prompt_path()
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    declined = data.get("declined") if isinstance(data, dict) else None
+    if not isinstance(declined, dict):
+        return set()
+    return {str(dep) for dep, value in declined.items() if value is True}
+
+
+def _has_declined_prompt(dep: str) -> bool:
+    return dep in _read_declined_prompts()
+
+
+def _remember_declined_prompt(dep: str) -> None:
+    path = _declined_prompt_path()
+    declined = _read_declined_prompts()
+    declined.add(dep)
+    data = {"version": 1, "declined": {name: True for name in sorted(declined)}}
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    except OSError:
+        # The prompt outcome should never make startup fail. If persistence is
+        # unavailable, fall back to the old behavior for this environment.
+        pass
+
+
 def ensure_dependency(
     dep: str,
     interactive: bool = True,
+    respect_decline: bool = True,
 ) -> bool:
     """Ensure a non-Python dependency is available. Returns True if available."""
     check = _DEP_CHECKS.get(dep)
@@ -111,6 +150,9 @@ def ensure_dependency(
         return False
     if check():
         return True
+
+    if respect_decline and _has_declined_prompt(dep):
+        return False
 
     script, shell = _find_install_script()
     if script is None:
@@ -127,6 +169,7 @@ def ensure_dependency(
         except (EOFError, KeyboardInterrupt):
             return False
         if reply not in ("", "y", "yes"):
+            _remember_declined_prompt(dep)
             return False
 
     if shell == "powershell":

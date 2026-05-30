@@ -1,6 +1,61 @@
 from unittest.mock import patch
 
 
+def test_declined_interactive_prompt_is_remembered(tmp_path):
+    """Answering no once should suppress the same startup install nag later."""
+    from hermes_cli.dep_ensure import ensure_dependency
+
+    script = tmp_path / "install.sh"
+    script.write_text("#!/bin/sh\n", encoding="utf-8")
+    prompts = []
+
+    def fake_input(prompt):
+        prompts.append(prompt)
+        return "n"
+
+    with patch("hermes_cli.dep_ensure._DEP_CHECKS", {"browser": lambda: False}), \
+         patch("hermes_cli.dep_ensure._find_install_script", return_value=(script, "bash")), \
+         patch("hermes_runtime.hermes_constants.get_hermes_home", return_value=tmp_path), \
+         patch("sys.stdin") as mock_stdin, \
+         patch("builtins.input", side_effect=fake_input), \
+         patch("subprocess.run") as mock_run:
+        mock_stdin.isatty.return_value = True
+
+        assert ensure_dependency("browser", interactive=True) is False
+        assert ensure_dependency("browser", interactive=True) is False
+
+    assert len(prompts) == 1
+    assert "Browser engine" in prompts[0]
+    mock_run.assert_not_called()
+
+
+def test_explicit_dependency_ensure_can_ignore_remembered_decline(tmp_path):
+    """Explicit setup/postinstall flows can ask again despite a startup decline."""
+    from hermes_cli.dep_ensure import ensure_dependency
+
+    script = tmp_path / "install.sh"
+    script.write_text("#!/bin/sh\n", encoding="utf-8")
+    prompts = []
+
+    def fake_input(prompt):
+        prompts.append(prompt)
+        return "n"
+
+    with patch("hermes_cli.dep_ensure._DEP_CHECKS", {"browser": lambda: False}), \
+         patch("hermes_cli.dep_ensure._find_install_script", return_value=(script, "bash")), \
+         patch("hermes_runtime.hermes_constants.get_hermes_home", return_value=tmp_path), \
+         patch("sys.stdin") as mock_stdin, \
+         patch("builtins.input", side_effect=fake_input), \
+         patch("subprocess.run") as mock_run:
+        mock_stdin.isatty.return_value = True
+
+        assert ensure_dependency("browser", interactive=True) is False
+        assert ensure_dependency("browser", interactive=True, respect_decline=False) is False
+
+    assert len(prompts) == 2
+    mock_run.assert_not_called()
+
+
 def test_ensure_dependency_skips_when_present():
     """ensure_dependency is a no-op when the dep is already available."""
     from hermes_cli.dep_ensure import ensure_dependency

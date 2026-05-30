@@ -192,13 +192,13 @@ def _run_setup_browser(assume_yes: bool = False) -> int:
     from hermes_cli.dep_ensure import ensure_dependency
 
     try:
-        node_ok = ensure_dependency("node", interactive=not assume_yes)
+        node_ok = ensure_dependency("node", interactive=not assume_yes, respect_decline=False)
         if not node_ok:
             print("Node.js installation failed — cannot proceed with browser tools.",
                   file=sys.stderr)
             return 1
 
-        browser_ok = ensure_dependency("browser", interactive=not assume_yes)
+        browser_ok = ensure_dependency("browser", interactive=not assume_yes, respect_decline=False)
         if not browser_ok:
             print("Browser tools installation failed.", file=sys.stderr)
             return 1

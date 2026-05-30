@@ -2104,7 +2104,7 @@ def cmd_postinstall(args):
     print()
 
     for dep in ("node", "browser", "ripgrep", "ffmpeg"):
-        ensure_dependency(dep)
+        ensure_dependency(dep, respect_decline=False)
 
     if not _has_any_provider_configured():
         print()

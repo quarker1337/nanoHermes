@@ -98,39 +98,39 @@ def test_main_setup_browser_calls_ensure_dependency(monkeypatch):
     """`hermes-acp --setup-browser` routes through dep_ensure.ensure_dependency."""
     calls = []
 
-    def fake_ensure(dep, interactive=True):
-        calls.append((dep, interactive))
+    def fake_ensure(dep, interactive=True, respect_decline=True):
+        calls.append((dep, interactive, respect_decline))
         return True
 
     monkeypatch.setattr("hermes_cli.dep_ensure.ensure_dependency", fake_ensure)
 
     entry.main(["--setup-browser"])
 
-    assert ("node", True) in calls
-    assert ("browser", True) in calls
+    assert ("node", True, False) in calls
+    assert ("browser", True, False) in calls
 
 
 def test_main_setup_browser_forwards_yes_flag(monkeypatch):
     """--yes suppresses interactive prompts in ensure_dependency."""
     calls = []
 
-    def fake_ensure(dep, interactive=True):
-        calls.append((dep, interactive))
+    def fake_ensure(dep, interactive=True, respect_decline=True):
+        calls.append((dep, interactive, respect_decline))
         return True
 
     monkeypatch.setattr("hermes_cli.dep_ensure.ensure_dependency", fake_ensure)
 
     entry.main(["--setup-browser", "--yes"])
 
-    assert ("node", False) in calls
-    assert ("browser", False) in calls
+    assert ("node", False, False) in calls
+    assert ("browser", False, False) in calls
 
 
 def test_main_setup_browser_stops_on_node_failure(monkeypatch):
     """If node install fails, browser install is not attempted."""
     calls = []
 
-    def fake_ensure(dep, interactive=True):
+    def fake_ensure(dep, interactive=True, respect_decline=True):
         calls.append(dep)
         return dep != "node"  # node fails
 
@@ -145,7 +145,7 @@ def test_main_setup_browser_stops_on_node_failure(monkeypatch):
 
 def test_main_setup_browser_propagates_browser_failure(monkeypatch):
     """If browser install fails, exit code is 1."""
-    def fake_ensure(dep, interactive=True):
+    def fake_ensure(dep, interactive=True, respect_decline=True):
         return dep != "browser"  # browser fails
 
     monkeypatch.setattr("hermes_cli.dep_ensure.ensure_dependency", fake_ensure)
