@@ -45,16 +45,42 @@ class TestToolsetsSlashCommand:
         assert "web" in out
         assert "homeassistant" not in out
 
-    def test_available_toolsets_shows_catalog_without_legacy_chinese_aliases(self, capsys):
-        cli_obj = _make_cli(["web"])
+    def test_available_toolsets_shows_only_bundled_and_installed(self, capsys, monkeypatch, tmp_path):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        cli_obj = _make_cli(["terminal"])
 
         cli_obj.show_toolsets(mode="available")
 
         out = capsys.readouterr().out
-        assert "Available Toolsets Catalog" in out
-        assert "yuanbao-platform" in out
+        assert "Available Installed/Bundled Toolsets" in out
+        assert "terminal" in out
+        assert "file" in out
+        assert "web" not in out
+        assert "browser" not in out
+        assert "yuanbao-platform" not in out
         assert "hermes-yuanbao" not in out
         assert "hermes-feishu" not in out
+
+    def test_available_toolsets_includes_installed_package_toolset(self, capsys, monkeypatch, tmp_path):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        from hermes_cli.package_manager.state import PackageState
+
+        PackageState(home=tmp_path).mark_installed(
+            {
+                "name": "web-search",
+                "version": "0.1.0",
+                "install": {"python_extras": ["web-search"]},
+                "tools": {"toolsets": ["web"], "tools": ["web_search", "web_extract"]},
+            },
+            source="test-registry",
+        )
+        cli_obj = _make_cli(["terminal"])
+
+        cli_obj.show_toolsets(mode="available")
+
+        out = capsys.readouterr().out
+        assert "web" in out
+        assert "browser" not in out
 
     def test_toolsets_subcommand_dispatches_available_mode(self):
         cli_obj = _make_cli(["web"])
@@ -90,11 +116,11 @@ class TestToolsSlashList:
     def test_list_calls_backend(self, capsys):
         cli_obj = _make_cli()
         with patch("hermes_cli.tools_config.load_config",
-                   return_value={"platform_toolsets": {"cli": ["web"]}}), \
+                   return_value={"platform_toolsets": {"cli": ["terminal"]}}), \
              patch("hermes_cli.tools_config.save_config"):
             cli_obj._handle_tools_command("/tools list")
         out = capsys.readouterr().out
-        assert "web" in out
+        assert "terminal" in out
 
     def test_list_does_not_modify_enabled_toolsets(self):
         """List is read-only — self.enabled_toolsets must not change."""

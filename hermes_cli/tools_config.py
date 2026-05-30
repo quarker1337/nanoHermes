@@ -82,20 +82,26 @@ CONFIGURABLE_TOOLSETS = [
     ("computer_use",     "🖱️  Computer Use (macOS)",     "background desktop control via cua-driver"),
 ]
 
-# Toolsets that are OFF by default for new installs.
-# They're still in _HERMES_CORE_TOOLS (available at runtime if enabled),
-# but the setup checklist won't pre-select them for first-time users.
-#
-# Video gen is off by default — it's a niche, paid, slow feature. Users
-# who want it opt in via `hermes tools` → Video Generation, which walks
-# them through provider + model selection.
-#
-# X search is off by default for users without xAI credentials, but
-# auto-enables when SuperGrok OAuth tokens are stored OR XAI_API_KEY is
-# set — mirroring the HASS_TOKEN → homeassistant auto-enable below. The
-# `hermes tools` → X (Twitter) Search setup walks users through credential
-# setup. The tool's check_fn means the schema still won't appear to the
-# model if the credential later goes missing or expires.
+# NanoHermes base install: only these toolsets are bundled and configurable on
+# a fresh profile. Everything else is package-managed; installing a package
+# records its provided toolsets in $HERMES_HOME/packages/installed.json, and
+# only then can those toolsets appear as available or be enabled.
+NANOHERMES_BUNDLED_TOOLSETS = frozenset({
+    "clarify",
+    "code_execution",
+    "cronjob",
+    "delegation",
+    "file",
+    "memory",
+    "session_search",
+    "skills",
+    "terminal",
+    "todo",
+})
+
+# Toolsets that are OFF by default after they become available. Package gating
+# runs first, so these names still require an installed package before opt-in or
+# credential auto-enable behavior can expose them.
 _DEFAULT_OFF_TOOLSETS = {"moa", "homeassistant", "spotify", "discord", "discord_admin", "video", "video_gen", "x_search"}
 
 
@@ -147,27 +153,66 @@ def _toolset_allowed_for_platform(ts_key: str, platform: str) -> bool:
     return allowed is None or platform in allowed
 
 
-def _get_effective_configurable_toolsets():
-    """Return CONFIGURABLE_TOOLSETS + any plugin-provided toolsets.
+def _installed_package_toolsets() -> Set[str]:
+    """Toolsets provided by packages installed in the active Hermes home."""
+    try:
+        from hermes_cli.package_manager.state import PackageState
+        from hermes_runtime.toolsets import canonical_toolset_name
 
-    Plugin toolsets are appended at the end so they appear after the
-    built-in toolsets in the TUI checklist. A plugin whose toolset key
-    already appears in ``CONFIGURABLE_TOOLSETS`` is skipped — bundled
-    plugins (e.g. ``plugins/spotify``) share their toolset key with the
-    built-in entry, and we want the built-in label/description to win.
-    Without the dedupe, ``hermes tools`` → "reconfigure existing" would
-    list the same toolset twice.
+        return {
+            canonical_toolset_name(str(toolset))
+            for toolset in PackageState().installed_toolsets()
+            if str(toolset).strip()
+        }
+    except Exception:
+        return set()
+
+
+def _available_toolset_keys() -> Set[str]:
+    """Bundled core + locally installed package toolsets."""
+    return set(NANOHERMES_BUNDLED_TOOLSETS) | _installed_package_toolsets()
+
+
+def _all_known_configurable_toolset_keys() -> Set[str]:
+    """Every known user-configurable key, whether currently installed or not."""
+    keys = {ts_key for ts_key, _, _ in CONFIGURABLE_TOOLSETS}
+    keys |= _get_plugin_toolset_keys()
+    keys |= _installed_package_toolsets()
+    return keys
+
+
+def _get_effective_configurable_toolsets():
+    """Return bundled/installed package toolsets that can be configured now.
+
+    ``CONFIGURABLE_TOOLSETS`` remains the static universe so legacy configs can
+    be parsed and rejected cleanly, but NanoHermes only shows or enables the
+    bundled base toolsets plus toolsets owned by installed packages.
     """
-    result = list(CONFIGURABLE_TOOLSETS)
+    available_keys = _available_toolset_keys()
+    result = [entry for entry in CONFIGURABLE_TOOLSETS if entry[0] in available_keys]
     seen = {ts_key for ts_key, _, _ in result}
     try:
         from hermes_cli.plugins import discover_plugins, get_plugin_toolsets
         discover_plugins()  # idempotent — ensures plugins are loaded
         for entry in get_plugin_toolsets():
-            if entry[0] in seen:
+            if entry[0] in seen or entry[0] not in available_keys:
                 continue
             seen.add(entry[0])
             result.append(entry)
+    except Exception:
+        pass
+
+    # Installed packages can expose leaf toolsets that are not part of the
+    # built-in checklist (for example platform document/drive helpers). Surface
+    # them using the runtime registry's description rather than hiding them.
+    try:
+        from hermes_runtime.toolsets import TOOLSETS
+        for ts_key in sorted(available_keys - seen):
+            definition = TOOLSETS.get(ts_key)
+            if not definition:
+                continue
+            result.append((ts_key, ts_key, definition.get("description", "")))
+            seen.add(ts_key)
     except Exception:
         pass
     return result
@@ -1139,8 +1184,11 @@ def _get_platform_tools(
     # Normalise to str so downstream sorted() never mixes types.
     toolset_names = [canonical_toolset_name(str(ts)) for ts in toolset_names]
 
-    configurable_keys = {ts_key for ts_key, _, _ in CONFIGURABLE_TOOLSETS}
+    known_configurable_keys = _all_known_configurable_toolset_keys()
+    available_toolset_keys = _available_toolset_keys()
+    available_configurable_keys = known_configurable_keys & available_toolset_keys
     plugin_ts_keys = _get_plugin_toolset_keys()
+    available_plugin_ts_keys = plugin_ts_keys & available_toolset_keys
     platform_default_keys = {p["default_toolset"] for p in PLATFORMS.values()}
 
     # If the saved list contains any configurable keys directly, the user
@@ -1148,12 +1196,12 @@ def _get_platform_tools(
     # This avoids the subset-inference bug where composite toolsets like
     # "hermes-cli" (which include all _HERMES_CORE_TOOLS) cause disabled
     # toolsets to re-appear as enabled.
-    has_explicit_config = any(ts in configurable_keys for ts in toolset_names)
+    has_explicit_config = any(ts in known_configurable_keys for ts in toolset_names)
 
     if has_explicit_config:
         enabled_toolsets = {
             ts for ts in toolset_names
-            if ts in configurable_keys and _toolset_allowed_for_platform(ts, platform)
+            if ts in available_configurable_keys and _toolset_allowed_for_platform(ts, platform)
         }
         # Mixed config: composite toolset alongside configurables (e.g.
         # ``[hermes-cli, spotify]`` after enabling Spotify via ``hermes
@@ -1164,7 +1212,7 @@ def _get_platform_tools(
         # user explicitly listed (e.g. ``spotify``) must survive.
         composite_tools = set()
         for ts_name in toolset_names:
-            if ts_name in configurable_keys or ts_name in plugin_ts_keys:
+            if ts_name in known_configurable_keys or ts_name in plugin_ts_keys:
                 continue
             if ts_name not in TOOLSETS:
                 continue
@@ -1172,7 +1220,7 @@ def _get_platform_tools(
 
         if composite_tools:
             expanded = set()
-            for ts_key, _, _ in CONFIGURABLE_TOOLSETS:
+            for ts_key, _, _ in _get_effective_configurable_toolsets():
                 if not _toolset_allowed_for_platform(ts_key, platform):
                     continue
                 ts_tools = set(resolve_toolset(ts_key))
@@ -1182,7 +1230,7 @@ def _get_platform_tools(
             default_off = set(_DEFAULT_OFF_TOOLSETS)
             if platform in default_off and platform not in _TOOLSET_PLATFORM_RESTRICTIONS:
                 default_off.remove(platform)
-            if "homeassistant" in default_off and os.getenv("HASS_TOKEN"):
+            if "homeassistant" in default_off and "homeassistant" in available_toolset_keys and os.getenv("HASS_TOKEN"):
                 default_off.remove("homeassistant")
             expanded -= default_off
 
@@ -1195,7 +1243,7 @@ def _get_platform_tools(
             all_tool_names.update(resolve_toolset(ts_name))
 
         enabled_toolsets = set()
-        for ts_key, _, _ in CONFIGURABLE_TOOLSETS:
+        for ts_key, _, _ in _get_effective_configurable_toolsets():
             if not _toolset_allowed_for_platform(ts_key, platform):
                 continue
             ts_tools = set(resolve_toolset(ts_key))
@@ -1213,7 +1261,8 @@ def _get_platform_tools(
         # the user has not yet saved an explicit toolset list — once they
         # do, the saved list is authoritative.
         x_search_auto_enabled = (
-            _toolset_allowed_for_platform("x_search", platform)
+            "x_search" in available_toolset_keys
+            and _toolset_allowed_for_platform("x_search", platform)
             and _xai_credentials_present()
         )
         if x_search_auto_enabled:
@@ -1234,7 +1283,7 @@ def _get_platform_tools(
         # (e.g. cron) that run through _get_platform_tools without an
         # explicit saved toolset list. Without this, Norbert's HA cron jobs
         # regressed after #14798 made cron honor per-platform tool config.
-        if "homeassistant" in default_off and os.getenv("HASS_TOKEN"):
+        if "homeassistant" in default_off and "homeassistant" in available_toolset_keys and os.getenv("HASS_TOKEN"):
             default_off.remove("homeassistant")
         # Symmetric carve-out for x_search auto-enable (see the inject
         # block above). Without this, the default_off subtraction would
@@ -1253,15 +1302,17 @@ def _get_platform_tools(
     _default_ts = _plat_info["default_toolset"] if _plat_info else f"hermes-{platform}"
     platform_tool_universe = set(resolve_toolset(_default_ts))
     configurable_tool_universe = set()
-    for ck in configurable_keys:
+    for ck in known_configurable_keys:
         configurable_tool_universe.update(resolve_toolset(ck))
     claimed = set()
     for ts_key in enabled_toolsets:
         claimed.update(resolve_toolset(ts_key))
-    skip = configurable_keys | plugin_ts_keys | platform_default_keys
+    skip = known_configurable_keys | plugin_ts_keys | platform_default_keys
     skip |= {k for k in TOOLSETS if k.startswith("hermes-")}
     skip |= set(_DEFAULT_OFF_TOOLSETS) - {platform}
     for ts_key, ts_def in TOOLSETS.items():
+        if ts_key not in available_toolset_keys:
+            continue
         if ts_key in skip:
             continue
         if ts_def.get("includes"):
@@ -1275,17 +1326,14 @@ def _get_platform_tools(
             enabled_toolsets.add(ts_key)
             claimed.update(ts_tools)
 
-    # Plugin toolsets: enabled by default unless explicitly disabled, or
-    # unless the toolset is in _DEFAULT_OFF_TOOLSETS (e.g. spotify —
-    # shipped as a bundled plugin but user must opt in via `hermes tools`
-    # so we don't ship 7 Spotify tool schemas to users who don't use it).
-    # A plugin toolset is "known" for a platform once `hermes tools`
-    # has been saved for that platform (tracked via known_plugin_toolsets).
-    # Unknown plugins default to enabled; known-but-absent = disabled.
-    if plugin_ts_keys:
+    # Plugin toolsets installed through the NanoHermes package database can be
+    # enabled by default until the user saves a per-platform selection. Plugin
+    # code that happens to be importable but has no installed package record is
+    # not treated as available.
+    if available_plugin_ts_keys:
         known_map = config.get("known_plugin_toolsets", {})
         known_for_platform = set(known_map.get(platform, []))
-        for pts in plugin_ts_keys:
+        for pts in available_plugin_ts_keys:
             if pts in toolset_names:
                 # Explicitly listed in config — enabled
                 enabled_toolsets.add(pts)
@@ -1293,7 +1341,7 @@ def _get_platform_tools(
                 # Opt-in plugin toolset — stay off until user picks it
                 continue
             elif pts not in known_for_platform:
-                # New plugin not yet seen by hermes tools — default enabled
+                # New installed plugin not yet seen by hermes tools — default enabled
                 enabled_toolsets.add(pts)
             # else: known but not in config = user disabled it
 
@@ -1312,7 +1360,12 @@ def _get_platform_tools(
         and isinstance(platform_toolsets.get(platform), list)
         and not toolset_names
     )
-    if context_engine_name and context_engine_name != "compressor" and not explicit_empty_selection:
+    if (
+        context_engine_name
+        and context_engine_name != "compressor"
+        and not explicit_empty_selection
+        and "context_engine" in available_toolset_keys
+    ):
         enabled_toolsets.add("context_engine")
 
     # Preserve any explicit non-configurable toolset entries (for example,
@@ -1320,7 +1373,7 @@ def _get_platform_tools(
     explicit_passthrough = {
         ts
         for ts in toolset_names
-        if ts not in configurable_keys
+        if ts not in known_configurable_keys
         and ts not in plugin_ts_keys
         and ts not in platform_default_keys
     }
@@ -1372,18 +1425,21 @@ def _save_platform_tools(config: dict, platform: str, enabled_toolset_keys: Set[
     """
     config.setdefault("platform_toolsets", {})
 
-    # Drop platform-scoped toolsets that don't apply here.  Prevents the
-    # "Configure all platforms" checklist (or a hand-edited config.yaml)
-    # from turning on, say, the `discord` toolset for Telegram.
+    known_configurable_keys = _all_known_configurable_toolset_keys()
+    available_toolset_keys = _available_toolset_keys()
+
+    # Drop platform-scoped toolsets that don't apply here and known optional
+    # toolsets whose owning NanoHermes package is not installed.
     enabled_toolset_keys = {
         ts for ts in enabled_toolset_keys
         if _toolset_allowed_for_platform(ts, platform)
+        and (ts not in known_configurable_keys or ts in available_toolset_keys)
     }
 
-    # Get the set of all configurable toolset keys (built-in + plugin)
-    configurable_keys = {ts_key for ts_key, _, _ in CONFIGURABLE_TOOLSETS}
+    # Get the set of all configurable toolset keys (bundled, optional, plugin)
+    configurable_keys = set(known_configurable_keys)
     plugin_keys = _get_plugin_toolset_keys()
-    configurable_keys |= plugin_keys
+    available_plugin_keys = plugin_keys & available_toolset_keys
 
     # Also exclude platform default toolsets (hermes-cli, hermes-telegram, etc.)
     # These are "super" toolsets that resolve to ALL tools, so preserving them
@@ -1413,9 +1469,9 @@ def _save_platform_tools(config: dict, platform: str, enabled_toolset_keys: Set[
 
     # Track which plugin toolsets are "known" for this platform so we can
     # distinguish "new plugin, default enabled" from "user disabled it".
-    if plugin_keys:
+    if available_plugin_keys:
         config.setdefault("known_plugin_toolsets", {})
-        config["known_plugin_toolsets"][platform] = sorted(plugin_keys)
+        config["known_plugin_toolsets"][platform] = sorted(available_plugin_keys)
 
     save_config(config)
 
@@ -3529,12 +3585,24 @@ def tools_disable_enable_command(args):
     toolset_targets = [t for t in targets if ":" not in t]
     mcp_targets = [t for t in targets if ":" in t]
 
-    valid_toolsets = {ts_key for ts_key, _, _ in CONFIGURABLE_TOOLSETS} | _get_plugin_toolset_keys()
+    valid_toolsets = _all_known_configurable_toolset_keys()
     unknown_toolsets = [t for t in toolset_targets if t not in valid_toolsets]
     if unknown_toolsets:
         for name in unknown_toolsets:
             _print_error(f"Unknown toolset '{name}'")
         toolset_targets = [t for t in toolset_targets if t in valid_toolsets]
+
+    unavailable_targets: List[str] = []
+    if action == "enable":
+        available_toolsets = _available_toolset_keys()
+        unavailable_targets = [t for t in toolset_targets if t not in available_toolsets]
+        if unavailable_targets:
+            for name in unavailable_targets:
+                _print_error(
+                    f"Toolset '{name}' is not installed. Install its package first "
+                    f"with `hermes pkg search {name}` and `hermes pkg install <package>`."
+                )
+            toolset_targets = [t for t in toolset_targets if t not in unavailable_targets]
 
     # Reject platform-scoped toolsets on platforms that don't allow them.
     restricted_targets = [
@@ -3564,6 +3632,7 @@ def tools_disable_enable_command(args):
     successful = [
         t for t in targets
         if t not in unknown_toolsets
+        and t not in unavailable_targets
         and t not in restricted_targets
         and (":" not in t or t.split(":")[0] not in failed_servers)
     ]

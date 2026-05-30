@@ -24,6 +24,42 @@ from hermes_cli.tools_config import (
     tools_command,
     tools_disable_enable_command,
 )
+from hermes_cli.package_manager.state import PackageState
+
+
+NANOHERMES_BUNDLED_TOOLSETS = {
+    "clarify",
+    "code_execution",
+    "cronjob",
+    "delegation",
+    "file",
+    "memory",
+    "session_search",
+    "skills",
+    "terminal",
+    "todo",
+}
+
+
+def _package(name, toolsets, tools=None):
+    return {
+        "name": name,
+        "version": "0.1.0",
+        "type": "toolset",
+        "channel": "official",
+        "description": f"{name} package",
+        "dependencies": [],
+        "install": {"python_extras": [name]},
+        "tools": {"toolsets": list(toolsets), "tools": list(tools or [])},
+    }
+
+
+def _install_toolsets(home, *toolsets, name=None, tools=None):
+    package_name = name or "test-" + "-".join(str(ts).replace("_", "-") for ts in toolsets)
+    PackageState(home=home).mark_installed(
+        _package(package_name, toolsets, tools=tools),
+        source="test-registry",
+    )
 
 
 def test_agent_disabled_toolsets_suppresses_across_platforms():
@@ -41,10 +77,12 @@ def test_agent_disabled_toolsets_suppresses_across_platforms():
     assert "memory" not in discord_enabled
 
 
-def test_agent_disabled_toolsets_with_explicit_platform_config():
+def test_agent_disabled_toolsets_with_explicit_platform_config(monkeypatch, tmp_path):
     """agent.disabled_toolsets should still suppress even when the platform
     has an explicit toolset list that includes the disabled toolset.
     """
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "web", name="web-search", tools=["web_search", "web_extract"])
     config = {
         "agent": {"disabled_toolsets": ["memory"]},
         "platform_toolsets": {"cli": ["web", "terminal", "memory"]},
@@ -70,13 +108,38 @@ def test_agent_disabled_toolsets_empty_list_is_noop():
     assert _get_platform_tools(config_missing, "cli") == default
 
 
-def test_get_platform_tools_uses_default_when_platform_not_configured():
+def test_get_platform_tools_uses_default_when_platform_not_configured(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     config = {}
 
-    enabled = _get_platform_tools(config, "cli")
+    enabled = _get_platform_tools(config, "cli", include_default_mcp_servers=False)
 
-    assert enabled
+    assert enabled == NANOHERMES_BUNDLED_TOOLSETS
     assert enabled.isdisjoint(_DEFAULT_OFF_TOOLSETS)
+
+
+def test_explicit_optional_toolset_requires_installed_package(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    config = {"platform_toolsets": {"cli": ["web", "terminal"]}}
+
+    enabled = _get_platform_tools(config, "cli", include_default_mcp_servers=False)
+
+    assert "terminal" in enabled
+    assert "web" not in enabled
+
+
+def test_installed_package_toolset_can_be_enabled(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    PackageState(home=tmp_path).mark_installed(
+        _package("web-search", ["web"], ["web_search", "web_extract"]),
+        source="test-registry",
+    )
+    config = {"platform_toolsets": {"cli": ["web", "terminal"]}}
+
+    enabled = _get_platform_tools(config, "cli", include_default_mcp_servers=False)
+
+    assert "terminal" in enabled
+    assert "web" in enabled
 
 
 def test_configurable_toolsets_include_messaging():
@@ -87,16 +150,17 @@ def test_configurable_toolsets_include_context_engine():
     assert any(ts_key == "context_engine" for ts_key, _, _ in CONFIGURABLE_TOOLSETS)
 
 
-def test_get_platform_tools_active_context_engine_is_enabled_for_explicit_config():
+def test_get_platform_tools_active_context_engine_is_enabled_for_explicit_config(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "context_engine")
     config = {
         "context": {"engine": "lcm"},
-        "platform_toolsets": {"cli": ["web", "terminal"]},
+        "platform_toolsets": {"cli": ["context_engine", "terminal"]},
     }
 
     enabled = _get_platform_tools(config, "cli", include_default_mcp_servers=False)
 
     assert "context_engine" in enabled
-    assert "web" in enabled
     assert "terminal" in enabled
 
 
@@ -122,16 +186,19 @@ def test_get_platform_tools_context_engine_respects_explicit_empty_selection():
     assert "context_engine" not in enabled
 
 
-def test_get_platform_tools_default_telegram_includes_messaging():
-    enabled = _get_platform_tools({}, "telegram")
+def test_get_platform_tools_default_telegram_uses_bundled_core(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    enabled = _get_platform_tools({}, "telegram", include_default_mcp_servers=False)
 
-    assert "messaging" in enabled
+    assert enabled == NANOHERMES_BUNDLED_TOOLSETS
 
 
-def test_get_platform_tools_default_whatsapp_includes_web():
-    enabled = _get_platform_tools({}, "whatsapp")
+def test_get_platform_tools_default_whatsapp_does_not_include_uninstalled_web(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    enabled = _get_platform_tools({}, "whatsapp", include_default_mcp_servers=False)
 
-    assert "web" in enabled
+    assert "web" not in enabled
+    assert enabled == NANOHERMES_BUNDLED_TOOLSETS
 
 
 def test_chinese_platform_defaults_use_public_non_hermes_names():
@@ -141,14 +208,16 @@ def test_chinese_platform_defaults_use_public_non_hermes_names():
     assert PLATFORMS["feishu"]["default_toolset"] == "feishu-platform"
 
 
-def test_get_platform_tools_yuanbao_is_platform_scoped():
+def test_get_platform_tools_yuanbao_is_platform_scoped(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "yuanbao")
     cli_enabled = _get_platform_tools(
-        {"platform_toolsets": {"cli": ["web", "yuanbao"]}},
+        {"platform_toolsets": {"cli": ["terminal", "yuanbao"]}},
         "cli",
         include_default_mcp_servers=False,
     )
     yuanbao_enabled = _get_platform_tools(
-        {"platform_toolsets": {"yuanbao": ["web", "yuanbao"]}},
+        {"platform_toolsets": {"yuanbao": ["terminal", "yuanbao"]}},
         "yuanbao",
         include_default_mcp_servers=False,
     )
@@ -157,8 +226,10 @@ def test_get_platform_tools_yuanbao_is_platform_scoped():
     assert "yuanbao" in yuanbao_enabled
 
 
-def test_tools_enable_does_not_report_restricted_yuanbao_as_success(capsys):
-    config = {"platform_toolsets": {"cli": ["web"]}}
+def test_tools_enable_does_not_report_restricted_yuanbao_as_success(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "yuanbao")
+    config = {"platform_toolsets": {"cli": ["terminal"]}}
 
     with patch("hermes_cli.tools_config.load_config", return_value=config), \
          patch("hermes_cli.tools_config.save_config"):
@@ -172,23 +243,62 @@ def test_tools_enable_does_not_report_restricted_yuanbao_as_success(capsys):
     assert "yuanbao" not in config["platform_toolsets"]["cli"]
 
 
-def test_get_platform_tools_homeassistant_platform_keeps_homeassistant_toolset():
+def test_tools_enable_rejects_uninstalled_optional_toolset(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    config = {"platform_toolsets": {"cli": ["terminal"]}}
+
+    with patch("hermes_cli.tools_config.load_config", return_value=config), \
+         patch("hermes_cli.tools_config.save_config"):
+        tools_disable_enable_command(
+            SimpleNamespace(tools_action="enable", names=["web"], platform="cli")
+        )
+
+    out = capsys.readouterr().out
+    assert "Toolset 'web' is not installed" in out
+    assert "hermes pkg" in out
+    assert "Enabled: web" not in out
+    assert "web" not in config["platform_toolsets"]["cli"]
+
+
+def test_tools_enable_allows_installed_optional_toolset(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    PackageState(home=tmp_path).mark_installed(
+        _package("web-search", ["web"], ["web_search", "web_extract"]),
+        source="test-registry",
+    )
+    config = {"platform_toolsets": {"cli": ["terminal"]}}
+
+    with patch("hermes_cli.tools_config.load_config", return_value=config), \
+         patch("hermes_cli.tools_config.save_config"):
+        tools_disable_enable_command(
+            SimpleNamespace(tools_action="enable", names=["web"], platform="cli")
+        )
+
+    out = capsys.readouterr().out
+    assert "Enabled: web" in out
+    assert "web" in config["platform_toolsets"]["cli"]
+
+
+def test_get_platform_tools_homeassistant_platform_keeps_installed_homeassistant_toolset(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "homeassistant")
     enabled = _get_platform_tools({}, "homeassistant")
 
     assert "homeassistant" in enabled
 
 
-def test_get_platform_tools_homeassistant_toolset_enabled_for_cron_when_hass_token_set(monkeypatch):
-    """HA toolset is runtime-gated by check_fn (requires HASS_TOKEN).
+def test_get_platform_tools_homeassistant_platform_excludes_uninstalled_homeassistant_toolset(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    enabled = _get_platform_tools({}, "homeassistant")
 
-    When HASS_TOKEN is set, the user has explicitly opted in — _DEFAULT_OFF_TOOLSETS
-    shouldn't also strip HA from platforms (like cron) that run through
-    _get_platform_tools without an explicit saved toolset list.
+    assert "homeassistant" not in enabled
 
-    Regression guard for Norbert's HA cron breakage after #14798 made cron
-    honor per-platform tool config.
-    """
+
+def test_get_platform_tools_homeassistant_toolset_enabled_for_cron_when_installed_and_hass_token_set(monkeypatch, tmp_path):
+    """HA toolset is package-gated first and then runtime-gated by HASS_TOKEN."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     monkeypatch.setenv("HASS_TOKEN", "fake-test-token")
+    _install_toolsets(tmp_path, "homeassistant")
 
     cron_enabled = _get_platform_tools({}, "cron")
     assert "homeassistant" in cron_enabled
@@ -208,15 +318,10 @@ def test_get_platform_tools_homeassistant_toolset_off_for_cron_when_hass_token_m
     assert "homeassistant" not in cron_enabled
 
 
-def test_get_platform_tools_x_search_auto_enabled_when_xai_oauth_present(monkeypatch):
-    """x_search toolset auto-enables across platforms when xAI Grok OAuth
-    tokens are present, mirroring the HASS_TOKEN → homeassistant rule.
-
-    The user already authenticated via SuperGrok OAuth; they shouldn't have
-    to also click through `hermes tools` → X (Twitter) Search to flip the
-    toolset on. Tool's check_fn still gates schema registration if creds
-    later go missing.
-    """
+def test_get_platform_tools_x_search_auto_enabled_when_installed_and_xai_oauth_present(monkeypatch, tmp_path):
+    """x_search auto-enables only after its package is installed and xAI creds exist."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "x_search")
     monkeypatch.delenv("XAI_API_KEY", raising=False)
     monkeypatch.setattr(
         "hermes_cli.tools_config._xai_credentials_present", lambda: True
@@ -227,9 +332,10 @@ def test_get_platform_tools_x_search_auto_enabled_when_xai_oauth_present(monkeyp
         assert "x_search" in enabled, f"x_search missing for {plat}"
 
 
-def test_get_platform_tools_x_search_auto_enabled_when_xai_api_key_present(monkeypatch):
-    """x_search toolset auto-enables when XAI_API_KEY is set, even without
-    OAuth tokens — the API-key path is a supported credential source."""
+def test_get_platform_tools_x_search_auto_enabled_when_installed_and_xai_api_key_present(monkeypatch, tmp_path):
+    """x_search auto-enables when package + XAI_API_KEY are present."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "x_search")
     monkeypatch.setenv("XAI_API_KEY", "fake-xai-key")
 
     cli_enabled = _get_platform_tools({}, "cli")
@@ -248,10 +354,12 @@ def test_get_platform_tools_x_search_off_when_no_xai_credentials(monkeypatch):
     assert "x_search" not in cli_enabled
 
 
-def test_get_platform_tools_x_search_respects_explicit_config(monkeypatch):
+def test_get_platform_tools_x_search_respects_explicit_config(monkeypatch, tmp_path):
     """Once the user has saved an explicit toolset list via `hermes tools`,
     that list is authoritative — x_search auto-enable does NOT fire even
-    when xAI creds exist. The saved list represents deliberate choices."""
+    when package + xAI creds exist. The saved list represents deliberate choices."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "spotify", "x_search", name="social-tools")
     monkeypatch.delenv("XAI_API_KEY", raising=False)
     monkeypatch.setattr(
         "hermes_cli.tools_config._xai_credentials_present", lambda: True
@@ -264,20 +372,21 @@ def test_get_platform_tools_x_search_respects_explicit_config(monkeypatch):
     assert "spotify" in enabled
 
 
-def test_get_platform_tools_expands_composite_when_mixed_with_configurable():
-    """``[hermes-cli, spotify]`` (composite + configurable) must keep the full
-    ``hermes-cli`` toolset alongside the explicit Spotify opt-in. The
-    has_explicit_config branch used to drop ``hermes-cli`` on the floor,
-    leaving sessions with only ``{spotify, kanban}``."""
+def test_get_platform_tools_expands_composite_when_mixed_with_configurable(monkeypatch, tmp_path):
+    """``[hermes-cli, spotify]`` keeps bundled core tools plus installed
+    explicit opt-ins without resurrecting uninstalled optional toolsets."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "spotify")
     config = {"platform_toolsets": {"cli": ["hermes-cli", "spotify"]}}
 
     enabled = _get_platform_tools(config, "cli", include_default_mcp_servers=False)
 
-    # Native tools must reappear.
-    for ts in ("terminal", "file", "web", "browser", "memory", "delegation",
-               "code_execution", "todo", "session_search", "skills"):
+    # Bundled native tools must reappear.
+    for ts in NANOHERMES_BUNDLED_TOOLSETS:
         assert ts in enabled, f"{ts} should be enabled when hermes-cli is listed"
-    # User explicitly opted into Spotify — must survive _DEFAULT_OFF_TOOLSETS subtraction.
+    assert "web" not in enabled
+    assert "browser" not in enabled
+    # User explicitly opted into installed Spotify — must survive _DEFAULT_OFF_TOOLSETS subtraction.
     assert "spotify" in enabled
 
 
@@ -354,7 +463,9 @@ def test_apply_toolset_change_from_default_does_not_enable_default_off_toolsets(
     assert saved.isdisjoint(_DEFAULT_OFF_TOOLSETS)
 
 
-def test_apply_toolset_change_can_enable_default_off_toolset_from_default():
+def test_apply_toolset_change_can_enable_default_off_toolset_from_default(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "homeassistant")
     config = {}
 
     with patch("hermes_cli.tools_config.save_config"):
@@ -405,7 +516,7 @@ def test_get_platform_tools_includes_enabled_mcp_servers_by_default():
 
 def test_get_platform_tools_keeps_enabled_mcp_servers_with_explicit_builtin_selection():
     config = {
-        "platform_toolsets": {"cli": ["web", "memory"]},
+        "platform_toolsets": {"cli": ["terminal", "memory"]},
         "mcp_servers": {
             "exa": {"url": "https://mcp.exa.ai/mcp"},
             "web-search-prime": {"url": "https://api.z.ai/api/mcp/web_search_prime/mcp"},
@@ -414,7 +525,7 @@ def test_get_platform_tools_keeps_enabled_mcp_servers_with_explicit_builtin_sele
 
     enabled = _get_platform_tools(config, "cli")
 
-    assert "web" in enabled
+    assert "terminal" in enabled
     assert "memory" in enabled
     assert "exa" in enabled
     assert "web-search-prime" in enabled
@@ -423,7 +534,7 @@ def test_get_platform_tools_keeps_enabled_mcp_servers_with_explicit_builtin_sele
 def test_get_platform_tools_no_mcp_sentinel_excludes_all_mcp_servers():
     """The 'no_mcp' sentinel in platform_toolsets excludes all MCP servers."""
     config = {
-        "platform_toolsets": {"cli": ["web", "terminal", "no_mcp"]},
+        "platform_toolsets": {"cli": ["terminal", "file", "no_mcp"]},
         "mcp_servers": {
             "exa": {"url": "https://mcp.exa.ai/mcp"},
             "web-search-prime": {"url": "https://api.z.ai/api/mcp/web_search_prime/mcp"},
@@ -432,7 +543,7 @@ def test_get_platform_tools_no_mcp_sentinel_excludes_all_mcp_servers():
 
     enabled = _get_platform_tools(config, "cli")
 
-    assert "web" in enabled
+    assert "file" in enabled
     assert "terminal" in enabled
     assert "exa" not in enabled
     assert "web-search-prime" not in enabled
@@ -476,11 +587,13 @@ def test_toolset_has_keys_for_vision_accepts_codex_auth(tmp_path, monkeypatch):
     assert _toolset_has_keys("vision") is True
 
 
-def test_save_platform_tools_preserves_mcp_server_names():
+def test_save_platform_tools_preserves_mcp_server_names(monkeypatch, tmp_path):
     """Ensure MCP server names are preserved when saving platform tools.
 
     Regression test for https://github.com/NousResearch/hermes-agent/issues/1247
     """
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "web", "browser", name="web-browser")
     config = {
         "platform_toolsets": {
             "cli": ["web", "terminal", "time", "github", "custom-mcp-server"]
@@ -502,8 +615,10 @@ def test_save_platform_tools_preserves_mcp_server_names():
     assert "terminal" not in saved_toolsets
 
 
-def test_save_platform_tools_handles_empty_existing_config():
+def test_save_platform_tools_handles_empty_existing_config(monkeypatch, tmp_path):
     """Saving platform tools works when no existing config exists."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "web", name="web-search")
     config = {}
 
     with patch("hermes_cli.tools_config.save_config"):
@@ -514,8 +629,10 @@ def test_save_platform_tools_handles_empty_existing_config():
     assert "terminal" in saved_toolsets
 
 
-def test_save_platform_tools_handles_invalid_existing_config():
+def test_save_platform_tools_handles_invalid_existing_config(monkeypatch, tmp_path):
     """Saving platform tools works when existing config is not a list."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "web", name="web-search")
     config = {
         "platform_toolsets": {
             "cli": "invalid-string-value"
@@ -529,7 +646,7 @@ def test_save_platform_tools_handles_invalid_existing_config():
     assert "web" in saved_toolsets
 
 
-def test_save_platform_tools_does_not_preserve_platform_default_toolsets():
+def test_save_platform_tools_does_not_preserve_platform_default_toolsets(monkeypatch, tmp_path):
     """Platform default toolsets (hermes-cli, hermes-telegram, etc.) must NOT
     be preserved across saves.
 
@@ -543,6 +660,8 @@ def test_save_platform_tools_does_not_preserve_platform_default_toolsets():
     ``hermes tools``, but hermes-cli stays in the config and re-enables
     everything on the next read.
     """
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "web", "browser", "tts", "vision", name="optional-ui-tools")
     config = {
         "platform_toolsets": {
             "cli": [
@@ -580,8 +699,10 @@ def test_save_platform_tools_does_not_preserve_platform_default_toolsets():
     assert "moa" not in saved
 
 
-def test_save_platform_tools_does_not_preserve_hermes_telegram():
+def test_save_platform_tools_does_not_preserve_hermes_telegram(monkeypatch, tmp_path):
     """Same bug for Telegram — hermes-telegram must not be preserved."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "web", "browser", name="web-browser")
     config = {
         "platform_toolsets": {
             "telegram": [
@@ -600,9 +721,11 @@ def test_save_platform_tools_does_not_preserve_hermes_telegram():
     assert "web" in saved
 
 
-def test_save_platform_tools_still_preserves_mcp_with_platform_default_present():
+def test_save_platform_tools_still_preserves_mcp_with_platform_default_present(monkeypatch, tmp_path):
     """MCP server names must still be preserved even when platform defaults
     are being stripped out."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "web", "browser", name="web-browser")
     config = {
         "platform_toolsets": {
             "cli": [
@@ -714,7 +837,9 @@ def test_local_browser_provider_is_saved_explicitly(monkeypatch):
     assert config["browser"]["cloud_provider"] == "local"
 
 
-def test_reconfigure_lists_enabled_web_without_existing_provider_config(monkeypatch):
+def test_reconfigure_lists_enabled_web_without_existing_provider_config(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "web", name="web-search")
     config = {"platform_toolsets": {"cli": ["web"]}}
     seen = {}
     configured = []
@@ -1102,10 +1227,12 @@ def test_save_platform_tools_preserves_mcp_server_names():
     assert "another-mcp" in saved
 
 
-def test_get_platform_tools_recovers_non_configurable_toolsets_from_composite():
-    """Non-configurable toolsets whose tools are in the composite but not in
-    CONFIGURABLE_TOOLSETS should still appear in the result.
+def test_get_platform_tools_recovers_non_configurable_toolsets_from_composite(monkeypatch, tmp_path):
+    """Installed non-configurable toolsets whose tools are in the composite but
+    not in CONFIGURABLE_TOOLSETS should still appear in the result.
     """
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "_test_platform_tool")
     from hermes_runtime.toolsets import TOOLSETS
     from hermes_cli.tools_config import PLATFORMS
     from unittest.mock import patch as mock_patch
@@ -1118,7 +1245,7 @@ def test_get_platform_tools_recovers_non_configurable_toolsets_from_composite():
     }
     fake_toolsets["hermes-_test_platform"] = {
         "description": "test composite",
-        "tools": ["web_search", "web_extract", "terminal", "process", "_test_special_tool"],
+        "tools": ["terminal", "process", "_test_special_tool"],
         "includes": [],
     }
 
@@ -1131,7 +1258,7 @@ def test_get_platform_tools_recovers_non_configurable_toolsets_from_composite():
             enabled = _get_platform_tools({}, "_test_platform")
 
     assert "_test_platform_tool" in enabled
-    assert "web" in enabled
+    assert "web" not in enabled
     assert "terminal" in enabled
 
 
@@ -1179,20 +1306,25 @@ def test_discord_toolsets_not_available_on_other_platforms():
     assert _toolset_allowed_for_platform("discord_admin", "discord")
 
 
-def test_discord_toolsets_user_enabled_are_honored():
-    """When the user opts in via `hermes tools`, the toolset appears."""
+def test_discord_toolsets_user_enabled_are_honored(monkeypatch, tmp_path):
+    """When the user opts in after package install, the toolset appears."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "discord")
     config = {"platform_toolsets": {"discord": ["web", "terminal", "discord"]}}
     enabled = _get_platform_tools(config, "discord")
     assert "discord" in enabled
     assert "discord_admin" not in enabled
 
 
-def test_save_platform_tools_strips_restricted_toolsets():
+def test_save_platform_tools_strips_restricted_toolsets(monkeypatch, tmp_path):
     """Hand-edited or all-platforms checklist with `discord` selected for
     Telegram must be stripped at save time."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "web", name="web-search")
     from hermes_cli.tools_config import _save_platform_tools
     config = {}
-    _save_platform_tools(config, "telegram", {"web", "terminal", "discord", "discord_admin"})
+    with patch("hermes_cli.tools_config.save_config"):
+        _save_platform_tools(config, "telegram", {"web", "terminal", "discord", "discord_admin"})
     saved = config["platform_toolsets"]["telegram"]
     assert "discord" not in saved
     assert "discord_admin" not in saved
@@ -1200,7 +1332,9 @@ def test_save_platform_tools_strips_restricted_toolsets():
     assert "terminal" in saved
 
 
-def test_get_platform_tools_feishu_includes_doc_and_drive():
+def test_get_platform_tools_feishu_includes_doc_and_drive(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "feishu_doc", "feishu_drive", name="feishu")
     enabled = _get_platform_tools({}, "feishu")
     assert "feishu_doc" in enabled
     assert "feishu_drive" in enabled
@@ -1213,12 +1347,14 @@ def test_get_platform_tools_feishu_tools_not_on_other_platforms():
         assert "feishu_drive" not in enabled, f"feishu_drive leaked onto {plat}"
 
 
-def test_get_effective_configurable_toolsets_dedupes_bundled_plugins():
+def test_get_effective_configurable_toolsets_dedupes_bundled_plugins(monkeypatch, tmp_path):
     """Bundled plugins (plugins/spotify) share their toolset key with the
     built-in CONFIGURABLE_TOOLSETS entry. The effective list must not list
     them twice — otherwise `hermes tools` → "reconfigure existing" shows
     the same toolset two rows in a row.
     """
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    _install_toolsets(tmp_path, "spotify")
     from hermes_cli.tools_config import _get_effective_configurable_toolsets
 
     all_ts = _get_effective_configurable_toolsets()

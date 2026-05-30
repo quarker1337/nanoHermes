@@ -6195,21 +6195,26 @@ class HermesCLI:
         except ValueError:
             parts = cmd.split()
         mode = parts[1].lower() if len(parts) > 1 else "active"
-        if mode in {"available", "all", "catalog"}:
+        if mode == "available":
             self.show_toolsets(mode="available")
+            return
+        if mode in {"all", "catalog"}:
+            self.show_toolsets(mode="catalog")
             return
         if mode in {"active", "enabled", "installed"}:
             self.show_toolsets(mode="active")
             return
-        print("(._.) Usage: /toolsets [available]")
+        print("(._.) Usage: /toolsets [available|catalog]")
         print("  /toolsets           Show active installed/runtime-available toolsets")
-        print("  /toolsets available Show the full static catalog")
+        print("  /toolsets available Show bundled + installed package toolsets")
+        print("  /toolsets catalog   Show the full static developer catalog")
 
     def show_toolsets(self, mode: str = "active"):
         """Display active or catalog toolsets with kawaii ASCII art."""
         from hermes_runtime.toolsets import canonical_toolset_name
 
-        catalog_mode = mode in {"available", "all", "catalog"}
+        static_catalog_mode = mode in {"all", "catalog"}
+        available_mode = mode == "available"
         available_tool_names = None
         all_toolsets = get_all_toolsets()
 
@@ -6236,9 +6241,30 @@ class HermesCLI:
             for ts in (self.enabled_toolsets or [])
         }
 
-        if catalog_mode:
+        if static_catalog_mode:
             names = sorted(all_toolsets.keys())
-            title = "(^_^)b Available Toolsets Catalog"
+            title = "(^_^)b Static Toolsets Catalog"
+        elif available_mode:
+            try:
+                from hermes_cli.tools_config import (
+                    _get_effective_configurable_toolsets,
+                    _get_platform_tools,
+                    _toolset_allowed_for_platform,
+                )
+                from hermes_cli.config import load_config
+
+                names = sorted(
+                    ts_key
+                    for ts_key, _, _ in _get_effective_configurable_toolsets()
+                    if _toolset_allowed_for_platform(ts_key, "cli")
+                )
+                enabled = {
+                    canonical_toolset_name(ts)
+                    for ts in _get_platform_tools(load_config(), "cli")
+                }
+            except Exception:
+                names = sorted(enabled)
+            title = "(^_^)b Available Installed/Bundled Toolsets"
         else:
             if not enabled:
                 try:
@@ -6286,7 +6312,8 @@ class HermesCLI:
             info = _safe_toolset_info(name)
             if info:
                 if (
-                    not catalog_mode
+                    not static_catalog_mode
+                    and not available_mode
                     and name in runtime_schema_gated_toolsets
                     and available_tool_names is not None
                     and not (set(info["resolved_tools"]) & available_tool_names)
@@ -6299,15 +6326,21 @@ class HermesCLI:
                 shown += 1
         
         print()
-        if catalog_mode:
+        if static_catalog_mode:
             print("  (*) = currently enabled")
-            print("  Tip: bare /toolsets shows only active installed/runtime-available toolsets")
+            print("  Tip: /toolsets available shows only bundled + installed package toolsets")
             print("  Example: python -m hermes_runtime.cli --toolsets web,terminal")
+        elif available_mode:
+            if shown == 0:
+                print("  (;_;) No bundled or installed package toolsets found")
+            print("  (*) = currently enabled")
+            print("  Showing only bundled toolsets plus toolsets from installed packages")
+            print("  Tip: install optional toolsets with `hermes pkg search <name>`")
         else:
             if shown == 0:
                 print("  (;_;) No active toolsets found")
             print("  Showing active installed/runtime-available toolsets only")
-            print("  Tip: use /toolsets available for the full catalog")
+            print("  Tip: use /toolsets available for bundled + installed packages; /toolsets catalog for all known toolsets")
         print()
     
     def _handle_profile_command(self):
