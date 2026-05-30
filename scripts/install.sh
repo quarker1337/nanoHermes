@@ -73,6 +73,9 @@ SKIP_BROWSER=false
 BRANCH="main"
 ENSURE_DEPS=""
 POSTINSTALL_MODE=false
+INSTALL_MODE="${HERMES_INSTALL_MODE:-runtime}"
+INSTALL_MODE_EXPLICIT=false
+RUNTIME_PACKAGE_SPEC="${HERMES_PACKAGE_SPEC:-hermes-agent[all]}"
 
 # Detect non-interactive mode (e.g. curl | bash)
 # When stdin is not a terminal, read -p will fail with EOF,
@@ -100,6 +103,23 @@ while [[ $# -gt 0 ]]; do
             ;;
         --branch)
             BRANCH="$2"
+            if [ "$INSTALL_MODE_EXPLICIT" = false ]; then
+                INSTALL_MODE="source"
+            fi
+            shift 2
+            ;;
+        --source|--dev|--editable)
+            INSTALL_MODE="source"
+            INSTALL_MODE_EXPLICIT=true
+            shift
+            ;;
+        --runtime|--wheel)
+            INSTALL_MODE="runtime"
+            INSTALL_MODE_EXPLICIT=true
+            shift
+            ;;
+        --package)
+            RUNTIME_PACKAGE_SPEC="$2"
             shift 2
             ;;
         --dir)
@@ -128,7 +148,12 @@ while [[ $# -gt 0 ]]; do
             echo "  --no-venv      Don't create virtual environment"
             echo "  --skip-setup   Skip interactive setup wizard"
             echo "  --skip-browser Skip Playwright/Chromium install (browser tools won't work)"
-            echo "  --branch NAME  Git branch to install (default: main)"
+            echo "  --runtime      Runtime wheel install (default; no repo checkout)"
+            echo "  --source       Source/dev mode: clones the repo for editable installs"
+            echo "  --dev          Alias for --source"
+            echo "  --editable     Alias for --source"
+            echo "  --branch NAME  Git branch to install (implies --source; default: main)"
+            echo "  --package SPEC Runtime package spec (default: hermes-agent[all])"
             echo "  --dir PATH     Installation directory"
             echo "                   default (non-root):  ~/.hermes/hermes-agent"
             echo "                   default (root, Linux): /usr/local/lib/hermes-agent"
@@ -136,6 +161,9 @@ while [[ $# -gt 0 ]]; do
             echo "  -h, --help     Show this help"
             echo ""
             echo "Notes:"
+            echo "  Default: runtime wheel install. This avoids downloading docs, tests,"
+            echo "  git history, and other contributor-only files. Use --source/--dev"
+            echo "  when you want a checkout you can edit or update by branch."
             echo "  When running as root on Linux, Hermes installs the code under"
             echo "  /usr/local/lib/hermes-agent and links the command into"
             echo "  /usr/local/bin/hermes (FHS layout — matches Claude Code / Codex CLI)."
@@ -230,7 +258,15 @@ is_termux() {
     [ -n "${TERMUX_VERSION:-}" ] || [[ "${PREFIX:-}" == *"com.termux/files/usr"* ]]
 }
 
-# Decide where the repo checkout + venv live, and where the `hermes` command
+is_source_checkout() {
+    local dir="$1"
+    # Normal clones have a .git directory; Git worktrees and submodules often
+    # have a .git file pointing at the real gitdir.  Treat either as source so
+    # runtime installs never overlay contributor checkouts.
+    [ -e "$dir/.git" ]
+}
+
+# Decide where the install root + venv live, and where the `hermes` command
 # symlink goes.  Called after detect_os so $OS/$DISTRO are known.
 #
 # Defaults:
@@ -260,7 +296,7 @@ resolve_install_layout() {
     # macOS root installs keep the legacy layout because /usr/local/ on macOS
     # is Homebrew territory and we don't want to fight that.
     if [ "$OS" = "linux" ] && [ "$(id -u)" -eq 0 ]; then
-        if [ -d "$HERMES_HOME/hermes-agent/.git" ]; then
+        if is_source_checkout "$HERMES_HOME/hermes-agent"; then
             INSTALL_DIR="$HERMES_HOME/hermes-agent"
             log_info "Existing install detected at $INSTALL_DIR — keeping legacy layout"
             log_info "  (new root installs use /usr/local/lib/hermes-agent)"
@@ -285,6 +321,36 @@ resolve_install_layout() {
 
     # Default: non-root, non-Termux → legacy user-scoped layout.
     INSTALL_DIR="$HERMES_HOME/hermes-agent"
+}
+
+select_install_mode() {
+    case "$INSTALL_MODE" in
+        runtime|source) ;;
+        *)
+            log_error "Unknown install mode: $INSTALL_MODE"
+            log_info "Use --runtime for a wheel install or --source/--dev for a repo checkout."
+            exit 1
+            ;;
+    esac
+
+    if [ "$DISTRO" = "termux" ]; then
+        if [ "$INSTALL_MODE" = "runtime" ] && [ "$INSTALL_MODE_EXPLICIT" = true ]; then
+            log_warn "Runtime wheel mode is not supported on Termux yet; using source mode."
+        fi
+        INSTALL_MODE="source"
+        return 0
+    fi
+
+    if [ "$INSTALL_MODE_EXPLICIT" = false ] && is_source_checkout "$INSTALL_DIR"; then
+        INSTALL_MODE="source"
+        log_info "Existing source checkout detected at $INSTALL_DIR — keeping source install mode."
+    fi
+
+    if [ "$INSTALL_MODE" = "runtime" ]; then
+        log_info "Install mode: runtime wheel ($RUNTIME_PACKAGE_SPEC)"
+    else
+        log_info "Install mode: source/dev checkout (branch: $BRANCH)"
+    fi
 }
 
 get_command_link_dir() {
@@ -911,7 +977,7 @@ clone_repo() {
     log_info "Installing to $INSTALL_DIR..."
 
     if [ -d "$INSTALL_DIR" ]; then
-        if [ -d "$INSTALL_DIR/.git" ]; then
+        if is_source_checkout "$INSTALL_DIR"; then
             log_info "Existing installation found, updating..."
             cd "$INSTALL_DIR"
 
@@ -989,6 +1055,21 @@ clone_repo() {
     log_success "Repository ready"
 }
 
+prepare_runtime_install_dir() {
+    log_info "Preparing runtime install directory at $INSTALL_DIR..."
+
+    if is_source_checkout "$INSTALL_DIR"; then
+        log_error "$INSTALL_DIR is a source checkout. Refusing to overlay runtime install."
+        log_info "Use --source to update it, or choose a different --dir for runtime mode."
+        exit 1
+    fi
+
+    mkdir -p "$INSTALL_DIR"
+    cd "$INSTALL_DIR"
+
+    log_success "Runtime install directory ready"
+}
+
 setup_venv() {
     if [ "$USE_VENV" = false ]; then
         log_info "Skipping virtual environment (--no-venv)"
@@ -1021,8 +1102,36 @@ setup_venv() {
     log_success "Virtual environment ready (Python $PYTHON_VERSION)"
 }
 
+install_runtime_package() {
+    log_info "Installing runtime package: $RUNTIME_PACKAGE_SPEC"
+
+    if [ "$USE_VENV" = true ]; then
+        export VIRTUAL_ENV="$INSTALL_DIR/venv"
+        if $UV_CMD pip install "$RUNTIME_PACKAGE_SPEC"; then
+            log_success "Main package installed (runtime wheel: $RUNTIME_PACKAGE_SPEC)"
+            log_success "All dependencies installed"
+            return 0
+        fi
+    else
+        if "$PYTHON_PATH" -m pip install "$RUNTIME_PACKAGE_SPEC"; then
+            log_success "Main package installed (runtime wheel: $RUNTIME_PACKAGE_SPEC)"
+            log_success "All dependencies installed"
+            return 0
+        fi
+    fi
+
+    log_error "Runtime package installation failed: $RUNTIME_PACKAGE_SPEC"
+    log_info "For a contributor checkout instead, re-run with --source."
+    exit 1
+}
+
 install_deps() {
     log_info "Installing dependencies..."
+
+    if [ "$INSTALL_MODE" = "runtime" ]; then
+        install_runtime_package
+        return 0
+    fi
 
     if [ "$DISTRO" = "termux" ]; then
         if [ "$USE_VENV" = true ]; then
@@ -1426,16 +1535,40 @@ EOF
     log_success "hermes command ready"
 }
 
+get_packaged_data_dir() {
+    local python_for_data=""
+    if [ "$USE_VENV" = true ] && [ -x "$INSTALL_DIR/venv/bin/python" ]; then
+        python_for_data="$INSTALL_DIR/venv/bin/python"
+    elif [ -n "${PYTHON_PATH:-}" ]; then
+        python_for_data="$PYTHON_PATH"
+    fi
+
+    if [ -n "$python_for_data" ]; then
+        "$python_for_data" - <<'PY' 2>/dev/null
+import sysconfig
+path = sysconfig.get_path("data") or ""
+print(path)
+PY
+    fi
+}
+
 copy_config_templates() {
     log_info "Setting up configuration files..."
 
     # Create ~/.hermes directory structure (config at top level, code in subdir)
     mkdir -p "$HERMES_HOME"/{cron,sessions,logs,pairing,hooks,image_cache,audio_cache,memories,skills}
 
+    local PACKAGED_DATA_DIR=""
+    PACKAGED_DATA_DIR="$(get_packaged_data_dir 2>/dev/null || true)"
+    local template_base="$INSTALL_DIR/config"
+    if [ ! -f "$template_base/env.example" ] && [ -n "$PACKAGED_DATA_DIR" ] && [ -f "$PACKAGED_DATA_DIR/config/env.example" ]; then
+        template_base="$PACKAGED_DATA_DIR/config"
+    fi
+
     # Create .env at ~/.hermes/.env (top level, easy to find)
     if [ ! -f "$HERMES_HOME/.env" ]; then
-        if [ -f "$INSTALL_DIR/config/env.example" ]; then
-            cp "$INSTALL_DIR/config/env.example" "$HERMES_HOME/.env"
+        if [ -f "$template_base/env.example" ]; then
+            cp "$template_base/env.example" "$HERMES_HOME/.env"
             log_success "Created ~/.hermes/.env from template"
         else
             touch "$HERMES_HOME/.env"
@@ -1452,8 +1585,8 @@ copy_config_templates() {
 
     # Create config.yaml at ~/.hermes/config.yaml (top level, easy to find)
     if [ ! -f "$HERMES_HOME/config.yaml" ]; then
-        if [ -f "$INSTALL_DIR/config/cli-config.yaml.example" ]; then
-            cp "$INSTALL_DIR/config/cli-config.yaml.example" "$HERMES_HOME/config.yaml"
+        if [ -f "$template_base/cli-config.yaml.example" ]; then
+            cp "$template_base/cli-config.yaml.example" "$HERMES_HOME/config.yaml"
             log_success "Created ~/.hermes/config.yaml from template"
         fi
     else
@@ -1486,12 +1619,20 @@ SOUL_EOF
 
     # Seed bundled skills into ~/.hermes/skills/ (manifest-based, one-time per skill)
     log_info "Syncing bundled skills to ~/.hermes/skills/ ..."
-    if "$INSTALL_DIR/venv/bin/python" "$INSTALL_DIR/tools/skills_sync.py" 2>/dev/null; then
+    if [ "$USE_VENV" = true ] && [ -x "$INSTALL_DIR/venv/bin/python" ] && "$INSTALL_DIR/venv/bin/python" -m tools.skills_sync 2>/dev/null; then
+        log_success "Skills synced to ~/.hermes/skills/"
+    elif [ "$USE_VENV" = false ] && [ -n "${PYTHON_PATH:-}" ] && "$PYTHON_PATH" -m tools.skills_sync 2>/dev/null; then
+        log_success "Skills synced to ~/.hermes/skills/"
+    elif [ "$USE_VENV" = true ] && [ -f "$INSTALL_DIR/tools/skills_sync.py" ] && "$INSTALL_DIR/venv/bin/python" "$INSTALL_DIR/tools/skills_sync.py" 2>/dev/null; then
         log_success "Skills synced to ~/.hermes/skills/"
     else
         # Fallback: simple directory copy if Python sync fails
-        if [ -d "$INSTALL_DIR/resources/skills" ] && [ ! "$(ls -A "$HERMES_HOME/skills/" 2>/dev/null | grep -v '.bundled_manifest')" ]; then
-            cp -r "$INSTALL_DIR/resources/skills/"* "$HERMES_HOME/skills/" 2>/dev/null || true
+        local bundled_skills_dir="$INSTALL_DIR/resources/skills"
+        if [ ! -d "$bundled_skills_dir" ] && [ -n "$PACKAGED_DATA_DIR" ] && [ -d "$PACKAGED_DATA_DIR/resources/skills" ]; then
+            bundled_skills_dir="$PACKAGED_DATA_DIR/resources/skills"
+        fi
+        if [ -d "$bundled_skills_dir" ] && [ ! "$(ls -A "$HERMES_HOME/skills/" 2>/dev/null | grep -v '.bundled_manifest')" ]; then
+            cp -r "$bundled_skills_dir/"* "$HERMES_HOME/skills/" 2>/dev/null || true
             log_success "Skills copied to ~/.hermes/skills/"
         fi
     fi
@@ -2050,17 +2191,27 @@ main() {
 
     detect_os
     resolve_install_layout
+    select_install_mode
     install_uv
     check_python
-    check_git
-    check_node
     check_network_prerequisites
-    install_system_packages
 
-    clone_repo
+    if [ "$INSTALL_MODE" = "source" ]; then
+        check_git
+        check_node
+        install_system_packages
+        clone_repo
+    else
+        prepare_runtime_install_dir
+    fi
+
     setup_venv
     install_deps
-    install_node_deps
+
+    if [ "$INSTALL_MODE" = "source" ]; then
+        install_node_deps
+    fi
+
     setup_path
     copy_config_templates
     run_setup_wizard
@@ -2068,7 +2219,11 @@ main() {
 
     print_success
 
-    echo "git" > "$HERMES_HOME/.install_method"
+    if [ "$INSTALL_MODE" = "source" ]; then
+        echo "git" > "$HERMES_HOME/.install_method"
+    else
+        echo "pip" > "$HERMES_HOME/.install_method"
+    fi
 }
 
 if [ -n "$ENSURE_DEPS" ]; then

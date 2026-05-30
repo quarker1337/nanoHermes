@@ -137,6 +137,22 @@ def _read_skill_name(skill_md: Path, fallback: str) -> str:
     return fallback
 
 
+def _is_excluded_under_root(path: Path, root: Path) -> bool:
+    """Return True when *path* is excluded relative to a resource root.
+
+    Bundled skills may be wheel-installed under a virtualenv data directory
+    (``<venv>/resources/skills``).  The shared exclusion list intentionally
+    contains ``venv`` to avoid scanning arbitrary dependency environments, but
+    that parent directory must not make every packaged bundled skill disappear.
+    Only components inside the resource root should be considered here.
+    """
+    try:
+        rel = path.relative_to(root)
+    except ValueError:
+        rel = path
+    return is_excluded_skill_path(rel)
+
+
 def _discover_bundled_skills(bundled_dir: Path) -> List[Tuple[str, Path]]:
     """
     Find all SKILL.md files in the bundled directory.
@@ -147,7 +163,7 @@ def _discover_bundled_skills(bundled_dir: Path) -> List[Tuple[str, Path]]:
         return skills
 
     for skill_md in bundled_dir.rglob("SKILL.md"):
-        if is_excluded_skill_path(skill_md):
+        if _is_excluded_under_root(skill_md, bundled_dir):
             continue
         skill_dir = skill_md.parent
         skill_name = _read_skill_name(skill_md, skill_dir.name)
@@ -223,7 +239,7 @@ def _optional_skill_index() -> Dict[str, Tuple[str, str, Path]]:
     if not optional_dir.exists():
         return index
     for skill_md in sorted(optional_dir.rglob("SKILL.md")):
-        if is_excluded_skill_path(skill_md):
+        if _is_excluded_under_root(skill_md, optional_dir):
             continue
         src = skill_md.parent
         try:
@@ -351,7 +367,7 @@ def _backfill_optional_provenance(quiet: bool = False) -> List[str]:
     backfilled: List[str] = []
     changed = False
     for skill_md in sorted(optional_dir.rglob("SKILL.md")):
-        if is_excluded_skill_path(skill_md):
+        if _is_excluded_under_root(skill_md, optional_dir):
             continue
         src = skill_md.parent
         try:

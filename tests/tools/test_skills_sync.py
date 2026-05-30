@@ -129,6 +129,27 @@ class TestDiscoverBundledSkills:
         skills = _discover_bundled_skills(tmp_path)
         assert len(skills) == 0
 
+    def test_finds_wheel_installed_skills_under_venv_resource_root(self, tmp_path):
+        """A wheel install stores data under <venv>/resources/skills.
+
+        The global skill path exclusion list contains ``venv`` to avoid
+        scanning dependency environments.  Bundled-resource discovery must
+        apply exclusions relative to the resource root, otherwise the installer
+        seeds zero bundled skills for every wheel install.
+        """
+        bundled = tmp_path / "install" / "venv" / "resources" / "skills"
+        skill_dir = bundled / "media" / "youtube-content"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("---\nname: youtube-content\n---\n# YouTube")
+        (bundled / ".git" / "hooks").mkdir(parents=True)
+        (bundled / ".git" / "hooks" / "SKILL.md").write_text("# Fake")
+
+        skills = _discover_bundled_skills(bundled)
+
+        assert [(name, path.relative_to(bundled).as_posix()) for name, path in skills] == [
+            ("youtube-content", "media/youtube-content")
+        ]
+
     def test_nonexistent_dir_returns_empty(self, tmp_path):
         skills = _discover_bundled_skills(tmp_path / "nonexistent")
         assert skills == []
