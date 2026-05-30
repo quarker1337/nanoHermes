@@ -169,7 +169,7 @@ hermes claw migrate --overwrite  # 覆盖已有冲突
 git clone https://github.com/NousResearch/hermes-agent.git
 cd hermes-agent
 ./scripts/setup-hermes.sh     # 安装 uv、创建 venv、安装 .[all]、创建符号链接 ~/.local/bin/hermes
-./hermes              # 自动检测 venv，无需先 source
+./scripts/hermes              # 自动检测 venv，无需先 source
 ```
 
 手动安装（等效于上述命令）：
@@ -196,6 +196,6 @@ python -m pytest tests/ -q
 
 ## 许可证
 
-MIT — 详见 [LICENSE](LICENSE)。
+MIT — 详见 [LICENSE](../LICENSE)。
 
 由 [Nous Research](https://nousresearch.com) 构建。

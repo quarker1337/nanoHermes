@@ -351,7 +351,7 @@ def recommended_update_command() -> str:
 # don't grow two slightly-different copies.
 #
 # Why this matters:
-#   - The published image excludes ``.git`` (see .dockerignore), so the
+#   - The published image excludes ``.git`` (see infra/docker/Dockerfile.dockerignore), so the
 #     git-based update path can never succeed inside the container.
 #   - The pre-existing fallback message ("✗ Not a git repository. Please
 #     reinstall: curl ... install.sh") is actively misleading inside Docker

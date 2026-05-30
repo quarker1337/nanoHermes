@@ -3,7 +3,7 @@ Baked-in build metadata for Hermes Agent.
 
 Source installs report their git revision live via ``git rev-parse`` (see
 ``hermes_cli/dump.py`` and ``hermes_cli/banner.py``).  That doesn't work inside
-the published Docker image because ``.dockerignore`` excludes ``.git``, so
+the published Docker image because ``infra/docker/Dockerfile.dockerignore`` excludes ``.git``, so
 those callsites fall back to ``"(unknown)"`` / drop the banner suffix entirely.
 
 To make ``hermes dump`` and the startup banner identify the exact commit the

@@ -26,8 +26,8 @@ import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DOCKERFILE = REPO_ROOT / "Dockerfile"
-DOCKERIGNORE = REPO_ROOT / ".dockerignore"
+DOCKERFILE = REPO_ROOT / "infra" / "docker" / "Dockerfile"
+DOCKERIGNORE = REPO_ROOT / "infra" / "docker" / "Dockerfile.dockerignore"
 
 
 # Init-process families this repo accepts as PID 1. ``tini`` /
@@ -194,7 +194,7 @@ def test_dockerfile_materializes_local_tui_ink_package(dockerfile_text):
 
 def test_dockerignore_excludes_nested_dependency_dirs():
     if not DOCKERIGNORE.exists():
-        pytest.skip(".dockerignore not present in this checkout")
+        pytest.skip("Dockerfile-specific ignore file not present in this checkout")
 
     text = DOCKERIGNORE.read_text()
 

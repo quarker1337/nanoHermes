@@ -19,8 +19,8 @@ ignored:
   # because they don't affect later RUN commands; promoting them to
   # full WORKDIR switches with restores would obscure intent.
   - DL3003
-  # Multiple consecutive RUN instructions. The `touch README.md` + `uv
-  # sync` split is intentional — `touch` is cheap, `uv sync` is the
+  # Multiple consecutive RUN instructions. The `touch docs/README.md` +
+  # `uv sync` split is intentional — `touch` is cheap, `uv sync` is the
   # expensive layer-cached step we want isolated, and merging them
   # would invalidate the cache for trivial changes.
   - DL3059

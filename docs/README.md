@@ -125,12 +125,12 @@ plans, examples, and binary doc assets live under dedicated folders now.
 
 Start here when auditing the repo:
 
-- [`docs/repository-layout.md`](docs/repository-layout.md) — top-level map,
+- [`repository-layout.md`](repository-layout.md) — top-level map,
   audit entry points, and rules for future file placement;
-- [`docs/nanohermes/overview.md`](docs/nanohermes/overview.md) — downstream
+- [`nanohermes/overview.md`](nanohermes/overview.md) — downstream
   fork purpose, remotes, package-manager basics, and upstream-sync policy;
-- [`docs/packages.md`](docs/packages.md) — package-manager user/developer notes;
-- [`docs/upstream-sync.md`](docs/upstream-sync.md) — slim fork sync workflow.
+- [`packages.md`](packages.md) — package-manager user/developer notes;
+- [`upstream-sync.md`](upstream-sync.md) — slim fork sync workflow.
 
 ---
 

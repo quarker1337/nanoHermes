@@ -1,6 +1,6 @@
 """Tests for ``hermes update`` / ``--check`` inside the Docker container.
 
-Background: ``.dockerignore`` excludes ``.git``, so the existing git-pull
+Background: ``infra/docker/Dockerfile.dockerignore`` excludes ``.git``, so the existing git-pull
 update path can never succeed inside the published image.  Before this
 fix, ``hermes update`` would fall through to ``"✗ Not a git repository.
 Please reinstall: curl ... install.sh"`` — that script installs a *new*

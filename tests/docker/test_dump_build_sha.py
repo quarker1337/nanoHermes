@@ -1,6 +1,6 @@
 """Regression test: ``hermes dump`` reports a real git SHA inside the container.
 
-Background: ``.dockerignore`` excludes ``.git``, so ``git rev-parse HEAD``
+Background: ``infra/docker/Dockerfile.dockerignore`` excludes ``.git``, so ``git rev-parse HEAD``
 fails inside the published image and ``hermes dump`` used to report
 ``version: ... [(unknown)]``.  The Dockerfile now writes the build-time
 ``$HERMES_GIT_SHA`` build-arg to ``/opt/hermes/.hermes_build_sha`` and

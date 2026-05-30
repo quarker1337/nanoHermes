@@ -131,10 +131,11 @@ RUN npm install --prefer-offline --no-audit && \
 # change.  Before this split the Python install sat after `COPY . .`, so
 # every source-only commit re-did ~4-5 min of dep work on cold builds.
 #
-# README.md is referenced by pyproject.toml's `readme =` field, but it's
-# excluded from the build context by .dockerignore's `*.md`.  uv's build
-# frontend stats the readme path during dep resolution, so we `touch` an
-# empty placeholder — the real README is restored by `COPY . .` below.
+# docs/README.md is referenced by pyproject.toml's `readme =` field, but
+# it is excluded from the build context by Dockerfile.dockerignore's `*.md`.
+# uv's build frontend stats the readme path during dep resolution, so we
+# `touch` an empty placeholder — the real README is restored by `COPY . .`
+# below.
 #
 # `uv sync --frozen --no-install-project --extra all --extra messaging`
 # installs the deps reachable through the composite `[all]` extra
@@ -151,11 +152,11 @@ RUN npm install --prefer-offline --no-audit && \
 #
 # The editable link is created after the source copy below.
 COPY pyproject.toml uv.lock ./
-RUN touch ./README.md
+RUN mkdir -p ./docs && touch ./docs/README.md
 RUN uv sync --frozen --no-install-project --extra all --extra messaging --extra anthropic --extra bedrock --extra azure-identity
 
 # ---------- Source code ----------
-# .dockerignore excludes node_modules, so the installs above survive.
+# Dockerfile.dockerignore excludes node_modules, so the installs above survive.
 COPY --chown=hermes:hermes . .
 
 # Build browser dashboard and terminal UI assets.
@@ -188,7 +189,7 @@ RUN chmod -R a+rX /opt/hermes && \
 RUN uv pip install --no-cache-dir --no-deps -e "."
 
 # ---------- Bake build-time git revision ----------
-# .dockerignore excludes .git, so `git rev-parse HEAD` from inside the
+# Dockerfile.dockerignore excludes .git, so `git rev-parse HEAD` from inside the
 # container always returns nothing — meaning `hermes dump` reports
 # "(unknown)" and the startup banner drops its `· upstream <sha>` suffix.
 # That makes support triage from container bug reports impossible:

@@ -331,7 +331,7 @@ identifiers are masked in ALL log output, not just your adapter's logs.
 
 | File | What to update |
 |------|---------------|
-| `README.md` | Platform list in feature table + documentation table |
+| `docs/README.md` | Platform list in feature table + documentation table |
 | `docs/contributing/AGENTS.md` | Gateway description + env var config section |
 | `docs/site/docs/user-guide/messaging/<platform>.md` | **NEW** — Full setup guide (see existing platform docs for template) |
 | `docs/site/docs/user-guide/messaging/index.md` | Architecture diagram, toolset table, security examples, Next Steps links |
