@@ -1,15 +1,26 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import io
+import shutil
 import subprocess
 import sys
+import tarfile
+import tempfile
+import zipfile
 from pathlib import Path
+from pathlib import PurePosixPath
+from urllib.parse import parse_qs
+from urllib.parse import urljoin
+from urllib.parse import urlparse
 
 from .registry import (
     DEFAULT_REGISTRY_TIMEOUT_SECONDS,
     DEFAULT_REGISTRY_URL,
     PackageRegistry,
     PackageRegistryError,
+    _fetch_url_with_deadline,
     is_http_source,
 )
 from .state import PackageState
@@ -32,11 +43,21 @@ def _print_install_plan(packages: list[dict]) -> None:
     for package in packages:
         install = package.get("install", {})
         extras = install.get("python_extras", [])
+        assets = install.get("optional_assets", [])
         tools = package.get("tools", {})
         permissions = _truthy_permission_names(package)
         print(f"  {package['name']} {package.get('version', '')}")
         if extras:
             print(f"    Python extras: {', '.join(extras)}")
+        if assets:
+            destinations = []
+            for asset in assets:
+                if isinstance(asset, dict) and asset.get("destination"):
+                    destinations.append(str(asset["destination"]))
+            if destinations:
+                print(f"    Optional assets: {', '.join(destinations)}")
+            else:
+                print(f"    Optional assets: {len(assets)}")
         if tools.get("toolsets"):
             print(f"    Toolsets: {', '.join(tools['toolsets'])}")
         if tools.get("tools"):
@@ -51,6 +72,203 @@ def _install_python_extras(extras: list[str]) -> None:
     project_root = Path(__file__).resolve().parents[2]
     extras_arg = ".[{}]".format(",".join(sorted(set(extras))))
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", extras_arg], cwd=project_root)
+
+
+_ALLOWED_ASSET_ROOTS = {"skills", "optional-skills", "optional-mcps"}
+
+
+def _safe_relative_parts(path: str, *, label: str) -> tuple[str, ...]:
+    pure = PurePosixPath(path.replace("\\", "/"))
+    parts = tuple(part for part in pure.parts if part not in {"", "."})
+    if pure.is_absolute() or not parts or any(part == ".." for part in parts):
+        raise PackageRegistryError(f"Unsafe package asset {label}: {path}")
+    return parts
+
+
+def _safe_asset_destination(home: str | Path | None, destination: str) -> Path:
+    parts = _safe_relative_parts(destination, label="destination")
+    if parts[0] not in _ALLOWED_ASSET_ROOTS:
+        allowed = ", ".join(sorted(_ALLOWED_ASSET_ROOTS))
+        raise PackageRegistryError(
+            f"Package asset destination must start with one of: {allowed}; got {destination!r}"
+        )
+    root = Path(home).expanduser().resolve() if home is not None else PackageState().home.resolve()
+    target = root.joinpath(*parts).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError as exc:
+        raise PackageRegistryError(f"Package asset destination escapes Hermes home: {destination}") from exc
+    return target
+
+
+def _resolve_local_asset_source(source: str, registry_source: str | Path) -> Path:
+    source_path = Path(source).expanduser()
+    if source_path.is_absolute():
+        return source_path
+
+    registry_path = Path(str(registry_source)).expanduser()
+    base = registry_path.parent
+    # Registry files normally live under <repo>/registry/index.json. Resolve
+    # relative asset paths from the repo root so manifests can use
+    # assets/skills/foo.tar.gz consistently in tests and offline mirrors.
+    if registry_path.parent.name == "registry" and registry_path.name.startswith("index"):
+        base = registry_path.parent.parent
+    return (base / source_path).resolve()
+
+
+def _resolve_remote_asset_source(source: str, registry_source: str | Path) -> str:
+    parts = _safe_relative_parts(source, label="source")
+    source_rel = "/".join(parts)
+    parsed = urlparse(str(registry_source))
+
+    if parsed.netloc == "api.github.com" and "/contents/registry/index.json" in parsed.path:
+        # GitHub Contents API default:
+        #   /repos/<owner>/<repo>/contents/registry/index.json?ref=<branch>
+        path_parts = [part for part in parsed.path.split("/") if part]
+        if len(path_parts) >= 5 and path_parts[0] == "repos":
+            owner = path_parts[1]
+            repo = path_parts[2]
+            ref = parse_qs(parsed.query).get("ref", ["main"])[0]
+            return f"https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{source_rel}"
+
+    if parsed.netloc == "raw.githubusercontent.com" and parsed.path.endswith("/registry/index.json"):
+        base_path = parsed.path[: -len("/registry/index.json")]
+        return f"{parsed.scheme}://{parsed.netloc}{base_path}/{source_rel}"
+
+    return urljoin(str(registry_source), f"../{source_rel}")
+
+
+def _read_asset_bytes(source: str, registry_source: str | Path, *, timeout: float) -> bytes:
+    if is_http_source(source):
+        return _fetch_url_with_deadline(source, timeout=max(float(timeout), 0.1))
+    if is_http_source(str(registry_source)):
+        return _fetch_url_with_deadline(
+            _resolve_remote_asset_source(source, registry_source),
+            timeout=max(float(timeout), 0.1),
+        )
+    local_source = _resolve_local_asset_source(source, registry_source)
+    try:
+        return local_source.read_bytes()
+    except OSError as exc:
+        raise PackageRegistryError(f"Failed to read package asset {source}: {exc}") from exc
+
+
+def _verify_asset_sha256(payload: bytes, expected: str, *, source: str) -> None:
+    expected = (expected or "").strip().lower()
+    if not expected:
+        return
+    actual = hashlib.sha256(payload).hexdigest()
+    if actual != expected:
+        raise PackageRegistryError(
+            f"Package asset checksum mismatch for {source}: expected {expected}, got {actual}"
+        )
+
+
+def _assert_safe_archive_member(name: str) -> None:
+    _safe_relative_parts(name, label="archive member")
+
+
+def _extract_asset_archive(payload: bytes, fmt: str, target_dir: Path) -> None:
+    fmt = fmt.lower().replace("_", "-")
+    if fmt in {"tar.gz", "tgz", "tar", "tar.bz2", "tbz2", "tar.xz", "txz"}:
+        try:
+            with tarfile.open(fileobj=io.BytesIO(payload), mode="r:*") as archive:
+                for member in archive.getmembers():
+                    _assert_safe_archive_member(member.name)
+                    if member.issym() or member.islnk() or member.isdev():
+                        raise PackageRegistryError(f"Unsafe package asset archive member: {member.name}")
+                archive.extractall(target_dir)
+            return
+        except (tarfile.TarError, OSError) as exc:
+            if isinstance(exc, PackageRegistryError):
+                raise
+            raise PackageRegistryError(f"Failed to extract package asset archive: {exc}") from exc
+
+    if fmt == "zip":
+        try:
+            with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+                for info in archive.infolist():
+                    _assert_safe_archive_member(info.filename)
+                archive.extractall(target_dir)
+            return
+        except (zipfile.BadZipFile, OSError) as exc:
+            raise PackageRegistryError(f"Failed to extract package asset archive: {exc}") from exc
+
+    raise PackageRegistryError(f"Unsupported package asset format: {fmt}")
+
+
+def _infer_asset_format(source: str, explicit: str | None) -> str:
+    if explicit:
+        return explicit
+    lower = source.lower()
+    for suffix, fmt in (
+        (".tar.gz", "tar.gz"),
+        (".tgz", "tgz"),
+        (".tar.bz2", "tar.bz2"),
+        (".tbz2", "tbz2"),
+        (".tar.xz", "tar.xz"),
+        (".txz", "txz"),
+        (".tar", "tar"),
+        (".zip", "zip"),
+    ):
+        if lower.endswith(suffix):
+            return fmt
+    raise PackageRegistryError(f"Could not infer package asset format from source: {source}")
+
+
+def _merge_asset_tree(source_dir: Path, destination: Path, *, overwrite: bool) -> tuple[int, int]:
+    copied = 0
+    skipped = 0
+    for path in sorted(source_dir.rglob("*")):
+        rel = path.relative_to(source_dir)
+        target = destination / rel
+        if path.is_dir():
+            target.mkdir(parents=True, exist_ok=True)
+            continue
+        if not path.is_file():
+            continue
+        if target.exists() and not overwrite:
+            skipped += 1
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, target)
+        copied += 1
+    return copied, skipped
+
+
+def _install_optional_assets(
+    packages: list[dict],
+    *,
+    home: str | Path | None,
+    registry_source: str | Path,
+    timeout: float,
+) -> None:
+    for package in packages:
+        install = package.get("install", {}) if isinstance(package.get("install", {}), dict) else {}
+        assets = install.get("optional_assets", []) or []
+        for asset in assets:
+            if not isinstance(asset, dict):
+                raise PackageRegistryError(f"Package {package['name']} has invalid optional asset entry: {asset!r}")
+            source = str(asset.get("source", "")).strip()
+            destination = str(asset.get("destination", "")).strip()
+            if not source or not destination:
+                raise PackageRegistryError(
+                    f"Package {package['name']} optional asset requires source and destination"
+                )
+            payload = _read_asset_bytes(source, registry_source, timeout=timeout)
+            _verify_asset_sha256(payload, str(asset.get("sha256", "")), source=source)
+            fmt = _infer_asset_format(source, asset.get("format"))
+            destination_path = _safe_asset_destination(home, destination)
+            overwrite = bool(asset.get("overwrite", False))
+            with tempfile.TemporaryDirectory(prefix="hermes-pkg-asset-") as tmp:
+                extract_root = Path(tmp) / "extract"
+                extract_root.mkdir()
+                _extract_asset_archive(payload, fmt, extract_root)
+                copied, skipped = _merge_asset_tree(extract_root, destination_path, overwrite=overwrite)
+            print(
+                f"Installed asset for {package['name']} -> {destination} "
+                f"({copied} files copied, {skipped} existing kept)"
+            )
 
 
 def _registry_source(args: argparse.Namespace) -> str | Path:
@@ -158,6 +376,15 @@ def cmd_install(args: argparse.Namespace) -> int:
         extras.extend(package.get("install", {}).get("python_extras", []))
     if not args.no_pip:
         _install_python_extras(extras)
+    try:
+        _install_optional_assets(
+            packages,
+            home=args.home,
+            registry_source=source,
+            timeout=_registry_timeout(args),
+        )
+    except PackageRegistryError as exc:
+        return _print_registry_error(exc)
     state = PackageState(home=args.home)
     for package in packages:
         state.mark_installed(

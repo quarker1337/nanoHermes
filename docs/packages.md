@@ -17,6 +17,23 @@ hermes pkg doctor
 
 `hermes plug ...` is an alias for `hermes pkg ...`.
 
+## Skill packs and optional assets
+
+Large first-party skill categories are intentionally not copied into the base
+wheel. They are delivered as checksummed package assets from
+`quarker1337/Hermes-Packages` and install into the active Hermes home:
+
+```bash
+hermes pkg update
+hermes pkg search skills
+hermes pkg install skills-creative --yes
+```
+
+The installer verifies each asset's SHA-256 before extracting it, rejects
+archives with unsafe paths/links, and only allows package assets under approved
+Hermes data roots such as `skills/`, `optional-skills/`, and `optional-mcps/`.
+Existing local files are kept unless a package explicitly opts into overwrite.
+
 ## Local package state
 
 Package state is stored under the active Hermes home:

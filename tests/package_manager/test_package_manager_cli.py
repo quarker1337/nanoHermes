@@ -1,6 +1,8 @@
 import base64
+import hashlib
 import json
 import sys
+import tarfile
 import time
 from pathlib import Path
 
@@ -99,6 +101,78 @@ def _write_registry_with_browser_dependency(tmp_path: Path) -> Path:
     return path
 
 
+def _write_registry_with_skill_asset(
+    tmp_path: Path,
+    *,
+    destination: str = "skills",
+    sha256: str | None = None,
+) -> Path:
+    repo = tmp_path / "repo"
+    asset_dir = repo / "assets" / "skills"
+    payload_dir = tmp_path / "payload" / "creative" / "sample-skill"
+    registry_dir = repo / "registry"
+    asset_dir.mkdir(parents=True)
+    payload_dir.mkdir(parents=True)
+    (payload_dir / "SKILL.md").write_text(
+        "---\nname: sample-skill\ndescription: packaged skill\n---\n\n# Sample\n",
+        encoding="utf-8",
+    )
+    archive_path = asset_dir / "skills-creative.tar.gz"
+    with tarfile.open(archive_path, "w:gz") as archive:
+        archive.add(payload_dir.parent, arcname="creative")
+    actual_sha = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+
+    registry = {
+        "schema_version": 1,
+        "generated_at": "2026-05-29T00:00:00Z",
+        "package_count": 1,
+        "packages": {
+            "skills-creative": {
+                "name": "skills-creative",
+                "display_name": "Creative Skills",
+                "version": "0.1.0",
+                "type": "skill",
+                "channel": "skills",
+                "description": "Creative skill pack.",
+                "dependencies": [],
+                "install": {
+                    "python_extras": [],
+                    "python_packages": [],
+                    "system_packages": [],
+                    "npm_packages": [],
+                    "optional_assets": [
+                        {
+                            "type": "skill_pack",
+                            "source": "assets/skills/skills-creative.tar.gz",
+                            "format": "tar.gz",
+                            "sha256": sha256 if sha256 is not None else actual_sha,
+                            "destination": destination,
+                        }
+                    ],
+                },
+                "tools": {"toolsets": [], "tools": []},
+                "permissions": {
+                    "network": False,
+                    "filesystem": True,
+                    "shell": False,
+                    "browser": False,
+                    "audio": False,
+                    "microphone": False,
+                    "secrets": [],
+                },
+                "env": {"required": [], "optional": []},
+                "security": {"post_install_scripts": False, "signed": False, "checksum": actual_sha},
+                "manifest_path": "packages/skills/skills-creative/package.toml",
+                "manifest_sha256": "2" * 64,
+            }
+        },
+    }
+    registry_dir.mkdir(parents=True)
+    path = registry_dir / "index.json"
+    path.write_text(json.dumps(registry), encoding="utf-8")
+    return path
+
+
 def test_registry_update_search_and_show_use_local_source(tmp_path):
     source = _write_registry(tmp_path)
     home = tmp_path / "home"
@@ -109,6 +183,18 @@ def test_registry_update_search_and_show_use_local_source(tmp_path):
     matches = registry.search("web")
     assert [pkg["name"] for pkg in matches] == ["web-search"]
     assert registry.get("web-search")["install"]["python_extras"] == ["web-search"]
+
+
+def test_relative_remote_asset_source_resolves_from_default_github_registry():
+    url = pkg_cli._resolve_remote_asset_source(
+        "assets/skills/skills-creative.tar.gz",
+        registry_module.DEFAULT_REGISTRY_URL,
+    )
+
+    assert url == (
+        "https://raw.githubusercontent.com/quarker1337/Hermes-Packages/main/"
+        "assets/skills/skills-creative.tar.gz"
+    )
 
 
 def test_registry_update_decodes_github_contents_api_payload(tmp_path, monkeypatch):
@@ -191,6 +277,74 @@ def test_install_yes_no_pip_records_package_state(tmp_path, capsys):
     assert installed["web-search"]["status"] == "installed"
     assert installed["web-search"]["install_reason"] == "manual"
     assert installed["web-search"]["requested"] is True
+
+
+def test_install_optional_skill_asset_extracts_into_hermes_home(tmp_path, capsys):
+    source = _write_registry_with_skill_asset(tmp_path)
+    home = tmp_path / "home"
+
+    rc = pkg_cli.main([
+        "--home",
+        str(home),
+        "--source",
+        str(source),
+        "install",
+        "skills-creative",
+        "--yes",
+        "--no-pip",
+    ])
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "Optional assets: skills" in captured.out
+    assert "Installed asset for skills-creative -> skills" in captured.out
+    skill_md = home / "skills" / "creative" / "sample-skill" / "SKILL.md"
+    assert "name: sample-skill" in skill_md.read_text(encoding="utf-8")
+    installed = PackageState(home=home).installed
+    assert installed["skills-creative"]["optional_assets"][0]["destination"] == "skills"
+
+
+def test_install_optional_asset_checksum_mismatch_does_not_record_state(tmp_path, capsys):
+    source = _write_registry_with_skill_asset(tmp_path, sha256="0" * 64)
+    home = tmp_path / "home"
+
+    rc = pkg_cli.main([
+        "--home",
+        str(home),
+        "--source",
+        str(source),
+        "install",
+        "skills-creative",
+        "--yes",
+        "--no-pip",
+    ])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "checksum mismatch" in captured.err
+    assert not PackageState(home=home).installed
+    assert not (home / "skills" / "creative").exists()
+
+
+def test_install_optional_asset_rejects_unsafe_destination(tmp_path, capsys):
+    source = _write_registry_with_skill_asset(tmp_path, destination="../skills")
+    home = tmp_path / "home"
+
+    rc = pkg_cli.main([
+        "--home",
+        str(home),
+        "--source",
+        str(source),
+        "install",
+        "skills-creative",
+        "--yes",
+        "--no-pip",
+    ])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "Unsafe package asset destination" in captured.err
+    assert not PackageState(home=home).installed
 
 
 def test_install_records_core_package_database_with_dependency_reasons(tmp_path, capsys):

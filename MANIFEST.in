@@ -3,6 +3,10 @@ include infra/packaging/setup.py
 graft config
 graft constraints
 graft resources/skills
+prune resources/skills/creative
+prune resources/skills/mlops
+prune resources/skills/productivity
+prune resources/skills/research
 graft resources/locales
 # Optional skill packs are installed through NanoHermes packages, not bundled in the base wheel/sdist.
 global-exclude __pycache__

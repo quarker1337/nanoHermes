@@ -176,11 +176,16 @@ def test_optional_skills_not_grafted_into_base_sdist():
     assert "include infra/packaging/build_backend.py" in manifest_lines
     assert "include infra/packaging/setup.py" in manifest_lines
     assert "graft resources/skills" in manifest_lines
+    assert "prune resources/skills/creative" in manifest_lines
+    assert "prune resources/skills/mlops" in manifest_lines
+    assert "prune resources/skills/productivity" in manifest_lines
+    assert "prune resources/skills/research" in manifest_lines
     assert "graft resources/locales" in manifest_lines
     assert "graft resources/optional-skills" not in manifest_lines
     assert '("config", ["config/cli-config.yaml.example", "config/env.example"])' in setup_py
     assert '("constraints", ["constraints/termux.txt"])' in setup_py
-    assert '*_data_file_tree("resources/skills")' in setup_py
+    assert 'OPTIONAL_SKILL_PACKAGE_CATEGORIES = frozenset({' in setup_py
+    assert '*_data_file_tree("resources/skills", exclude_top_level=OPTIONAL_SKILL_PACKAGE_CATEGORIES)' in setup_py
     assert '*_data_file_tree("resources/locales")' in setup_py
     assert '*_data_file_tree("resources/optional-skills")' not in setup_py
 
