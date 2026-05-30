@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 
 def test_declined_interactive_prompt_is_remembered(tmp_path):
-    """Answering no once should suppress the same startup install nag later."""
+    """Answering no once should suppress the same explicit install prompt later."""
     from hermes_cli.dep_ensure import ensure_dependency
 
     script = tmp_path / "install.sh"
@@ -30,7 +30,7 @@ def test_declined_interactive_prompt_is_remembered(tmp_path):
 
 
 def test_explicit_dependency_ensure_can_ignore_remembered_decline(tmp_path):
-    """Explicit setup/postinstall flows can ask again despite a startup decline."""
+    """Explicit setup/postinstall flows can ask again despite a prior decline."""
     from hermes_cli.dep_ensure import ensure_dependency
 
     script = tmp_path / "install.sh"

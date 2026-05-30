@@ -206,6 +206,32 @@ class TestFindAgentBrowser:
             with pytest.raises(FileNotFoundError, match="agent-browser CLI not found"):
                 _find_agent_browser()
 
+    def test_missing_browser_does_not_trigger_lazy_install_prompt(self):
+        """Startup/tool discovery must not prompt to install browser dependencies."""
+        original_path_exists = Path.exists
+        original_path_is_dir = Path.is_dir
+
+        def mock_path_exists(self):
+            if "node_modules" in str(self) and "agent-browser" in str(self):
+                return False
+            return original_path_exists(self)
+
+        def mock_path_is_dir(self):
+            if "browser-tools" in str(self) or "node_modules" in str(self):
+                return False
+            return original_path_is_dir(self)
+
+        with patch("shutil.which", return_value=None), \
+             patch("os.path.isdir", return_value=False), \
+             patch.object(Path, "exists", mock_path_exists), \
+             patch.object(Path, "is_dir", mock_path_is_dir), \
+             patch("tools.browser_tool._discover_homebrew_node_dirs", return_value=[]), \
+             patch("hermes_cli.dep_ensure.ensure_dependency", return_value=False) as mock_ensure:
+            with pytest.raises(FileNotFoundError, match="agent-browser CLI not found"):
+                _find_agent_browser()
+
+        mock_ensure.assert_not_called()
+
 
 class TestBrowserRequirements:
     def test_cdp_override_does_not_require_agent_browser_cli(self, monkeypatch):

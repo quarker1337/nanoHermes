@@ -1857,29 +1857,10 @@ def _find_agent_browser() -> str:
         _agent_browser_resolved = True
         return _cached_agent_browser
 
-    # Nothing found — try lazy installation before giving up.
-    try:
-        from hermes_cli.dep_ensure import ensure_dependency
-        if ensure_dependency("browser"):
-            recheck = shutil.which("agent-browser")
-            if not recheck and extended_path:
-                recheck = shutil.which("agent-browser", path=extended_path)
-            if not recheck:
-                hermes_nm = str(get_hermes_home() / "node_modules" / ".bin")
-                recheck = shutil.which("agent-browser", path=hermes_nm)
-            if not recheck:
-                hermes_node_bin = str(get_hermes_home() / "node" / "bin")
-                recheck = shutil.which("agent-browser", path=hermes_node_bin)
-            if not recheck:
-                hermes_node_root = str(get_hermes_home() / "node")
-                recheck = shutil.which("agent-browser", path=hermes_node_root)
-            if recheck:
-                _cached_agent_browser = recheck
-                _agent_browser_resolved = True
-                return recheck
-    except Exception:
-        pass
-
+    # Do not lazily install browser tooling here. This function runs during
+    # startup/tool discovery, so prompting from here creates a recurring launch
+    # nag. Browser installation belongs to explicit setup/install flows such as
+    # install.sh, hermes postinstall, or hermes-acp --setup-browser.
     _agent_browser_resolved = True
     raise FileNotFoundError(
         "agent-browser CLI not found. Install it with: "
