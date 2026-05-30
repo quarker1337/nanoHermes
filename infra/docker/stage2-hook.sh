@@ -222,7 +222,7 @@ seed_one() {
     fi
 }
 seed_one ".env" ".env.example"
-seed_one "config.yaml" "cli-config.yaml.example"
+seed_one "config.yaml" "config/cli-config.yaml.example"
 seed_one "SOUL.md" "infra/docker/SOUL.md"
 
 # .env holds API keys and secrets — restrict to owner-only access. Applied

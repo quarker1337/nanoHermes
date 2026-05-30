@@ -24,7 +24,7 @@ description: "通过 Termux 在 Android 手机上直接运行 Hermes Agent"
 具体对应以下命令：
 
 ```bash
-python -m pip install -e '.[termux]' -c constraints-termux.txt
+python -m pip install -e '.[termux]' -c constraints/termux.txt
 ```
 
 ## 哪些功能尚未纳入已验证路径？
@@ -104,13 +104,13 @@ python -m pip install --upgrade pip setuptools wheel
 ### 4. 安装已验证的 Termux 包
 
 ```bash
-python -m pip install -e '.[termux]' -c constraints-termux.txt
+python -m pip install -e '.[termux]' -c constraints/termux.txt
 ```
 
 如果你只需要最小化的核心 agent，以下命令同样有效：
 
 ```bash
-python -m pip install -e '.' -c constraints-termux.txt
+python -m pip install -e '.' -c constraints/termux.txt
 ```
 
 ### 5. 将 `hermes` 添加到 Termux PATH
@@ -174,7 +174,7 @@ npm install
 改用已验证的 Termux 包：
 
 ```bash
-python -m pip install -e '.[termux]' -c constraints-termux.txt
+python -m pip install -e '.[termux]' -c constraints/termux.txt
 ```
 
 当前阻塞原因是 `voice` 扩展：
@@ -191,7 +191,7 @@ python -m venv venv
 source venv/bin/activate
 export ANDROID_API_LEVEL="$(getprop ro.build.version.sdk)"
 python -m pip install --upgrade pip setuptools wheel
-python -m pip install -e '.[termux]' -c constraints-termux.txt
+python -m pip install -e '.[termux]' -c constraints/termux.txt
 ```
 
 ### `jiter` / `maturin` 报错提示缺少 `ANDROID_API_LEVEL`
@@ -200,7 +200,7 @@ python -m pip install -e '.[termux]' -c constraints-termux.txt
 
 ```bash
 export ANDROID_API_LEVEL="$(getprop ro.build.version.sdk)"
-python -m pip install -e '.[termux]' -c constraints-termux.txt
+python -m pip install -e '.[termux]' -c constraints/termux.txt
 ```
 
 ### `hermes doctor` 提示缺少 ripgrep 或 Node
@@ -222,7 +222,7 @@ pkg install clang rust make pkg-config libffi openssl
 然后重试：
 
 ```bash
-python -m pip install -e '.[termux]' -c constraints-termux.txt
+python -m pip install -e '.[termux]' -c constraints/termux.txt
 ```
 
 ---

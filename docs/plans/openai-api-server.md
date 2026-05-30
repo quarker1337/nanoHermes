@@ -268,7 +268,7 @@ API_SERVER_KEY=your-secret-key
 | `gateway/config.py` | Add Platform.API_SERVER + config (~20 lines) |
 | `gateway/run.py` | Register adapter in _create_adapter() (~10 lines) |
 | `tests/gateway/test_api_server.py` | NEW — tests (~200 lines) |
-| `cli-config.yaml.example` | Add api_server section |
+| `config/cli-config.yaml.example` | Add api_server section |
 | `README.md` | Mention API server in platform list |
 
 ## Compatibility Matrix

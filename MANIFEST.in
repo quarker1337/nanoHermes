@@ -1,3 +1,5 @@
+graft config
+graft constraints
 graft resources/skills
 graft resources/locales
 # Optional skill packs are installed through NanoHermes packages, not bundled in the base wheel/sdist.

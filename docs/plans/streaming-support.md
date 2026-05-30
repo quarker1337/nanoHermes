@@ -656,7 +656,7 @@ The 1.5s edit interval is conservative enough for all platforms. If we get
 | `runtime/hermes_runtime/cli.py` | 3 | +streaming setup, +token display, +response box integration |
 | `gateway/platforms/api_server.py` | 4 | +real SSE writer, +streaming callback wiring |
 | `hermes_cli/config.py` | 1 | +streaming config defaults |
-| `cli-config.yaml.example` | 1 | +streaming section |
+| `config/cli-config.yaml.example` | 1 | +streaming section |
 | `tests/test_streaming.py` | 1-4 | NEW — ~380 lines of tests |
 
 **Total new code**: ~500 lines across all phases

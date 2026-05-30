@@ -81,7 +81,7 @@ tini was PID 1, reaped zombies, forwarded SIGTERM to the process group. The
 old `infra/docker/entrypoint.sh`:
 
 1. `gosu` privilege drop from root → `hermes` UID.
-2. Copied `.env.example`, `cli-config.yaml.example`, `SOUL.md` into
+2. Copied `.env.example`, `config/cli-config.yaml.example`, `SOUL.md` into
    `$HERMES_HOME` if missing.
 3. Synced bundled skills via `tools/skills_sync.py`.
 4. Optionally backgrounded `hermes dashboard` in a subshell when

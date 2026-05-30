@@ -16,5 +16,5 @@ def test_setup_hermes_script_has_termux_path():
 
     assert "is_termux()" in content
     assert ".[termux]" in content
-    assert "constraints-termux.txt" in content
+    assert "constraints/termux.txt" in content
     assert "$PREFIX/bin" in content

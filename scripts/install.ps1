@@ -1443,7 +1443,7 @@ function Copy-ConfigTemplates {
     # Create config.yaml
     $configPath = "$HermesHome\config.yaml"
     if (-not (Test-Path $configPath)) {
-        $examplePath = "$InstallDir\cli-config.yaml.example"
+        $examplePath = "$InstallDir\config\cli-config.yaml.example"
         if (Test-Path $examplePath) {
             Copy-Item $examplePath $configPath
             Write-Success "Created ~/.hermes/config.yaml from template"

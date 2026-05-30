@@ -1058,14 +1058,14 @@ install_deps() {
 
         # Try the broad Termux profile first (best-effort "install all" for Android),
         # then fall back to the conservative Termux baseline, then base package.
-        if ! "$PIP_PYTHON" -m pip install -e '.[termux-all]' -c constraints-termux.txt; then
+        if ! "$PIP_PYTHON" -m pip install -e '.[termux-all]' -c constraints/termux.txt; then
             log_warn "Termux broad profile (.[termux-all]) failed, trying baseline Termux profile..."
-            if ! "$PIP_PYTHON" -m pip install -e '.[termux]' -c constraints-termux.txt; then
+            if ! "$PIP_PYTHON" -m pip install -e '.[termux]' -c constraints/termux.txt; then
                 log_warn "Termux baseline profile (.[termux]) failed, trying base install..."
-                if ! "$PIP_PYTHON" -m pip install -e '.' -c constraints-termux.txt; then
+                if ! "$PIP_PYTHON" -m pip install -e '.' -c constraints/termux.txt; then
                     log_error "Package installation failed on Termux."
                     log_info "Ensure these packages are installed: pkg install clang rust make pkg-config libffi openssl ca-certificates curl"
-                    log_info "Then re-run: cd $INSTALL_DIR && python -m pip install -e '.[termux-all]' -c constraints-termux.txt"
+                    log_info "Then re-run: cd $INSTALL_DIR && python -m pip install -e '.[termux-all]' -c constraints/termux.txt"
                     exit 1
                 fi
             fi
@@ -1283,7 +1283,7 @@ setup_path() {
         log_warn "hermes entry point not found at $HERMES_BIN"
         log_info "This usually means the pip install didn't complete successfully."
         if [ "$DISTRO" = "termux" ]; then
-            log_info "Try: cd $INSTALL_DIR && python -m pip install -e '.[termux-all]' -c constraints-termux.txt"
+            log_info "Try: cd $INSTALL_DIR && python -m pip install -e '.[termux-all]' -c constraints/termux.txt"
         else
             log_info "Try: cd $INSTALL_DIR && uv pip install -e '.[all]'"
         fi
@@ -1452,8 +1452,8 @@ copy_config_templates() {
 
     # Create config.yaml at ~/.hermes/config.yaml (top level, easy to find)
     if [ ! -f "$HERMES_HOME/config.yaml" ]; then
-        if [ -f "$INSTALL_DIR/cli-config.yaml.example" ]; then
-            cp "$INSTALL_DIR/cli-config.yaml.example" "$HERMES_HOME/config.yaml"
+        if [ -f "$INSTALL_DIR/config/cli-config.yaml.example" ]; then
+            cp "$INSTALL_DIR/config/cli-config.yaml.example" "$HERMES_HOME/config.yaml"
             log_success "Created ~/.hermes/config.yaml from template"
         fi
     else

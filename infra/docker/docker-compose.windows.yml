@@ -1,13 +1,13 @@
 #
-# docker-compose.windows.yml — Windows Docker Desktop compatible
+# infra/docker/docker-compose.windows.yml — Windows Docker Desktop compatible
 #
-# Differences from docker-compose.yml:
+# Differences from the root docker-compose.yml:
 #   - Removes `network_mode: host` (not supported on Docker Desktop for Windows)
 #   - Uses explicit port mappings instead
 #   - Uses Windows-style volume path for ~/.hermes
 #
-# Usage:
-#   docker compose -f docker-compose.windows.yml up -d
+# Usage from the repository root:
+#   docker compose -f infra/docker/docker-compose.windows.yml up -d
 #
 services:
   gateway:
