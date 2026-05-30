@@ -8,18 +8,19 @@ The guiding rule is: keep the root readable. Root-level directories should eithe
 
 | Path | What belongs here |
 |---|---|
-| `agent/`, `tools/`, `hermes_cli/`, `gateway/`, `tui_gateway/`, `cron/`, `acp_adapter/`, `acp_registry/`, `providers/`, `plugins/` | Runtime Python packages inherited from Hermes Agent. These stay at root for now to keep imports, editable installs, and upstream patch-sync sane. |
+| `agent/`, `tools/`, `hermes_cli/`, `gateway/`, `tui_gateway/`, `cron/`, `acp_adapter/`, `providers/`, `plugins/` | Runtime Python packages inherited from Hermes Agent. These stay at root for now to keep imports, editable installs, and upstream patch-sync sane. |
 | `hermes_cli/package_manager/` | NanoHermes package-manager implementation. The `nanohermes` executable is just an alias into `hermes_cli.main`; there is no separate root `nanohermes/` package anymore. |
 | `apps/dashboard/` | Browser dashboard frontend. Formerly root `web/`. |
 | `apps/tui/` | Terminal UI frontend. Formerly root `ui-tui/`. |
-| `docs/` | Human-readable docs, notes, release history, plans, assets, and the docs site. |
+| `docs/` | Human-readable docs, notes, release history, plans, examples, assets, and the docs site. |
+| `docs/examples/` | Curated runnable examples only. Scratch/generated examples belong in ignored subdirectories. |
 | `docs/site/` | Docusaurus documentation site. Formerly root `website/`. |
 | `docs/assets/` | Images/assets referenced by README/docs, including `banner.png`. |
-| `examples/` | Curated runnable examples only. Scratch/generated examples belong in ignored subdirectories. |
 | `infra/docker/` | Container support files used by the root `Dockerfile`. |
 | `infra/nix/` | Nix expressions used by root `flake.nix`. |
 | `infra/packaging/` | Distro/package-manager packaging helpers such as Homebrew formula files. |
 | `infra/nanohermes/` | Downstream metadata such as `upstream-base.txt`. |
+| `resources/acp/registry/` | ACP registry metadata (`agent.json`, icon). Formerly root `acp_registry/`. |
 | `resources/locales/` | Runtime translation catalogs. Formerly root `locales/`. |
 | `resources/skills/` | Bundled base skill corpus installed with the base distribution. |
 | `resources/optional-skills/`, `resources/optional-mcps/` | Optional payloads for package-managed install, not base-wheel payloads. |

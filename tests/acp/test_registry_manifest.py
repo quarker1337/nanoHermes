@@ -9,8 +9,8 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
-MANIFEST = ROOT / "acp_registry" / "agent.json"
-ICON = ROOT / "acp_registry" / "icon.svg"
+MANIFEST = ROOT / "resources" / "acp" / "registry" / "agent.json"
+ICON = ROOT / "resources" / "acp" / "registry" / "icon.svg"
 FORBIDDEN_MANIFEST_KEYS = {"schema_version", "display_name"}
 ALLOWED_DISTRIBUTIONS = {"binary", "npx", "uvx"}
 

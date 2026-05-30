@@ -155,7 +155,7 @@ Zed v0.221.x 及更新版本通过官方 ACP Registry 安装外部 agent。
 使用兼容 ACP 的插件并将其指向：
 
 ```text
-/path/to/hermes-agent/acp_registry
+/path/to/hermes-agent/resources/acp/registry
 ```
 
 ## Registry 清单
@@ -163,8 +163,8 @@ Zed v0.221.x 及更新版本通过官方 ACP Registry 安装外部 agent。
 Hermes 官方 ACP Registry 元数据的源文件位于：
 
 ```text
-acp_registry/agent.json
-acp_registry/icon.svg
+resources/acp/registry/agent.json
+resources/acp/registry/icon.svg
 ```
 
 上游 registry PR 将这些文件复制到 `agentclientprotocol/registry` 中的顶层 `hermes-agent/` 目录。

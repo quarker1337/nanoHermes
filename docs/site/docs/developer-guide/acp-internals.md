@@ -17,7 +17,7 @@ Key implementation files:
 - `acp_adapter/permissions.py`
 - `acp_adapter/tools.py`
 - `acp_adapter/auth.py`
-- `acp_registry/agent.json`
+- `resources/acp/registry/agent.json`
 
 ## Boot flow
 

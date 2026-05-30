@@ -157,7 +157,7 @@ For local development before the registry entry is available, use a custom agent
 Use an ACP-compatible plugin and point it at:
 
 ```text
-/path/to/hermes-agent/acp_registry
+/path/to/hermes-agent/resources/acp/registry
 ```
 
 ## Registry manifest
@@ -165,8 +165,8 @@ Use an ACP-compatible plugin and point it at:
 The source copy of Hermes' official ACP Registry metadata lives at:
 
 ```text
-acp_registry/agent.json
-acp_registry/icon.svg
+resources/acp/registry/agent.json
+resources/acp/registry/icon.svg
 ```
 
 The upstream registry PR copies those files into the top-level `hermes-agent/` directory in `agentclientprotocol/registry`.

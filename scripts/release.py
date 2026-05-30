@@ -37,7 +37,7 @@ PYPROJECT_FILE = REPO_ROOT / "pyproject.toml"
 # ACP Registry manifest must stay version-locked with pyproject.toml.
 # tests/acp/test_registry_manifest.py enforces this lockstep so the release
 # bump touches both files atomically.
-ACP_REGISTRY_MANIFEST = REPO_ROOT / "acp_registry" / "agent.json"
+ACP_REGISTRY_MANIFEST = REPO_ROOT / "resources" / "acp" / "registry" / "agent.json"
 
 # ──────────────────────────────────────────────────────────────────────
 # Git email → GitHub username mapping
