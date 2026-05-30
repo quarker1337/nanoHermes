@@ -221,7 +221,7 @@ seed_one() {
         s6-setuidgid hermes cp "$INSTALL_DIR/$src" "$HERMES_HOME/$dest"
     fi
 }
-seed_one ".env" ".env.example"
+seed_one ".env" "config/env.example"
 seed_one "config.yaml" "config/cli-config.yaml.example"
 seed_one "SOUL.md" "infra/docker/SOUL.md"
 

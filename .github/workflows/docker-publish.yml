@@ -7,7 +7,7 @@ on:
       - '**/*.py'
       - 'pyproject.toml'
       - 'uv.lock'
-      - 'Dockerfile'
+      - 'infra/docker/Dockerfile'
       - 'infra/docker/**'
       - '.github/workflows/docker-publish.yml'
       - '.github/actions/hermes-smoke-test/**'
@@ -17,7 +17,7 @@ on:
       - '**/*.py'
       - 'pyproject.toml'
       - 'uv.lock'
-      - 'Dockerfile'
+      - 'infra/docker/Dockerfile'
       - 'infra/docker/**'
       - '.github/workflows/docker-publish.yml'
       - '.github/actions/hermes-smoke-test/**'
@@ -67,7 +67,7 @@ jobs:
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f  # v7.1.0
         with:
           context: .
-          file: Dockerfile
+          file: infra/docker/Dockerfile
           load: true
           platforms: linux/amd64
           tags: ${{ env.IMAGE_NAME }}:test
@@ -147,7 +147,7 @@ jobs:
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f  # v7.1.0
         with:
           context: .
-          file: Dockerfile
+          file: infra/docker/Dockerfile
           platforms: linux/amd64
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
@@ -205,7 +205,7 @@ jobs:
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f  # v7.1.0
         with:
           context: .
-          file: Dockerfile
+          file: infra/docker/Dockerfile
           load: true
           platforms: linux/arm64
           tags: ${{ env.IMAGE_NAME }}:test
@@ -219,7 +219,7 @@ jobs:
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f  # v7.1.0
         with:
           context: .
-          file: Dockerfile
+          file: infra/docker/Dockerfile
           load: true
           platforms: linux/arm64
           tags: ${{ env.IMAGE_NAME }}:test
@@ -246,7 +246,7 @@ jobs:
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f  # v7.1.0
         with:
           context: .
-          file: Dockerfile
+          file: infra/docker/Dockerfile
           platforms: linux/arm64
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}

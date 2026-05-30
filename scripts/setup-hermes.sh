@@ -6,7 +6,7 @@
 # Uses uv for desktop/server setup and Python's stdlib venv + pip on Termux.
 #
 # Usage:
-#   ./setup-hermes.sh
+#   ./scripts/setup-hermes.sh
 #
 # This script:
 # 1. Detects desktop/server vs Android/Termux setup path
@@ -27,7 +27,8 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
 
 # Prevent uv from discovering config files (uv.toml, pyproject.toml) from the
 # wrong user's home directory when running under sudo -u <user>.  See #21269.
@@ -327,8 +328,8 @@ fi
 # ============================================================================
 
 if [ ! -f ".env" ]; then
-    if [ -f ".env.example" ]; then
-        cp .env.example .env
+    if [ -f "config/env.example" ]; then
+        cp config/env.example .env
         # .env holds API keys — restrict to owner-only access (matches
         # scripts/install.sh which already chmods 600 after creation).
         chmod 600 .env 2>/dev/null || true

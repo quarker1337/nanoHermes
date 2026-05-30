@@ -102,7 +102,7 @@ WORKDIR /opt/hermes
 # because it is referenced as a `file:` workspace dependency from
 # apps/tui/package.json.  Copying the tree up front lets npm resolve the
 # workspace to real content instead of stopping at a bare package.json.
-COPY package.json package-lock.json ./
+COPY infra/node/browser-tools/package.json infra/node/browser-tools/package-lock.json ./
 COPY apps/dashboard/package.json apps/dashboard/package-lock.json apps/dashboard/
 COPY apps/tui/package.json apps/tui/package-lock.json apps/tui/
 COPY apps/tui/packages/hermes-ink/ apps/tui/packages/hermes-ink/

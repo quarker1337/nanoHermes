@@ -17,7 +17,9 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 | `docs/examples/` | Curated runnable examples only. Scratch/generated examples belong in ignored subdirectories. |
 | `docs/site/` | Docusaurus documentation site. Formerly root `website/`. |
 | `docs/assets/` | Images/assets referenced by README/docs, including `banner.png`. |
-| `infra/docker/` | Container support files used by the root `Dockerfile`. |
+| `config/` | Default templates seeded into user homes or packaged data, such as `env.example` and `cli-config.yaml.example`. |
+| `constraints/` | Platform-specific dependency constraints, e.g. Termux. |
+| `infra/docker/` | Container entrypoints: Dockerfile, Compose files, hadolint config, s6-overlay service files, and container boot hooks. |
 | `infra/nix/` | Nix expressions used by root `flake.nix`. |
 | `infra/packaging/` | Distro/package-manager packaging helpers such as Homebrew formula files. |
 | `infra/nanohermes/` | Downstream metadata such as `upstream-base.txt`. |
@@ -35,8 +37,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 |---|---|
 | `README.md`, `README.zh-CN.md`, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `AGENTS.md` | Project identity and contributor entrypoints. |
 | `pyproject.toml`, `setup.py`, `MANIFEST.in`, `uv.lock` | Python build/install contract. |
-| `package.json`, `package-lock.json` | Root Node dependency surface for browser tooling. |
-| `Dockerfile`, `docker-compose*.yml`, `.dockerignore` | Standard Docker defaults expect these at root. The implementation files are in `infra/docker/`. |
+| `.dockerignore` | Root Docker ignore contract because Docker build context remains the repository root; Dockerfile, Compose files, and hadolint config live under `infra/docker/`. |
 | `flake.nix`, `flake.lock`, `.envrc` | Standard Nix/dev-shell entrypoints. Implementation files are in `infra/nix/`. |
 | `setup.py` | Minimal legacy Python build entrypoint; other Python implementation files should live in package buckets. |
 
@@ -86,10 +87,10 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 
 - `scripts/install.sh`
 - `scripts/install.ps1`
-- `setup-hermes.sh`
-- `Dockerfile`
+- `scripts/setup-hermes.sh`
+- `infra/docker/Dockerfile`
+- `infra/docker/docker-compose*.yml`
 - `infra/docker/`
-- `docker-compose*.yml`
 
 ## Layout rules for future changes
 
@@ -97,7 +98,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 2. Keep runtime Python packages at root until there is a dedicated `src/` migration branch with broad import/package tests.
 3. Put product frontends under `apps/`, not root.
 4. Put docs/static websites under `docs/`, not root.
-5. Put container, Nix, and distro packaging support under `infra/`, while keeping standard root entrypoint files (`Dockerfile`, `flake.nix`) where tools expect them.
+5. Put container, Nix, and distro packaging support under `infra/`, while keeping only tool-discovery contracts such as `flake.nix` and `.dockerignore` at root when moving them would break default tooling.
 6. Do not add one-off markdown files to root. Put them under `docs/nanohermes/`, `docs/notes/`, `docs/plans/`, or `docs/releases/`.
 7. Keep generated output out of git: `.hermes/`, `.venv/`, `build/`, `dist/`, frontend build outputs, and scratch examples.
 8. Keep large corpus/resource payloads under `resources/` instead of root-level folders.

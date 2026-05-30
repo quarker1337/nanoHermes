@@ -1428,7 +1428,7 @@ function Copy-ConfigTemplates {
     # Create .env
     $envPath = "$HermesHome\.env"
     if (-not (Test-Path $envPath)) {
-        $examplePath = "$InstallDir\.env.example"
+        $examplePath = "$InstallDir\config\env.example"
         if (Test-Path $examplePath) {
             Copy-Item $examplePath $envPath
             Write-Success "Created ~/.hermes/.env from template"
@@ -1612,10 +1612,11 @@ function Install-NodeDeps {
     }
 
     # Browser tools
-    if (Test-Path "$InstallDir\package.json") {
+    $browserToolsDir = Join-Path $InstallDir "infra\node\browser-tools"
+    if (Test-Path "$browserToolsDir\package.json") {
         Write-Info "Installing Node.js dependencies (browser tools)..."
         $browserLog = "$env:TEMP\hermes-npm-browser-$(Get-Random).log"
-        $browserNpmOk = _Run-NpmInstall "Browser tools" $InstallDir $browserLog $npmExe
+        $browserNpmOk = _Run-NpmInstall "Browser tools" $browserToolsDir $browserLog $npmExe
 
         # Install Playwright Chromium (mirrors scripts/install.sh behaviour for
         # Linux).  Without this, tools/browser_tool.py::check_browser_requirements
@@ -1639,10 +1640,10 @@ function Install-NodeDeps {
             }
             if (-not $npxExe) {
                 Write-Warn "npx not found -- cannot install Playwright Chromium."
-                Write-Info "Run manually later: cd `"$InstallDir`"; npx playwright install chromium"
+                Write-Info "Run manually later: cd `"$browserToolsDir`"; npx playwright install chromium"
             } else {
                 $pwLog = "$env:TEMP\hermes-playwright-install-$(Get-Random).log"
-                Push-Location $InstallDir
+                Push-Location $browserToolsDir
                 # Capture EAP outside the try block so the catch's restore call
                 # always has a meaningful value (see Install-Uv for the full
                 # rationale).
@@ -1701,12 +1702,12 @@ function Install-NodeDeps {
                                 Write-Info "  Full log: $pwLog"
                             }
                         }
-                        Write-Info "Run manually later: cd `"$InstallDir`"; npx playwright install chromium"
+                        Write-Info "Run manually later: cd `"$browserToolsDir`"; npx playwright install chromium"
                     }
                 } catch {
                     if ($prevEAP) { $ErrorActionPreference = $prevEAP }
                     Write-Warn "Playwright Chromium install could not be launched: $_"
-                    Write-Info "Run manually later: cd `"$InstallDir`"; npx playwright install chromium"
+                    Write-Info "Run manually later: cd `"$browserToolsDir`"; npx playwright install chromium"
                 } finally {
                     Pop-Location
                 }

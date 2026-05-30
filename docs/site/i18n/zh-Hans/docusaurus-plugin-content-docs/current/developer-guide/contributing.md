@@ -52,7 +52,7 @@ export VIRTUAL_ENV="$(pwd)/venv"
 uv pip install -e ".[all,dev]"
 
 # 可选：浏览器工具
-npm install
+npm install --prefix infra/node/browser-tools
 ```
 
 ### 配置开发环境

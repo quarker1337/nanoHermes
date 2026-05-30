@@ -158,7 +158,7 @@ hermes setup
 
 ```bash
 pkg install nodejs-lts
-npm install
+npm install --prefix infra/node/browser-tools
 ```
 
 浏览器工具会自动将 Termux 目录（`/data/data/com.termux/files/usr/bin`）纳入 PATH 搜索，因此无需额外配置 PATH 即可发现 `agent-browser` 和 `npx`。

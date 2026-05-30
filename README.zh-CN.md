@@ -163,12 +163,12 @@ hermes claw migrate --overwrite  # 覆盖已有冲突
 
 欢迎贡献！请参阅 [贡献指南](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) 了解开发设置、代码风格和 PR 流程。
 
-贡献者快速开始——克隆并使用 `setup-hermes.sh`：
+贡献者快速开始——克隆并使用 `scripts/setup-hermes.sh`：
 
 ```bash
 git clone https://github.com/NousResearch/hermes-agent.git
 cd hermes-agent
-./setup-hermes.sh     # 安装 uv、创建 venv、安装 .[all]、创建符号链接 ~/.local/bin/hermes
+./scripts/setup-hermes.sh     # 安装 uv、创建 venv、安装 .[all]、创建符号链接 ~/.local/bin/hermes
 ./hermes              # 自动检测 venv，无需先 source
 ```
 

@@ -158,7 +158,7 @@ The tested Termux path skips Node/browser bootstrap on purpose. If you want to e
 
 ```bash
 pkg install nodejs-lts
-npm install
+npm install --prefix infra/node/browser-tools
 ```
 
 The browser tool automatically includes Termux directories (`/data/data/com.termux/files/usr/bin`) in its PATH search, so `agent-browser` and `npx` are discovered without any extra PATH configuration.

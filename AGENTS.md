@@ -685,9 +685,9 @@ violate them.
    stdlib + pytest + `unittest.mock`. No live network calls. Run via
    `scripts/run_tests.sh tests/skills/test_<skill>_skill.py -q`.
 
-8. **`.env.example` additions are isolated to a clearly delimited
+8. **`config/env.example` additions are isolated to a clearly delimited
    block.** Don't touch the surrounding file — contributor-supplied
-   `.env.example` versions are usually stale and edits outside the
+   `config/env.example` versions are usually stale and edits outside the
    skill's own block must be dropped during salvage.
 
 The full salvage / modernization checklist for external skill PRs

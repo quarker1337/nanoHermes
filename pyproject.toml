@@ -223,7 +223,7 @@ hermes-acp = "acp_adapter.entry:main"
 [tool.setuptools]
 
 [tool.setuptools.data-files]
-"config" = ["config/cli-config.yaml.example"]
+"config" = ["config/cli-config.yaml.example", "config/env.example"]
 "constraints" = ["constraints/termux.txt"]
 
 [tool.setuptools.package-data]

@@ -25,8 +25,8 @@ on:
     paths:
       - 'uv.lock'
       - 'pyproject.toml'
-      - 'package.json'
-      - 'package-lock.json'
+      - 'infra/node/browser-tools/package.json'
+      - 'infra/node/browser-tools/package-lock.json'
       - 'apps/tui/package.json'
       - 'apps/tui/package-lock.json'
       - 'docs/site/package.json'
@@ -37,8 +37,8 @@ on:
     paths:
       - 'uv.lock'
       - 'pyproject.toml'
-      - 'package.json'
-      - 'package-lock.json'
+      - 'infra/node/browser-tools/package.json'
+      - 'infra/node/browser-tools/package-lock.json'
       - 'apps/tui/package-lock.json'
       - 'docs/site/package-lock.json'
   schedule:

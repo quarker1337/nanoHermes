@@ -1,8 +1,8 @@
 #
-# docker-compose.yml for Hermes Agent
+# infra/docker/docker-compose.yml for Hermes Agent
 #
-# Usage:
-#   HERMES_UID=$(id -u) HERMES_GID=$(id -g) docker compose up -d
+# Usage from the repository root:
+#   HERMES_UID=$(id -u) HERMES_GID=$(id -g) docker compose -f infra/docker/docker-compose.yml up -d
 #
 # Set HERMES_UID / HERMES_GID to the host user that owns ~/.hermes so
 # files created inside the container stay readable/writable on the host.
@@ -28,7 +28,9 @@
 #
 services:
   gateway:
-    build: .
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
     image: hermes-agent
     container_name: hermes
     restart: unless-stopped

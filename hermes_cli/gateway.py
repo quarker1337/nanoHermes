@@ -2148,6 +2148,10 @@ def _build_service_path_dirs(project_root: Path | None = None) -> list[str]:
     elif sys.prefix != sys.base_prefix:
         candidates.append(str(Path(sys.prefix) / "bin"))
 
+    browser_tool_bin = project_root / "infra" / "node" / "browser-tools" / "node_modules" / ".bin"
+    if _is_dir(browser_tool_bin):
+        candidates.append(str(browser_tool_bin))
+
     node_bin = project_root / "node_modules" / ".bin"
     if _is_dir(node_bin):
         candidates.append(str(node_bin))

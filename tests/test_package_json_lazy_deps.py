@@ -1,9 +1,9 @@
-"""Invariants for what is eager vs lazy in the root ``package.json``.
+"""Invariants for what is eager vs lazy in browser-tool npm dependencies.
 
-The root ``package.json`` is installed by ``hermes update`` on every user,
-including users who never opted into a given browser backend. Anything
+``infra/node/browser-tools/package.json`` is installed by source checkouts,
+container builds, and update flows that need local browser tooling. Anything
 listed in ``dependencies`` therefore runs its npm postinstall script for
-everyone — including binary-fetching backends, on every update.
+everyone using that browser-tool surface — including binary-fetching backends.
 
 The contract:
 
@@ -37,17 +37,20 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def _root_package_json() -> dict:
-    with (REPO_ROOT / "package.json").open("r", encoding="utf-8") as fh:
+BROWSER_TOOLS_DIR = REPO_ROOT / "infra" / "node" / "browser-tools"
+
+
+def _browser_tools_package_json() -> dict:
+    with (BROWSER_TOOLS_DIR / "package.json").open("r", encoding="utf-8") as fh:
         return json.load(fh)
 
 
 def test_camofox_is_not_in_root_dependencies() -> None:
     """Camofox must be opt-in, installed lazily by its post_setup handler."""
-    deps = _root_package_json().get("dependencies", {})
+    deps = _browser_tools_package_json().get("dependencies", {})
     assert "@askjo/camofox-browser" not in deps, (
         "Camofox is a ~300MB binary-postinstall backend that must stay "
-        "out of root package.json dependencies. It belongs in the "
+        "out of infra/node/browser-tools/package.json dependencies. It belongs in the "
         "Camofox post_setup handler in hermes_cli/tools_config.py so it "
         "only installs when the user explicitly selects Camofox via "
         "`hermes tools` → Browser Automation → Camofox."
@@ -56,19 +59,19 @@ def test_camofox_is_not_in_root_dependencies() -> None:
 
 def test_agent_browser_stays_eager() -> None:
     """agent-browser is the default backend; it must remain eager."""
-    deps = _root_package_json().get("dependencies", {})
+    deps = _browser_tools_package_json().get("dependencies", {})
     assert "agent-browser" in deps, (
         "agent-browser is the default browser-tool backend used by every "
         "session that doesn't have a cloud browser provider configured. "
-        "It must stay in root package.json dependencies so it is present "
+        "It must stay in infra/node/browser-tools/package.json dependencies so it is present "
         "after `hermes setup` / `hermes update` without an explicit "
         "post_setup step."
     )
 
 
-def test_root_lockfile_has_no_camofox_entries() -> None:
+def test_browser_tools_lockfile_has_no_camofox_entries() -> None:
     """Regenerated lockfiles should not contain Camofox tree entries."""
-    lock_path = REPO_ROOT / "package-lock.json"
+    lock_path = BROWSER_TOOLS_DIR / "package-lock.json"
     if not lock_path.exists():
         # Some CI matrix shards skip lockfile materialization.
         return
@@ -76,7 +79,7 @@ def test_root_lockfile_has_no_camofox_entries() -> None:
     assert "@askjo/camofox-browser" not in text, (
         "package-lock.json still references @askjo/camofox-browser. "
         "Regenerate the lockfile after removing the dep: "
-        "`rm package-lock.json && npm install --package-lock-only "
+        "`cd infra/node/browser-tools && rm package-lock.json && npm install --package-lock-only "
         "--ignore-scripts --no-fund --no-audit`."
     )
     assert "camoufox-js" not in text, (

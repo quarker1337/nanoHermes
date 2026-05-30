@@ -1800,7 +1800,7 @@ def _find_agent_browser() -> str:
             raise FileNotFoundError(
                 "agent-browser CLI not found (cached). Install it with: "
                 f"{_browser_install_hint()}\n"
-                "Or run 'npm install' in the repo root to install locally.\n"
+                "Or run 'npm install --prefix infra/node/browser-tools' in the repo to install locally.\n"
                 "Or ensure npx is available in your PATH."
             )
         return _cached_agent_browser
@@ -1826,7 +1826,7 @@ def _find_agent_browser() -> str:
             _agent_browser_resolved = True
             return which_result
 
-    # Check local node_modules/.bin/ (npm install in repo root).
+    # Check local browser tooling install (npm install --prefix infra/node/browser-tools).
     # On Windows, npm drops three shims in .bin: an extensionless POSIX shell
     # script (for Git Bash / WSL), `agent-browser.cmd` (for cmd/PowerShell),
     # and `agent-browser.ps1` (for PowerShell). CreateProcess (used by Python's
@@ -1835,8 +1835,13 @@ def _find_agent_browser() -> str:
     # `.cmd` shim instead. `shutil.which` consults PATHEXT, so we delegate to it
     # with an explicit path so POSIX hosts still pick the extensionless shim.
     repo_root = Path(__file__).parent.parent
-    local_bin_dir = repo_root / "node_modules" / ".bin"
-    if local_bin_dir.is_dir():
+    local_bin_candidates = [
+        repo_root / "infra" / "node" / "browser-tools" / "node_modules" / ".bin",
+        repo_root / "node_modules" / ".bin",  # legacy checkout/backcompat
+    ]
+    for local_bin_dir in local_bin_candidates:
+        if not local_bin_dir.is_dir():
+            continue
         local_which = shutil.which("agent-browser", path=str(local_bin_dir))
         if local_which:
             _cached_agent_browser = local_which
