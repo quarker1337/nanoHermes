@@ -1,12 +1,12 @@
 #!/bin/bash
 # ============================================================================
-# Hermes Agent Installer
+# NanoHermes Installer
 # ============================================================================
 # Installation script for Linux, macOS, and Android/Termux.
 # Uses uv for desktop/server installs and Python's stdlib venv + pip on Termux.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/quarker1337/nanoHermes/main/scripts/install.sh | bash
 #
 # Or with options:
 #   curl -fsSL ... | bash -s -- --no-venv --skip-setup
@@ -43,8 +43,8 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-REPO_URL_SSH="git@github.com:NousResearch/hermes-agent.git"
-REPO_URL_HTTPS="https://github.com/NousResearch/hermes-agent.git"
+REPO_URL_SSH="git@github.com:quarker1337/nanoHermes.git"
+REPO_URL_HTTPS="https://github.com/quarker1337/nanoHermes.git"
 HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
@@ -75,7 +75,7 @@ ENSURE_DEPS=""
 POSTINSTALL_MODE=false
 INSTALL_MODE="${HERMES_INSTALL_MODE:-runtime}"
 INSTALL_MODE_EXPLICIT=false
-RUNTIME_PACKAGE_SPEC="${HERMES_PACKAGE_SPEC:-hermes-agent}"
+RUNTIME_PACKAGE_SPEC="${HERMES_PACKAGE_SPEC:-https://github.com/quarker1337/nanoHermes/archive/refs/heads/main.tar.gz}"
 
 # Detect non-interactive mode (e.g. curl | bash)
 # When stdin is not a terminal, read -p will fail with EOF,
@@ -140,7 +140,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            echo "Hermes Agent Installer"
+            echo "NanoHermes Installer"
             echo ""
             echo "Usage: install.sh [OPTIONS]"
             echo ""
@@ -149,11 +149,11 @@ while [[ $# -gt 0 ]]; do
             echo "  --skip-setup   Skip interactive setup wizard"
             echo "  --skip-browser Skip Playwright/Chromium install (browser tools won't work)"
             echo "  --runtime      Runtime wheel install (default; no repo checkout)"
-            echo "  --source       Source/dev mode: clones the repo for editable installs"
+            echo "  --source       Source/dev mode: clones the NanoHermes repo for editable installs"
             echo "  --dev          Alias for --source"
             echo "  --editable     Alias for --source"
             echo "  --branch NAME  Git branch to install (implies --source; default: main)"
-            echo "  --package SPEC Runtime package spec (default: hermes-agent)"
+            echo "  --package SPEC Runtime package spec (default: NanoHermes main archive)"
             echo "  --dir PATH     Installation directory"
             echo "                   default (non-root):  ~/.hermes/hermes-agent"
             echo "                   default (root, Linux): /usr/local/lib/hermes-agent"
@@ -161,9 +161,9 @@ while [[ $# -gt 0 ]]; do
             echo "  -h, --help     Show this help"
             echo ""
             echo "Notes:"
-            echo "  Default: lean runtime wheel install. This avoids downloading docs, tests,"
+            echo "  Default: lean NanoHermes runtime wheel install. This avoids downloading docs, tests,"
             echo "  git history, and other contributor-only files. Use --source/--dev"
-            echo "  when you want a checkout you can edit or update by branch."
+            echo "  Source/dev mode: clones the NanoHermes repo for an editable checkout."
             echo "  When running as root on Linux, Hermes installs the code under"
             echo "  /usr/local/lib/hermes-agent and links the command into"
             echo "  /usr/local/bin/hermes (FHS layout — matches Claude Code / Codex CLI)."
@@ -194,9 +194,9 @@ print_banner() {
     echo ""
     echo -e "${MAGENTA}${BOLD}"
     echo "┌─────────────────────────────────────────────────────────┐"
-    echo "│             ⚕ Hermes Agent Installer                    │"
+    echo "│             ⚕ NanoHermes Installer                      │"
     echo "├─────────────────────────────────────────────────────────┤"
-    echo "│  An open source AI agent by Nous Research.              │"
+    echo "│  A tiny downstream Hermes distribution.                 │"
     echo "└─────────────────────────────────────────────────────────┘"
     echo -e "${NC}"
 }

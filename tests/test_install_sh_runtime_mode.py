@@ -25,17 +25,23 @@ def _function_body(text: str, name: str) -> str:
     return body
 
 
-def test_default_install_mode_is_runtime_wheel_with_explicit_source_escape_hatch() -> None:
+def test_default_install_mode_uses_nanohermes_runtime_archive_with_source_escape_hatch() -> None:
     text = _script()
 
     assert 'INSTALL_MODE="${HERMES_INSTALL_MODE:-runtime}"' in text
-    assert 'RUNTIME_PACKAGE_SPEC="${HERMES_PACKAGE_SPEC:-hermes-agent}"' in text
+    assert 'REPO_URL_SSH="git@github.com:quarker1337/nanoHermes.git"' in text
+    assert 'REPO_URL_HTTPS="https://github.com/quarker1337/nanoHermes.git"' in text
+    assert (
+        'RUNTIME_PACKAGE_SPEC="${HERMES_PACKAGE_SPEC:-https://github.com/quarker1337/nanoHermes/archive/refs/heads/main.tar.gz}"'
+        in text
+    )
+    assert 'RUNTIME_PACKAGE_SPEC="${HERMES_PACKAGE_SPEC:-hermes-agent}"' not in text
     assert 'hermes-agent[all]' not in text.split('RUNTIME_PACKAGE_SPEC=', 1)[1].split('\n', 1)[0]
     assert "--source|--dev|--editable)" in text
     assert "--runtime|--wheel)" in text
-    assert "Runtime package spec (default: hermes-agent)" in text
-    assert "Default: lean runtime wheel install" in text
-    assert "Source/dev mode: clones the repo" in text
+    assert "Runtime package spec (default: NanoHermes main archive)" in text
+    assert "Default: lean NanoHermes runtime wheel install" in text
+    assert "Source/dev mode: clones the NanoHermes repo" in text
 
 
 def test_branch_install_implies_source_mode_instead_of_silently_ignoring_branch() -> None:
