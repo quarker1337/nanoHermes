@@ -11354,7 +11354,7 @@ class GatewayRunner:
             if "pynacl" in err_lower or "nacl" in err_lower or "davey" in err_lower:
                 return (
                     "Voice dependencies are missing (PyNaCl / davey). "
-                    f"Install with: `{sys.executable} -m pip install PyNaCl`"
+                    f"Install with: `{sys.executable} -m pip install 'PyNaCl>=1.6.2' davey`"
                 )
             return f"Failed to join voice channel: {e}"
 
