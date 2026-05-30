@@ -65,8 +65,8 @@ import requests
 from typing import Dict, Any, Optional, List, Tuple
 from pathlib import Path
 from agent.auxiliary_client import call_llm
-from hermes_constants import get_hermes_home
-from utils import is_truthy_value
+from hermes_runtime.hermes_constants import get_hermes_home
+from hermes_runtime.utils import is_truthy_value
 from hermes_cli.config import cfg_get
 
 try:
@@ -91,15 +91,48 @@ from agent.browser_provider import BrowserProvider as CloudBrowserProvider  # no
 from agent.browser_registry import (  # noqa: F401  (test-patchable surface)
     get_provider as _registry_get_browser_provider,
 )
-from plugins.browser.browserbase.provider import (  # noqa: F401  (legacy import surface)
-    BrowserbaseBrowserProvider as BrowserbaseProvider,
-)
-from plugins.browser.browser_use.provider import (  # noqa: F401
-    BrowserUseBrowserProvider as BrowserUseProvider,
-)
-from plugins.browser.firecrawl.provider import (  # noqa: F401
-    FirecrawlBrowserProvider as FirecrawlProvider,
-)
+def _unavailable_browser_provider_class(name: str):
+    """Fallback legacy provider class when the top-level plugins package is shadowed.
+
+    This keeps importing tools.browser_tool cheap and robust in test/source-tree
+    contexts where another `plugins` package appears earlier on sys.path. The
+    real provider registry remains the source of truth when the bundled browser
+    plugins are importable.
+    """
+
+    class _UnavailableBrowserProvider:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def is_configured(self) -> bool:
+            return False
+
+        def is_available(self) -> bool:
+            return False
+
+        def create_session(self, *args, **kwargs):
+            raise RuntimeError(f"{name} browser provider is unavailable")
+
+    _UnavailableBrowserProvider.__name__ = name
+    return _UnavailableBrowserProvider
+
+
+try:
+    from plugins.browser.browserbase.provider import (  # noqa: F401  (legacy import surface)
+        BrowserbaseBrowserProvider as BrowserbaseProvider,
+    )
+    from plugins.browser.browser_use.provider import (  # noqa: F401
+        BrowserUseBrowserProvider as BrowserUseProvider,
+    )
+    from plugins.browser.firecrawl.provider import (  # noqa: F401
+        FirecrawlBrowserProvider as FirecrawlProvider,
+    )
+except ModuleNotFoundError as exc:
+    if not (exc.name or "").startswith("plugins.browser"):
+        raise
+    BrowserbaseProvider = _unavailable_browser_provider_class("BrowserbaseProvider")
+    BrowserUseProvider = _unavailable_browser_provider_class("BrowserUseProvider")
+    FirecrawlProvider = _unavailable_browser_provider_class("FirecrawlProvider")
 from tools.tool_backend_helpers import normalize_browser_cloud_provider
 # Camofox local anti-detection browser backend (optional).
 # When CAMOFOX_URL is set, all browser operations route through the
@@ -589,7 +622,7 @@ def _get_cloud_provider() -> Optional[CloudBrowserProvider]:
     return _cached_cloud_provider
 
 
-from hermes_constants import is_termux as _is_termux_environment
+from hermes_runtime.hermes_constants import is_termux as _is_termux_environment
 
 
 def _browser_install_hint() -> str:
@@ -2228,7 +2261,7 @@ def _extract_relevant_content(
 
     # Redact secrets from snapshot before sending to auxiliary LLM.
     # Without this, a page displaying env vars or API keys would leak
-    # secrets to the extraction model before run_agent.py's general
+    # secrets to the extraction model before runtime/hermes_runtime/run_agent.py's general
     # redaction layer ever sees the tool result.
     from agent.redact import redact_sensitive_text
     extraction_prompt = redact_sensitive_text(extraction_prompt)
@@ -3070,7 +3103,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
 
     import base64
     import uuid as uuid_mod
-    from hermes_constants import get_hermes_dir
+    from hermes_runtime.hermes_constants import get_hermes_dir
     screenshots_dir = get_hermes_dir("cache/screenshots", "browser_screenshots")
     screenshot_path = screenshots_dir / f"browser_screenshot_{uuid_mod.uuid4().hex}.png"
     effective_task_id = _last_session_key(task_id or "default")
@@ -3098,7 +3131,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
             _lp_fallback_warning = fb_result.get("fallback_warning")
             fb_path = fb_result.get("data", {}).get("path", "")
             if fb_path and os.path.exists(fb_path):
-                from hermes_constants import get_hermes_dir
+                from hermes_runtime.hermes_constants import get_hermes_dir
                 screenshots_dir = get_hermes_dir("cache/screenshots", "browser_screenshots")
                 screenshots_dir.mkdir(parents=True, exist_ok=True)
                 import shutil as _shutil_vision

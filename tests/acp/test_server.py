@@ -38,7 +38,7 @@ from acp.schema import (
 from acp_adapter.auth import TERMINAL_SETUP_AUTH_METHOD_ID
 from acp_adapter.server import HermesACPAgent, HERMES_VERSION
 from acp_adapter.session import SessionManager
-from hermes_state import SessionDB
+from hermes_runtime.hermes_state import SessionDB
 
 
 @pytest.fixture()
@@ -385,7 +385,7 @@ class TestSessionOps:
             {
                 "role": "tool",
                 "tool_call_id": "call_search_1",
-                "content": '{"total_count":1,"matches":[{"path":"cli.py","line":42,"content":"slash commands"}]}',
+                "content": '{"total_count":1,"matches":[{"path":"runtime/hermes_runtime/cli.py","line":42,"content":"slash commands"}]}',
             },
         ]
 
@@ -420,7 +420,7 @@ class TestSessionOps:
         assert isinstance(tool_updates[1], ToolCallProgress)
         assert tool_updates[1].tool_call_id == "call_search_1"
         assert "Search results" in tool_updates[1].content[0].content.text
-        assert "cli.py:42" in tool_updates[1].content[0].content.text
+        assert "runtime/hermes_runtime/cli.py:42" in tool_updates[1].content[0].content.text
 
     @pytest.mark.asyncio
     async def test_load_session_replays_native_plan_for_persisted_todo_tool(self, agent):
@@ -983,7 +983,7 @@ class TestSessionConfiguration:
         )
         manager = SessionManager(db=SessionDB(tmp_path / "state.db"))
 
-        with patch("run_agent.AIAgent", side_effect=fake_agent):
+        with patch("hermes_runtime.run_agent.AIAgent", side_effect=fake_agent):
             acp_agent = HermesACPAgent(session_manager=manager)
             state = manager.create_session(cwd="/tmp")
             result = await acp_agent.set_session_model(
@@ -1611,7 +1611,7 @@ class TestSlashCommands:
         )
         manager = SessionManager(db=SessionDB(tmp_path / "state.db"))
 
-        with patch("run_agent.AIAgent", side_effect=fake_agent):
+        with patch("hermes_runtime.run_agent.AIAgent", side_effect=fake_agent):
             acp_agent = HermesACPAgent(session_manager=manager)
             state = manager.create_session(cwd="/tmp")
             result = acp_agent._cmd_model("anthropic:claude-sonnet-4-6", state)
@@ -1670,7 +1670,7 @@ class TestRegisterSessionMcpServers:
             return ["mcp_test_server_tool1"]
 
         with patch("tools.mcp_tool.register_mcp_servers", side_effect=capture_register), \
-             patch("model_tools.get_tool_definitions", return_value=[]):
+             patch("hermes_runtime.model_tools.get_tool_definitions", return_value=[]):
             await agent._register_session_mcp_servers(state, [server])
 
         assert "test-server" in registered_config
@@ -1702,7 +1702,7 @@ class TestRegisterSessionMcpServers:
             return []
 
         with patch("tools.mcp_tool.register_mcp_servers", side_effect=capture_register), \
-             patch("model_tools.get_tool_definitions", return_value=[]):
+             patch("hermes_runtime.model_tools.get_tool_definitions", return_value=[]):
             await agent._register_session_mcp_servers(state, [server])
 
         assert "http-server" in registered_config
@@ -1735,7 +1735,7 @@ class TestRegisterSessionMcpServers:
         ]
 
         with patch("tools.mcp_tool.register_mcp_servers", return_value=["mcp_srv_search"]), \
-             patch("model_tools.get_tool_definitions", return_value=fake_tools) as mock_defs:
+             patch("hermes_runtime.model_tools.get_tool_definitions", return_value=fake_tools) as mock_defs:
             await agent._register_session_mcp_servers(state, [server])
 
         mock_defs.assert_called_once_with(

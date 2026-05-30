@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import importlib
 import sys
+import sys
 from unittest.mock import MagicMock, patch
 
 
@@ -59,7 +60,8 @@ def _make_cli():
     with patch.dict(sys.modules, prompt_toolkit_stubs), patch.dict(
         "os.environ", clean_env, clear=False
     ):
-        import cli as _cli_mod
+        import hermes_runtime.cli as _cli_mod
+        sys.modules["hermes_runtime.cli"] = _cli_mod
 
         _cli_mod = importlib.reload(_cli_mod)
         with patch.object(_cli_mod, "get_tool_definitions", return_value=[]), patch.dict(

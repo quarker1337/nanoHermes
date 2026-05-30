@@ -9,7 +9,7 @@ silently dropped.
 from __future__ import annotations
 
 
-from run_agent import AIAgent
+from hermes_runtime.run_agent import AIAgent
 
 
 def _make_bare_agent():

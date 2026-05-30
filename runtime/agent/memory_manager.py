@@ -1,13 +1,13 @@
 """MemoryManager — orchestrates memory providers for the agent.
 
-Single integration point in run_agent.py. Replaces scattered per-backend
+Single integration point in runtime/hermes_runtime/run_agent.py. Replaces scattered per-backend
 code with one manager that delegates to registered providers.
 
 Only ONE external plugin provider is allowed at a time — attempting to
 register a second external provider is rejected with a warning.  This
 prevents tool schema bloat and conflicting memory backends.
 
-Usage in run_agent.py:
+Usage in runtime/hermes_runtime/run_agent.py:
     self._memory_manager = MemoryManager()
     # Only ONE of these:
     self._memory_manager.add_provider(plugin_provider)
@@ -628,7 +628,7 @@ class MemoryManager:
         ``get_hermes_home()`` themselves.
         """
         if "hermes_home" not in kwargs:
-            from hermes_constants import get_hermes_home
+            from hermes_runtime.hermes_constants import get_hermes_home
             kwargs["hermes_home"] = str(get_hermes_home())
         for provider in self._providers:
             try:

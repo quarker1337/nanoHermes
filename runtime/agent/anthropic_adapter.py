@@ -21,9 +21,9 @@ import subprocess
 from pathlib import Path
 from urllib.parse import urlparse
 
-from hermes_constants import get_hermes_home
+from hermes_runtime.hermes_constants import get_hermes_home
 from typing import Any, Dict, List, Optional, Tuple
-from utils import base_url_host_matches, normalize_proxy_env_vars
+from hermes_runtime.utils import base_url_host_matches, normalize_proxy_env_vars
 
 # NOTE: `import anthropic` is deliberately NOT at module top — the SDK pulls
 # ~220 ms of imports (anthropic.types, anthropic.lib.tools._beta_runner, etc.)
@@ -669,7 +669,7 @@ def build_anthropic_client(
 
     ``drop_context_1m_beta=True`` strips ``context-1m-2025-08-07`` from the
     client-level ``anthropic-beta`` header. Used by the reactive OAuth retry
-    path in ``run_agent.py`` when a subscription rejects the beta; leave at
+    path in ``runtime/hermes_runtime/run_agent.py`` when a subscription rejects the beta; leave at
     its default on fresh clients so 1M-capable subscriptions keep the
     capability.
 

@@ -6,7 +6,7 @@ Allows the agent to present structured multiple-choice questions or open-ended
 prompts to the user. In CLI mode, choices are navigable with arrow keys. On
 messaging platforms, choices are rendered as a numbered list.
 
-The actual user-interaction logic lives in the platform layer (cli.py for CLI,
+The actual user-interaction logic lives in the platform layer (runtime/hermes_runtime/cli.py for CLI,
 gateway/run.py for messaging). This module defines the schema, validation, and
 a thin dispatcher that delegates to a platform-provided callback.
 """
@@ -34,7 +34,7 @@ def clarify_tool(
                   question is purely open-ended.
         callback: Platform-provided function that handles the actual UI
                   interaction. Signature: callback(question, choices) -> str.
-                  Injected by the agent runner (cli.py / gateway).
+                  Injected by the agent runner (runtime/hermes_runtime/cli.py / gateway).
 
     Returns:
         JSON string with the user's response.

@@ -1,4 +1,4 @@
-"""Tests for the vision-aware image preprocessing in run_agent.py.
+"""Tests for the vision-aware image preprocessing in runtime/hermes_runtime/run_agent.py.
 
 Covers:
 
@@ -16,7 +16,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 
-from run_agent import AIAgent
+from hermes_runtime.run_agent import AIAgent
 
 
 def _make_agent() -> AIAgent:

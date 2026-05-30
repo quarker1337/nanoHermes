@@ -299,7 +299,7 @@ def detect_install_method(project_root: Optional[Path] = None) -> str:
     managed = get_managed_system()
     if managed:
         return managed.lower().replace(" ", "-")
-    from hermes_constants import is_container
+    from hermes_runtime.hermes_constants import is_container
     if is_container():
         return "docker"
     if project_root is None:
@@ -448,7 +448,7 @@ def get_container_exec_info() -> Optional[dict]:
     if os.environ.get("HERMES_DEV") == "1":
         return None
 
-    from hermes_constants import is_container
+    from hermes_runtime.hermes_constants import is_container
     if is_container():
         return None
 
@@ -484,8 +484,8 @@ def get_container_exec_info() -> Optional[dict]:
 # =============================================================================
 
 # Re-export from hermes_constants — canonical definition lives there.
-from hermes_constants import get_hermes_home  # noqa: F811,E402
-from utils import atomic_replace
+from hermes_runtime.hermes_constants import get_hermes_home  # noqa: F811,E402
+from hermes_runtime.utils import atomic_replace
 
 def get_config_path() -> Path:
     """Get the main config file path."""
@@ -3524,7 +3524,7 @@ def get_custom_provider_context_length(
       * ``gateway.run._format_session_info`` (``/info`` display)
       * ``agent.model_metadata.get_model_context_length`` (when custom_providers is threaded through)
 
-    Before this helper existed, the lookup was duplicated in ``run_agent.py``'s
+    Before this helper existed, the lookup was duplicated in ``runtime/hermes_runtime/run_agent.py``'s
     startup path only; every other path (notably ``/model`` switch) fell back
     to the 128K default.  See #15779.
     """
@@ -4836,7 +4836,7 @@ def save_config(config: Dict[str, Any]):
         if is_managed():
             managed_error("save configuration")
             return
-        from utils import atomic_yaml_write
+        from hermes_runtime.utils import atomic_yaml_write
 
         ensure_hermes_home()
         config_path = get_config_path()
@@ -5565,7 +5565,7 @@ def set_config_value(key: str, value: str):
     
     # Write only user config back (not the full merged defaults)
     ensure_hermes_home()
-    from utils import atomic_yaml_write
+    from hermes_runtime.utils import atomic_yaml_write
     atomic_yaml_write(config_path, user_config, sort_keys=False)
     
     # Keep .env in sync for keys that terminal_tool reads directly from env vars.

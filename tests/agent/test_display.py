@@ -179,16 +179,16 @@ class TestEditDiffPreview:
 
     def test_render_inline_unified_diff_colors_added_and_removed_lines(self):
         rendered = _render_inline_unified_diff(
-            "--- a/cli.py\n"
-            "+++ b/cli.py\n"
+            "--- a/runtime/hermes_runtime/cli.py\n"
+            "+++ b/runtime/hermes_runtime/cli.py\n"
             "@@ -1,2 +1,2 @@\n"
             "-old line\n"
             "+new line\n"
             " context\n"
         )
 
-        assert "a/cli.py" in rendered[0]
-        assert "b/cli.py" in rendered[0]
+        assert "a/runtime/hermes_runtime/cli.py" in rendered[0]
+        assert "b/runtime/hermes_runtime/cli.py" in rendered[0]
         assert any("old line" in line for line in rendered)
         assert any("new line" in line for line in rendered)
         assert any("48;2;" in line for line in rendered)

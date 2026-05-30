@@ -6,7 +6,7 @@ classification pipeline that determines the correct recovery action
 context, or abort).
 
 Replaces scattered inline string-matching with a centralized classifier
-that the main retry loop in run_agent.py consults for every API failure.
+that the main retry loop in runtime/hermes_runtime/run_agent.py consults for every API failure.
 """
 
 from __future__ import annotations
@@ -578,7 +578,7 @@ def classify_api_error(
     # this subscription." Returned as HTTP 400 from native Anthropic when
     # the subscription doesn't include 1M context, even though the request
     # carries ``anthropic-beta: context-1m-2025-08-07``. The recovery path
-    # in run_agent.py rebuilds the Anthropic client with the beta stripped
+    # in runtime/hermes_runtime/run_agent.py rebuilds the Anthropic client with the beta stripped
     # and retries once. Pattern is narrow enough that it won't collide with
     # the 429 tier-gate pattern above (different status, different phrase).
     if (
@@ -740,7 +740,7 @@ def _classify_by_status(
     if status_code == 401:
         # Not retryable on its own — credential pool rotation and
         # provider-specific refresh (Codex, Anthropic, Nous) run before
-        # the retryability check in run_agent.py.  If those succeed, the
+        # the retryability check in runtime/hermes_runtime/run_agent.py.  If those succeed, the
         # loop `continue`s.  If they fail, retryable=False ensures we
         # hit the client-error abort path (which tries fallback first).
         return result_fn(

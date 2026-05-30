@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
-from utils import atomic_replace
+from hermes_runtime.utils import atomic_replace
 
 
 # Env var name suffixes that indicate credential values.  These are the
@@ -31,8 +31,8 @@ _SECRET_SOURCES: dict[str, str] = {}
 
 # HERMES_HOME paths we've already pulled external secrets for during this
 # process.  ``load_hermes_dotenv()`` is called at module-import time from
-# several hot modules (cli.py, hermes_cli/main.py, run_agent.py,
-# trajectory_compressor.py, gateway/run.py, ...), so without this guard the
+# several hot modules (runtime/hermes_runtime/cli.py, hermes_cli/main.py, runtime/hermes_runtime/run_agent.py,
+# runtime/hermes_runtime/trajectory_compressor.py, gateway/run.py, ...), so without this guard the
 # Bitwarden status line gets printed 3-5x per startup.  Bitwarden's own
 # in-process cache prevents redundant network calls, but the print, the
 # config re-parse, and the ASCII sanitization sweep still ran every time.
@@ -257,8 +257,8 @@ def _apply_external_secret_sources(home_path: Path) -> None:
 
     Idempotent within a process: subsequent calls for the same
     ``home_path`` are no-ops.  ``load_hermes_dotenv()`` runs at import
-    time from several hot modules (cli.py, hermes_cli/main.py,
-    run_agent.py, trajectory_compressor.py, ...), so without this guard
+    time from several hot modules (runtime/hermes_runtime/cli.py, hermes_cli/main.py,
+    runtime/hermes_runtime/run_agent.py, runtime/hermes_runtime/trajectory_compressor.py, ...), so without this guard
     the Bitwarden status line would print 3-5x per CLI startup.  Use
     ``reset_secret_source_cache()`` if you need to force a re-pull
     (tests, future ``hermes secrets bitwarden sync`` from a long-running

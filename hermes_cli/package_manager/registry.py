@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 from typing import Iterable
 
-from hermes_constants import get_hermes_home
+from hermes_runtime.hermes_constants import get_hermes_home
 
 DEFAULT_REGISTRY_URL = (
     "https://api.github.com/repos/quarker1337/Hermes-Packages/contents/registry/index.json?ref=main"

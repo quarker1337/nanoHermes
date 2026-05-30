@@ -22,7 +22,7 @@ import time
 from unittest.mock import patch
 
 
-from run_agent import AIAgent
+from hermes_runtime.run_agent import AIAgent
 
 
 def _make_agent() -> AIAgent:

@@ -72,7 +72,7 @@ def _resolve_home_dir() -> str:
     """Return a stable HOME for child ACP processes."""
 
     try:
-        from hermes_constants import get_subprocess_home
+        from hermes_runtime.hermes_constants import get_subprocess_home
 
         profile_home = get_subprocess_home()
         if profile_home:
@@ -391,7 +391,7 @@ class CopilotACPClient:
             tools=tools,
             tool_choice=tool_choice,
         )
-        # Normalise timeout: run_agent.py may pass an httpx.Timeout object
+        # Normalise timeout: runtime/hermes_runtime/run_agent.py may pass an httpx.Timeout object
         # (used natively by the OpenAI SDK) rather than a plain float.
         if timeout is None:
             _effective_timeout = _DEFAULT_TIMEOUT_SECONDS

@@ -44,7 +44,8 @@ def _make_cli(user_message_preview=None):
         "prompt_toolkit.auto_suggest": MagicMock(),
     }
     with patch.dict(sys.modules, prompt_toolkit_stubs), patch.dict("os.environ", clean_env, clear=False):
-        import cli as mod
+        import hermes_runtime.cli as mod
+        sys.modules["hermes_runtime.cli"] = mod
 
         mod = importlib.reload(mod)
         _cli_mod = mod

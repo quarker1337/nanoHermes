@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import pytest
 
-import model_tools
+import hermes_runtime.model_tools as model_tools
 
 
 @pytest.fixture(autouse=True)

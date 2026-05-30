@@ -29,7 +29,7 @@ def hermes_env(tmp_path, monkeypatch):
 
     # Reload modules that cache get_hermes_home() at import time.
     import importlib
-    import hermes_constants
+    import hermes_runtime.hermes_constants as hermes_constants
     importlib.reload(hermes_constants)
     import cron.jobs
     importlib.reload(cron.jobs)
@@ -272,7 +272,7 @@ def test_run_job_no_agent_never_invokes_aiagent(hermes_env):
         prompt=None, schedule="every 5m", script="alert.sh", no_agent=True, deliver="local"
     )
 
-    with patch("run_agent.AIAgent") as ai_mock:
+    with patch("hermes_runtime.run_agent.AIAgent") as ai_mock:
         from cron.scheduler import run_job
 
         run_job(job)

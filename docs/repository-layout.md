@@ -2,13 +2,13 @@
 
 This repo is a downstream Hermes Agent snapshot plus NanoHermes-specific package-management work.
 
-The guiding rule is: keep the root readable. Root-level directories should be broad buckets; legacy Python import names stay stable through small root shim files that point at `runtime/`.
+The guiding rule is: keep the root readable. Root-level directories should be broad buckets; implementation-heavy Python modules live under package buckets such as `runtime/` instead of the repository root.
 
 ## Root buckets
 
 | Path | What belongs here |
 |---|---|
-| `runtime/` | Relocated runtime Python packages inherited from Hermes Agent: `agent/`, `gateway/`, `tui_gateway/`, `cron/`, `acp_adapter/`, `providers/`, and `plugins/`. Root shim files preserve legacy imports and `python -m ...` entrypoints. |
+| `runtime/` | Relocated runtime Python packages inherited from Hermes Agent: `agent/`, `gateway/`, `tui_gateway/`, `cron/`, `acp_adapter/`, `providers/`, `plugins/`, and `hermes_runtime/`. `pyproject.toml` discovers packages from this bucket. |
 | `tools/`, `hermes_cli/` | Runtime packages still left at root because they own many repo-root-relative paths and frontend/package-manager surfaces. |
 | `hermes_cli/package_manager/` | NanoHermes package-manager implementation. The `nanohermes` executable is just an alias into `hermes_cli.main`; there is no separate root `nanohermes/` package anymore. |
 | `apps/dashboard/` | Browser dashboard frontend. Formerly root `web/`. |
@@ -38,7 +38,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 | `package.json`, `package-lock.json` | Root Node dependency surface for browser tooling. |
 | `Dockerfile`, `docker-compose*.yml`, `.dockerignore` | Standard Docker defaults expect these at root. The implementation files are in `infra/docker/`. |
 | `flake.nix`, `flake.lock`, `.envrc` | Standard Nix/dev-shell entrypoints. Implementation files are in `infra/nix/`. |
-| Root Python modules such as `cli.py`, `run_agent.py`, `toolsets.py`, `hermes_constants.py`, `utils.py` plus shim files such as `agent.py`, `gateway.py`, and `tui_gateway.py` | Legacy import/entrypoint modules listed in `pyproject.toml` or compatibility shims for packages relocated under `runtime/`. |
+| `setup.py` | Minimal legacy Python build entrypoint; other Python implementation files should live in package buckets. |
 
 ## Fast audit entry points
 
@@ -75,7 +75,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 
 ### Tool availability and runtime surface
 
-- `toolsets.py`
+- `runtime/hermes_runtime/toolsets.py`
 - `toolset_distributions.py`
 - `tools/registry.py`
 - `tools/lazy_deps.py`

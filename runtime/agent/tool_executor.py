@@ -58,7 +58,7 @@ _MAX_TOOL_WORKERS = 8
 
 def _ra():
     """Lazy reference to ``run_agent`` so patches like ``run_agent._set_interrupt`` work."""
-    import run_agent
+    import hermes_runtime.run_agent as run_agent
     return run_agent
 
 
@@ -221,7 +221,7 @@ def execute_tool_calls_concurrent(agent, assistant_message, messages: list, effe
         except Exception:
             pass
         # Propagate approval/sudo callbacks to this worker thread.
-        # Mirrors cli.py run_agent() pattern (GHSA-qg5c-hvr5-hjgr).
+        # Mirrors runtime/hermes_runtime/cli.py run_agent() pattern (GHSA-qg5c-hvr5-hjgr).
         if _parent_approval_cb is not None:
             try:
                 _set_approval_callback(_parent_approval_cb)
@@ -609,7 +609,7 @@ def execute_tool_calls_sequential(agent, assistant_message, messages: list, effe
         elif function_name == "session_search":
             session_db = agent._get_session_db_for_recall()
             if not session_db:
-                from hermes_state import format_session_db_unavailable
+                from hermes_runtime.hermes_state import format_session_db_unavailable
                 function_result = json.dumps({"success": False, "error": format_session_db_unavailable()})
             else:
                 from tools.session_search_tool import session_search as _session_search

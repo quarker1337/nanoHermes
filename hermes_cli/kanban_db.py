@@ -87,7 +87,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
-from toolsets import get_toolset_names
+from hermes_runtime.toolsets import get_toolset_names
 
 _log = logging.getLogger(__name__)
 
@@ -232,7 +232,7 @@ def kanban_home() -> Path:
     override = os.environ.get("HERMES_KANBAN_HOME", "").strip()
     if override:
         return Path(override).expanduser()
-    from hermes_constants import get_default_hermes_root
+    from hermes_runtime.hermes_constants import get_default_hermes_root
     return get_default_hermes_root()
 
 
@@ -1307,7 +1307,7 @@ def connect(
                 # WAL doesn't work on network filesystems (NFS/SMB/FUSE). Shared helper
                 # falls back to DELETE with one WARNING so kanban stays usable there.
                 # See hermes_state._WAL_INCOMPAT_MARKERS for detection logic.
-                from hermes_state import apply_wal_with_fallback
+                from hermes_runtime.hermes_state import apply_wal_with_fallback
                 apply_wal_with_fallback(conn, db_label=f"kanban.db ({path.name})")
                 # FULL (was NORMAL): fsync before each checkpoint to narrow the
                 # crash window that can leave a b-tree page header torn.
@@ -2758,7 +2758,7 @@ def release_stale_claims(
     been making no observable progress and we reclaim anyway — even if
     ``_pid_alive`` is still true. This catches the wedged-in-a-logic-loop
     case where the process is technically running but accomplishing
-    nothing. ``_touch_activity`` (run_agent.py) bridges chunk-level
+    nothing. ``_touch_activity`` (runtime/hermes_runtime/run_agent.py) bridges chunk-level
     liveness into ``last_heartbeat_at`` via #31752, so any genuinely
     active worker keeps its heartbeat fresh as a side effect of normal
     API traffic. ``enforce_max_runtime`` and ``detect_crashed_workers``
@@ -6863,7 +6863,7 @@ def list_profiles_on_disk() -> list[str]:
     path).
     """
     try:
-        from hermes_constants import get_default_hermes_root
+        from hermes_runtime.hermes_constants import get_default_hermes_root
         default_root = get_default_hermes_root()
         profiles_dir = default_root / "profiles"
     except Exception:

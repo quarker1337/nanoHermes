@@ -446,7 +446,7 @@ Profiles 使用 `~/.hermes/profiles/<name>/`，布局相同。
 | `rl` | 强化学习工具（默认关闭） |
 | `moa` | Mixture of Agents（默认关闭） |
 
-完整枚举位于 `toolsets.py` 的 `TOOLSETS` 字典中；`_HERMES_CORE_TOOLS` 是大多数平台继承的默认工具包。
+完整枚举位于 `runtime/hermes_runtime/toolsets.py` 的 `TOOLSETS` 字典中；`_HERMES_CORE_TOOLS` 是大多数平台继承的默认工具包。
 
 工具变更在 `/reset`（新会话）后生效。为保留 prompt 缓存，变更**不会**在对话中途生效。
 
@@ -682,7 +682,7 @@ Hermes 在 Windows 上原生运行（PowerShell、cmd、Windows Terminal、git-b
 
 ### 输入/键绑定
 
-**Alt+Enter 不插入换行。** Windows Terminal 在终端层拦截 Alt+Enter 以切换全屏——该按键永远不会到达 prompt_toolkit。请改用 **Ctrl+Enter**。Windows Terminal 将 Ctrl+Enter 作为 LF（`c-j`）传递，与普通 Enter（`c-m` / CR）不同，CLI 仅在 `win32` 上将 `c-j` 绑定到换行插入（参见 `_bind_prompt_submit_keys` + `cli.py` 中仅限 Windows 的 `c-j` 绑定）。副作用：在 Windows 上，原始 Ctrl+J 按键也会插入换行——这是不可避免的，因为 Windows Terminal 在 Win32 控制台 API 层将 Ctrl+Enter 和 Ctrl+J 折叠为相同的键码。Windows 上 Ctrl+J 没有冲突的绑定，因此这是无害的副作用。
+**Alt+Enter 不插入换行。** Windows Terminal 在终端层拦截 Alt+Enter 以切换全屏——该按键永远不会到达 prompt_toolkit。请改用 **Ctrl+Enter**。Windows Terminal 将 Ctrl+Enter 作为 LF（`c-j`）传递，与普通 Enter（`c-m` / CR）不同，CLI 仅在 `win32` 上将 `c-j` 绑定到换行插入（参见 `_bind_prompt_submit_keys` + `runtime/hermes_runtime/cli.py` 中仅限 Windows 的 `c-j` 绑定）。副作用：在 Windows 上，原始 Ctrl+J 按键也会插入换行——这是不可避免的，因为 Windows Terminal 在 Win32 控制台 API 层将 Ctrl+Enter 和 Ctrl+J 折叠为相同的键码。Windows 上 Ctrl+J 没有冲突的绑定，因此这是无害的副作用。
 
 mintty / git-bash 行为相同（Alt+Enter 全屏），除非你在选项 → 键中禁用 Alt+Fn 快捷键。直接使用 Ctrl+Enter 更简单。
 
@@ -808,11 +808,11 @@ hermes config set auxiliary.vision.model <model_name>
 <!-- ascii-guard-ignore -->
 ```
 hermes-agent/
-├── run_agent.py          # AIAgent — core conversation loop
-├── model_tools.py        # Tool discovery and dispatch
-├── toolsets.py           # Toolset definitions
-├── cli.py                # Interactive CLI (HermesCLI)
-├── hermes_state.py       # SQLite session store
+├── runtime/hermes_runtime/run_agent.py          # AIAgent — core conversation loop
+├── runtime/hermes_runtime/model_tools.py        # Tool discovery and dispatch
+├── runtime/hermes_runtime/toolsets.py           # Toolset definitions
+├── runtime/hermes_runtime/cli.py                # Interactive CLI (HermesCLI)
+├── runtime/hermes_runtime/hermes_state.py       # SQLite session store
 ├── agent/                # Prompt builder, context compression, memory, model routing, credential pooling, skill dispatch
 ├── hermes_cli/           # CLI subcommands, config, setup, commands
 │   ├── commands.py       # Slash command registry (CommandDef)
@@ -854,7 +854,7 @@ registry.register(
 )
 ```
 
-**2. 添加到 `toolsets.py`** → `_HERMES_CORE_TOOLS` 列表。
+**2. 添加到 `runtime/hermes_runtime/toolsets.py`** → `_HERMES_CORE_TOOLS` 列表。
 
 自动发现：任何包含顶层 `registry.register()` 调用的 `tools/*.py` 文件都会自动导入——无需手动列出。
 
@@ -863,7 +863,7 @@ registry.register(
 ### 添加斜杠命令
 
 1. 在 `hermes_cli/commands.py` 的 `COMMAND_REGISTRY` 中添加 `CommandDef`
-2. 在 `cli.py` → `process_command()` 中添加处理器
+2. 在 `runtime/hermes_runtime/cli.py` → `process_command()` 中添加处理器
 3. （可选）在 `gateway/run.py` 中添加 gateway 处理器
 
 所有消费方（帮助文本、自动补全、Telegram 菜单、Slack 映射）均自动从中央注册表派生。

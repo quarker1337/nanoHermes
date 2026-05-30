@@ -20,7 +20,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import IO, Callable, Protocol
 
-from hermes_constants import get_hermes_home
+from hermes_runtime.hermes_constants import get_hermes_home
 from tools.interrupt import is_interrupted
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 _DEBUG_INTERRUPT = bool(os.getenv("HERMES_DEBUG_INTERRUPT"))
 
 if _DEBUG_INTERRUPT:
-    # AIAgent's quiet_mode path (run_agent.py) forces the `tools` logger to
+    # AIAgent's quiet_mode path (runtime/hermes_runtime/run_agent.py) forces the `tools` logger to
     # ERROR on CLI startup, which would silently swallow every trace we emit.
     # Force this module's own logger back to INFO so the trace is visible in
     # agent.log regardless of quiet-mode.  Scoped to the opt-in case only.

@@ -278,7 +278,7 @@ nc 127.0.0.1 4444
 ### Tests
 See Recipe 3. Always add `-p no:xdist` or run single tests without xdist.
 
-### `run_agent.py` / CLI — one-shot
+### `runtime/hermes_runtime/run_agent.py` / CLI — one-shot
 Easiest: add `breakpoint()` near the suspect line, then run `hermes` normally. Control returns to your terminal at the pause point.
 
 ### `tui_gateway` subprocess (spawned by `hermes --tui`)

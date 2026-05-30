@@ -3,7 +3,7 @@
 The hook fires inside ``AIAgent.run_conversation`` once the tool-calling
 loop has produced a final response. Driving the full agent loop from a
 unit test would be prohibitively heavy, so these tests exercise the
-invoke_hook dispatch semantics that the wiring in ``run_agent.py``
+invoke_hook dispatch semantics that the wiring in ``runtime/hermes_runtime/run_agent.py``
 depends on:
 
     for _hook_result in _transform_results:
@@ -76,7 +76,7 @@ def test_hook_receives_expected_kwargs(tmp_path, monkeypatch):
 
 
 def test_first_non_empty_string_wins_semantics():
-    """Simulate the run_agent.py loop: first non-empty string replaces text."""
+    """Simulate the runtime/hermes_runtime/run_agent.py loop: first non-empty string replaces text."""
     # The dispatch contract: invoke_hook returns a list; the caller walks
     # it and stops at the first isinstance(_, str) and _.
     hook_returns = [None, "", {"bad": True}, 123, "first-winner", "second"]
@@ -108,7 +108,7 @@ def test_hook_exception_does_not_replace_response(tmp_path, monkeypatch):
 
     PluginManager.invoke_hook catches per-callback exceptions, logs a
     warning, and continues — so a raising plugin contributes no entry
-    to the results list, and the walk in run_agent.py finds nothing to
+    to the results list, and the walk in runtime/hermes_runtime/run_agent.py finds nothing to
     replace with.
     """
     hermes_home = tmp_path / "hermes_test"

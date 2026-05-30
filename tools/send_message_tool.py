@@ -288,7 +288,7 @@ def _handle_send(args):
                         if data.get("ok"):
                             return data["channel"]["id"]
                         return None
-            from model_tools import _run_async
+            from hermes_runtime.model_tools import _run_async
             dm_channel = _run_async(_open_slack_dm(pconfig.token, chat_id))
             if dm_channel:
                 chat_id = dm_channel
@@ -298,7 +298,7 @@ def _handle_send(args):
             return json.dumps({"error": f"Failed to open Slack DM: {e}"})
 
     try:
-        from model_tools import _run_async
+        from hermes_runtime.model_tools import _run_async
         result = _run_async(
             _send_to_platform(
                 platform,

@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from hermes_constants import PARTIAL_STREAM_STUB_ID, FINISH_REASON_LENGTH
+from hermes_runtime.hermes_constants import PARTIAL_STREAM_STUB_ID, FINISH_REASON_LENGTH
 from agent.conversation_loop import _get_continuation_prompt
 
 
@@ -41,7 +41,7 @@ def _make_tool_call_delta(index=0, tc_id=None, name=None, arguments=None):
 
 
 def _make_agent():
-    from run_agent import AIAgent
+    from hermes_runtime.run_agent import AIAgent
     agent = AIAgent(
         api_key="test-key",
         base_url="https://example.com/v1",
@@ -61,8 +61,8 @@ class TestPartialStreamStubFinishReason:
     """The stub returned by interruptible_streaming_api_call when the
     upstream connection dies mid-flight."""
 
-    @patch("run_agent.AIAgent._create_request_openai_client")
-    @patch("run_agent.AIAgent._close_request_openai_client")
+    @patch("hermes_runtime.run_agent.AIAgent._create_request_openai_client")
+    @patch("hermes_runtime.run_agent.AIAgent._close_request_openai_client")
     def test_text_only_partial_returns_length(self, _mock_close, mock_create, monkeypatch):
         """#30963: text-only partials must classify as length so the loop
         keeps continuing instead of exiting with budget remaining."""
@@ -90,8 +90,8 @@ class TestPartialStreamStubFinishReason:
         assert response.choices[0].message.content == "Here's my answer so far"
         assert response.choices[0].message.tool_calls is None
 
-    @patch("run_agent.AIAgent._create_request_openai_client")
-    @patch("run_agent.AIAgent._close_request_openai_client")
+    @patch("hermes_runtime.run_agent.AIAgent._create_request_openai_client")
+    @patch("hermes_runtime.run_agent.AIAgent._close_request_openai_client")
     def test_partial_tool_call_uses_length(self, _mock_close, mock_create, monkeypatch):
         """Mid-tool-call partials now use finish_reason=length so the
         conversation loop's continuation machinery fires — bounded 3-retry
@@ -183,11 +183,11 @@ class TestLengthContinuationPromptBranching:
 def loop_agent():
     """AIAgent with a mocked OpenAI client (mirrors test_run_agent's fixture)
     so we can stage a stub + continuation pair on .chat.completions.create."""
-    from run_agent import AIAgent
+    from hermes_runtime.run_agent import AIAgent
     with (
-        patch("run_agent.get_tool_definitions", return_value=[]),
-        patch("run_agent.check_toolset_requirements", return_value={}),
-        patch("run_agent.OpenAI"),
+        patch("hermes_runtime.run_agent.get_tool_definitions", return_value=[]),
+        patch("hermes_runtime.run_agent.check_toolset_requirements", return_value={}),
+        patch("hermes_runtime.run_agent.OpenAI"),
     ):
         a = AIAgent(
             api_key="test-key-1234567890",

@@ -36,7 +36,7 @@ from typing import Any, Callable, Optional
 # TUI-only. The normalizer below returns the documented default
 # (``c-b``) for them — a silent fallback was preferred to a hard
 # startup crash (Copilot round-11). The CLI binding site
-# (``_register_voice_handler`` in cli.py) logs a warning when that
+# (``_register_voice_handler`` in runtime/hermes_runtime/cli.py) logs a warning when that
 # fallback fires so users see why their TUI-only shortcut isn't
 # bound in the classic CLI.
 _VOICE_MOD_ALIASES = {
@@ -258,10 +258,10 @@ def _beeps_enabled() -> bool:
 
 
 def _play_beep(frequency: int, count: int = 1) -> None:
-    """Audible cue matching cli.py's record/stop beeps.
+    """Audible cue matching runtime/hermes_runtime/cli.py's record/stop beeps.
 
-    880 Hz single-beep on start (cli.py:_voice_start_recording line 7532),
-    660 Hz double-beep on stop (cli.py:_voice_stop_and_transcribe line 7585).
+    880 Hz single-beep on start (runtime/hermes_runtime/cli.py:_voice_start_recording line 7532),
+    660 Hz double-beep on stop (runtime/hermes_runtime/cli.py:_voice_stop_and_transcribe line 7585).
     Best-effort — sounddevice failures are silently swallowed so the
     voice loop never breaks because a speaker was unavailable.
     """
@@ -289,7 +289,7 @@ _continuous_recorder: Any = None
 # When TTS plays the agent reply over the speakers, the live microphone
 # picks it up and transcribes the agent's own voice as user input — an
 # infinite loop the agent happily joins ("Ha, looks like we're in a loop").
-# This Event mirrors cli.py:_voice_tts_done: cleared while speak_text is
+# This Event mirrors runtime/hermes_runtime/cli.py:_voice_tts_done: cleared while speak_text is
 # playing, set while silent. _continuous_on_silence waits on it before
 # re-arming the recorder, and speak_text itself cancels any live capture
 # before starting playback so the tail of the previous utterance doesn't
@@ -353,7 +353,7 @@ def stop_and_transcribe() -> Optional[str]:
             pass
 
     # transcribe_recording returns {"success": bool, "transcript": str, ...}
-    # — matches cli.py:_voice_stop_and_transcribe's result.get("transcript").
+    # — matches runtime/hermes_runtime/cli.py:_voice_stop_and_transcribe's result.get("transcript").
     if not result.get("success"):
         return None
     text = (result.get("transcript") or "").strip()
@@ -423,7 +423,7 @@ def start_continuous(
 
     # CLI parity: single 880 Hz beep *before* opening the stream — placing
     # the beep after stream.start() on macOS triggers a CoreAudio conflict
-    # (cli.py:7528 comment).
+    # (runtime/hermes_runtime/cli.py:7528 comment).
     _play_beep(frequency=880, count=1)
 
     try:
@@ -682,7 +682,7 @@ def _continuous_on_silence() -> None:
                 pass
         return
 
-    # CLI parity (cli.py:10619-10621): wait for any in-flight TTS to
+    # CLI parity (runtime/hermes_runtime/cli.py:10619-10621): wait for any in-flight TTS to
     # finish before re-arming the mic, then leave a small gap to avoid
     # catching the tail of the speaker output.  Without this the voice
     # loop becomes a feedback loop — the agent's spoken reply lands
@@ -740,7 +740,7 @@ def _continuous_on_silence() -> None:
 def speak_text(text: str) -> None:
     """Synthesize ``text`` with the configured TTS provider and play it.
 
-    Mirrors cli.py:_voice_speak_response exactly — same markdown strip
+    Mirrors runtime/hermes_runtime/cli.py:_voice_speak_response exactly — same markdown strip
     pipeline, same 4000-char cap, same explicit mp3 output path, same
     MP3-over-OGG playback choice (afplay misbehaves on OGG), same cleanup
     of both extensions. Keeping these in sync means a voice-mode TTS

@@ -415,7 +415,7 @@ def test_load_enabled_toolsets_filters_invalid_tui_env(monkeypatch, capsys):
 def test_load_enabled_toolsets_accepts_plugin_env_after_discovery(monkeypatch):
     monkeypatch.setenv("HERMES_TUI_TOOLSETS", "plugin_demo")
 
-    import toolsets
+    import hermes_runtime.toolsets as toolsets
 
     discovered = {"ready": False}
     original_validate = toolsets.validate_toolset
@@ -456,7 +456,7 @@ def test_load_enabled_toolsets_rejects_disabled_mcp_env(monkeypatch, capsys):
 
     # Sorted: ["kanban", "memory"]. `kanban` is auto-recovered by
     # _get_platform_tools because it's a non-configurable platform toolset
-    # whose tools live in hermes-cli's universe (see toolsets.py).
+    # whose tools live in hermes-cli's universe (see runtime/hermes_runtime/toolsets.py).
     assert server._load_enabled_toolsets() == ["kanban", "memory"]
     err = capsys.readouterr().err
     assert "ignoring disabled MCP servers" in err
@@ -2099,7 +2099,7 @@ def test_session_compress_syncs_session_key_after_rotation(monkeypatch):
     the gateway session_key must follow so subsequent approval routing,
     DB title/history lookups, and slash worker resume target the new
     continuation session — mirrors HermesCLI._manual_compress's
-    session_id sync (cli.py).
+    session_id sync (runtime/hermes_runtime/cli.py).
     """
     agent = types.SimpleNamespace(session_id="rotated-id")
     server._sessions["sid"] = _session(agent=agent)
@@ -4894,7 +4894,7 @@ def _setup_make_agent_mocks(monkeypatch, cfg):
 def test_make_agent_reads_nested_max_turns(monkeypatch):
     _setup_make_agent_mocks(monkeypatch, {"agent": {"max_turns": 200}})
 
-    with patch("run_agent.AIAgent") as mock_agent:
+    with patch("hermes_runtime.run_agent.AIAgent") as mock_agent:
         server._make_agent("sid1", "key1")
 
     assert mock_agent.call_args.kwargs["max_iterations"] == 200
@@ -4905,7 +4905,7 @@ def test_make_agent_nested_max_turns_takes_priority(monkeypatch):
         monkeypatch, {"agent": {"max_turns": 500}, "max_turns": 100}
     )
 
-    with patch("run_agent.AIAgent") as mock_agent:
+    with patch("hermes_runtime.run_agent.AIAgent") as mock_agent:
         server._make_agent("sid1", "key1")
 
     assert mock_agent.call_args.kwargs["max_iterations"] == 500
@@ -4914,7 +4914,7 @@ def test_make_agent_nested_max_turns_takes_priority(monkeypatch):
 def test_make_agent_defaults_to_90(monkeypatch):
     _setup_make_agent_mocks(monkeypatch, {})
 
-    with patch("run_agent.AIAgent") as mock_agent:
+    with patch("hermes_runtime.run_agent.AIAgent") as mock_agent:
         server._make_agent("sid1", "key1")
 
     assert mock_agent.call_args.kwargs["max_iterations"] == 90
@@ -4923,7 +4923,7 @@ def test_make_agent_defaults_to_90(monkeypatch):
 def test_make_agent_handles_null_agent_config(monkeypatch):
     _setup_make_agent_mocks(monkeypatch, {"agent": None, "max_turns": 80})
 
-    with patch("run_agent.AIAgent") as mock_agent:
+    with patch("hermes_runtime.run_agent.AIAgent") as mock_agent:
         server._make_agent("sid1", "key1")
 
     assert mock_agent.call_args.kwargs["max_iterations"] == 80

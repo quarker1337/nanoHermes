@@ -814,7 +814,7 @@ class TestPluginToolVisibility:
         mgr.discover_and_load()
         monkeypatch.setattr(plugins_mod, "_plugin_manager", mgr)
 
-        from model_tools import get_tool_definitions
+        from hermes_runtime.model_tools import get_tool_definitions
 
         # Plugin tools are included when their toolset is explicitly enabled
         tools = get_tool_definitions(enabled_toolsets=["terminal", "plugin_vis_plugin"], quiet_mode=True)
@@ -883,7 +883,7 @@ class TestPluginManagerList:
 class TestPreLlmCallTargetRouting:
     """Tests for pre_llm_call hook return format with target-aware routing.
 
-    The routing logic lives in run_agent.py, but the return format is collected
+    The routing logic lives in runtime/hermes_runtime/run_agent.py, but the return format is collected
     by invoke_hook(). These tests verify the return format works correctly and
     that downstream code can route based on the 'target' key.
     """
@@ -962,7 +962,7 @@ class TestPreLlmCallTargetRouting:
         assert "guardrail text" in contexts
 
     def test_routing_logic_all_to_user_message(self, tmp_path, monkeypatch):
-        """Simulate the routing logic from run_agent.py.
+        """Simulate the routing logic from runtime/hermes_runtime/run_agent.py.
 
         All plugin context — dicts and plain strings — ends up in a single
         user message context string. There is no system_prompt target.
@@ -990,7 +990,7 @@ class TestPreLlmCallTargetRouting:
             conversation_history=[], is_first_turn=True, model="test",
         )
 
-        # Replicate run_agent.py routing logic — everything goes to user msg
+        # Replicate runtime/hermes_runtime/run_agent.py routing logic — everything goes to user msg
         _ctx_parts = []
         for r in results:
             if isinstance(r, dict) and r.get("context"):

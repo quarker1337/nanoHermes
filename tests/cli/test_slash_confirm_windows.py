@@ -24,7 +24,7 @@ from unittest.mock import MagicMock, patch
 
 def _make_cli():
     """Minimal HermesCLI shell exposing prompt/modal helpers."""
-    import cli as cli_mod
+    import hermes_runtime.cli as cli_mod
 
     obj = object.__new__(cli_mod.HermesCLI)
     obj._app = MagicMock()
@@ -258,7 +258,7 @@ class TestConfirmDestructiveSlashWindows:
 
         with patch.object(sys, "platform", "win32"), \
              patch.object(cli, "_prompt_text_input", return_value="1"), \
-             patch("cli.load_cli_config", return_value={"approvals": {"destructive_slash_confirm": True}}):
+             patch("hermes_runtime.cli.load_cli_config", return_value={"approvals": {"destructive_slash_confirm": True}}):
             result = cli._confirm_destructive_slash(
                 "new",
                 "This starts a fresh session.\nThe current conversation history will be discarded.",
@@ -281,7 +281,7 @@ class TestConfirmDestructiveSlashWindows:
 
         with patch.object(sys, "platform", "win32"), \
              patch.object(cli, "_prompt_text_input", return_value="3"), \
-             patch("cli.load_cli_config", return_value={"approvals": {"destructive_slash_confirm": True}}):
+             patch("hermes_runtime.cli.load_cli_config", return_value={"approvals": {"destructive_slash_confirm": True}}):
             result = cli._confirm_destructive_slash(
                 "reset",
                 "This starts a fresh session.\nThe current conversation history will be discarded.",

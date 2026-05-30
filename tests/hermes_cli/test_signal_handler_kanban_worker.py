@@ -1,6 +1,6 @@
 """Regression test for #28181 — kanban worker SIGTERM must terminate the process.
 
-The single-query signal handler in cli.py (``_signal_handler_q``) raises
+The single-query signal handler in runtime/hermes_runtime/cli.py (``_signal_handler_q``) raises
 ``KeyboardInterrupt`` to unwind the main thread on SIGTERM/SIGHUP. That works
 for interactive ``hermes chat -q`` invocations, but kanban workers spawned by
 the dispatcher are likely to have a non-daemon thread alive (terminal_tool's
@@ -15,7 +15,7 @@ env var set), flush logging + stdout/stderr and call ``os._exit(0)`` instead.
 The kernel reclaims the PID immediately, and ``detect_crashed_workers``
 reclaims the stale claim on the next dispatcher tick.
 
-These tests use a synthetic Python script that mirrors the cli.py signal
+These tests use a synthetic Python script that mirrors the runtime/hermes_runtime/cli.py signal
 handler shape so we can exercise the exit-path contract without booting the
 full CLI (which needs a real provider config).
 """
@@ -32,11 +32,11 @@ import pytest
 
 
 def _synthetic_worker_script() -> str:
-    """A standalone script that mirrors cli.py's single-query SIGTERM handler.
+    """A standalone script that mirrors runtime/hermes_runtime/cli.py's single-query SIGTERM handler.
 
     Keeping the synthetic copy here means the test exercises the exact handler
     shape without needing the full hermes_cli boot path (config, providers,
-    skills, etc.). If the production handler in cli.py drifts, the test
+    skills, etc.). If the production handler in runtime/hermes_runtime/cli.py drifts, the test
     that loads the real handler (test_real_handler_uses_os_exit) will catch it.
     """
     return textwrap.dedent(
@@ -50,7 +50,7 @@ def _synthetic_worker_script() -> str:
         threading.Thread(target=stuck.wait, daemon=False).start()
 
         def handler(signum, frame):
-            # Mirrors cli.py:_signal_handler_q. Real handler sleeps 1.5s; the
+            # Mirrors runtime/hermes_runtime/cli.py:_signal_handler_q. Real handler sleeps 1.5s; the
             # test uses a short grace so it runs fast.
             try:
                 time.sleep(0.05)
@@ -201,22 +201,22 @@ def test_sigterm_without_kanban_task_env_uses_keyboard_interrupt_path():
 
 
 def test_real_handler_uses_os_exit_for_kanban_workers():
-    """Source-level invariant: cli.py's _signal_handler_q must call
+    """Source-level invariant: runtime/hermes_runtime/cli.py's _signal_handler_q must call
     os._exit(0) when HERMES_KANBAN_TASK is set.
 
     Catches the case where someone refactors the handler and accidentally
-    drops the env-gated exit, restoring the bug. Reading cli.py directly is
+    drops the env-gated exit, restoring the bug. Reading runtime/hermes_runtime/cli.py directly is
     cheap and avoids the heavy CLI import.
     """
     import pathlib
 
     cli_path = (
-        pathlib.Path(__file__).resolve().parent.parent.parent / "cli.py"
+        pathlib.Path(__file__).resolve().parent.parent.parent / "runtime/hermes_runtime/cli.py"
     )
     src = cli_path.read_text()
     # Locate the handler body.
     start = src.find("def _signal_handler_q(signum, frame):")
-    assert start != -1, "cli.py is missing _signal_handler_q"
+    assert start != -1, "runtime/hermes_runtime/cli.py is missing _signal_handler_q"
     # Look ahead for the env-gated os._exit call within ~80 lines.
     body = src[start : start + 4000]
     assert "HERMES_KANBAN_TASK" in body, (

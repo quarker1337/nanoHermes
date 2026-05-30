@@ -6,16 +6,16 @@ A beautiful command-line interface for the Hermes Agent, inspired by Claude Code
 Features ASCII art branding, interactive REPL, toolset selection, and rich formatting.
 
 Usage:
-    python cli.py                          # Start interactive mode with all tools
-    python cli.py --toolsets web,terminal  # Start with specific toolsets
-    python cli.py --skills hermes-agent-dev,github-auth
-    python cli.py --list-tools             # List available tools and exit
+    python -m hermes_runtime.cli                          # Start interactive mode with all tools
+    python -m hermes_runtime.cli --toolsets web,terminal  # Start with specific toolsets
+    python -m hermes_runtime.cli --skills hermes-agent-dev,github-auth
+    python -m hermes_runtime.cli --list-tools             # List available tools and exit
 """
 
 # IMPORTANT: hermes_bootstrap must be the very first import — UTF-8 stdio
-# on Windows.  No-op on POSIX.  See hermes_bootstrap.py for full rationale.
+# on Windows.  No-op on POSIX.  See runtime/hermes_runtime/hermes_bootstrap.py for full rationale.
 try:
-    import hermes_bootstrap  # noqa: F401
+    import hermes_runtime.hermes_bootstrap as hermes_bootstrap  # noqa: F401
 except ModuleNotFoundError:
     # Graceful fallback when hermes_bootstrap isn't registered in the venv
     # yet — happens during partial ``hermes update`` where git-reset landed
@@ -160,7 +160,7 @@ _COMMAND_SPINNER_FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧
 
 # Load .env from ~/.hermes/.env first, then project root as dev fallback.
 # User-managed env files should override stale shell exports on restart.
-from hermes_constants import get_hermes_home, display_hermes_home
+from hermes_runtime.hermes_constants import get_hermes_home, display_hermes_home
 from hermes_cli.browser_connect import (
     DEFAULT_BROWSER_CDP_URL,
     is_browser_debug_ready,
@@ -168,10 +168,10 @@ from hermes_cli.browser_connect import (
     try_launch_chrome_debug,
 )
 from hermes_cli.env_loader import load_hermes_dotenv
-from utils import base_url_host_matches
+from hermes_runtime.utils import base_url_host_matches
 
 _hermes_home = get_hermes_home()
-_project_env = Path(__file__).parent / '.env'
+_project_env = Path.cwd() / '.env'
 load_hermes_dotenv(hermes_home=_hermes_home, project_env=_project_env)
 
 
@@ -197,7 +197,7 @@ def _strip_reasoning_tags(text: str) -> str:
     Covers the variants emitted by reasoning models today: ``<think>``,
     ``<thinking>``, ``<reasoning>``, ``<REASONING_SCRATCHPAD>``, and
     ``<thought>`` (Gemma 4).  Must stay in sync with
-    ``run_agent.py::_strip_think_blocks`` and the stream consumer's
+    ``runtime/hermes_runtime/run_agent.py::_strip_think_blocks`` and the stream consumer's
     ``_OPEN_THINK_TAGS`` / ``_CLOSE_THINK_TAGS`` tuples.
 
     Also strips tool-call XML blocks some open models leak into visible
@@ -310,7 +310,7 @@ def _load_prefill_messages(file_path: str) -> List[Dict[str, Any]]:
 
 def _parse_reasoning_config(effort: str) -> dict | None:
     """Parse a reasoning effort level into an OpenRouter reasoning config dict."""
-    from hermes_constants import parse_reasoning_effort
+    from hermes_runtime.hermes_constants import parse_reasoning_effort
     result = parse_reasoning_effort(effort)
     if effort and effort.strip() and result is None:
         logger.warning("Unknown reasoning_effort '%s', using default (medium)", effort)
@@ -346,7 +346,7 @@ def load_cli_config() -> Dict[str, Any]:
     """
     # Check user config first ({HERMES_HOME}/config.yaml)
     user_config_path = _hermes_home / 'config.yaml'
-    project_config_path = Path(__file__).parent / 'cli-config.yaml'
+    project_config_path = Path.cwd() / 'cli-config.yaml'
 
     # --ignore-user-config: force-skip the user config.yaml (still honor project
     # config as a fallback so defaults stay sensible).
@@ -543,7 +543,7 @@ def load_cli_config() -> Dict[str, Any]:
         terminal_config["env_type"] = terminal_config["backend"]
     
     # CWD resolution for CLI/TUI. The gateway has its own config bridge in
-    # gateway/run.py but may lazily import cli.py (triggering this code).
+    # gateway/run.py but may lazily import runtime/hermes_runtime/cli.py (triggering this code).
     # Local backend: always os.getcwd(). Use `cd /dir && hermes` to control it.
     # Non-local with placeholder: pop so terminal_tool uses its per-backend default.
     # Non-local with explicit path: keep as-is.
@@ -620,7 +620,7 @@ def load_cli_config() -> Dict[str, Any]:
     
     # Apply auxiliary model/direct-endpoint overrides to environment variables.
     # Vision and web_extract each have their own provider/model/base_url/api_key tuple.
-    # Compression config is read directly from config.yaml by run_agent.py and
+    # Compression config is read directly from config.yaml by runtime/hermes_runtime/run_agent.py and
     # auxiliary_client.py — no env var bridging needed.
     # Only set env vars for non-empty / non-default values so auto-detection
     # still works.
@@ -680,7 +680,7 @@ CLI_CONFIG = load_cli_config()
 # Initialize centralized logging early — agent.log + errors.log in ~/.hermes/logs/.
 # This ensures CLI sessions produce a log trail even before AIAgent is instantiated.
 try:
-    from hermes_logging import setup_logging
+    from hermes_runtime.hermes_logging import setup_logging
     setup_logging(mode="cli")
 except Exception:
     pass  # Logging setup is best-effort — don't crash the CLI
@@ -776,19 +776,19 @@ from rich.text import Text as _RichText
 # Import agent and tool systems lazily. Bare interactive startup only needs the
 # prompt; the full agent/tool registry is initialized on first use.
 def AIAgent(*args, **kwargs):
-    from run_agent import AIAgent as _AIAgent
+    from hermes_runtime.run_agent import AIAgent as _AIAgent
 
     return _AIAgent(*args, **kwargs)
 
 
 def get_tool_definitions(*args, **kwargs):
-    from model_tools import get_tool_definitions as _get_tool_definitions
+    from hermes_runtime.model_tools import get_tool_definitions as _get_tool_definitions
 
     return _get_tool_definitions(*args, **kwargs)
 
 
 def get_toolset_for_tool(*args, **kwargs):
-    from model_tools import get_toolset_for_tool as _get_toolset_for_tool
+    from hermes_runtime.model_tools import get_toolset_for_tool as _get_toolset_for_tool
 
     return _get_toolset_for_tool(*args, **kwargs)
 
@@ -798,19 +798,19 @@ from hermes_cli.commands import SlashCommandCompleter, SlashCommandAutoSuggest
 
 
 def get_all_toolsets(*args, **kwargs):
-    from toolsets import get_all_toolsets as _get_all_toolsets
+    from hermes_runtime.toolsets import get_all_toolsets as _get_all_toolsets
 
     return _get_all_toolsets(*args, **kwargs)
 
 
 def get_toolset_info(*args, **kwargs):
-    from toolsets import get_toolset_info as _get_toolset_info
+    from hermes_runtime.toolsets import get_toolset_info as _get_toolset_info
 
     return _get_toolset_info(*args, **kwargs)
 
 
 def validate_toolset(*args, **kwargs):
-    from toolsets import validate_toolset as _validate_toolset
+    from hermes_runtime.toolsets import validate_toolset as _validate_toolset
 
     return _validate_toolset(*args, **kwargs)
 
@@ -1255,7 +1255,7 @@ def _run_state_db_auto_maintenance(session_db) -> None:
         return
     try:
         from hermes_cli.config import load_config as _load_full_config
-        from hermes_constants import get_hermes_home as _get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home as _get_hermes_home
         _hermes_home_maint = _get_hermes_home()
 
         # One-time prune of empty TUI ghost sessions.
@@ -2105,7 +2105,7 @@ _IMAGE_EXTENSIONS = frozenset({
 })
 
 
-from hermes_constants import is_termux as _is_termux_environment
+from hermes_runtime.hermes_constants import is_termux as _is_termux_environment
 
 
 def _termux_example_image_path(filename: str = "cat.png") -> str:
@@ -2861,7 +2861,7 @@ def save_config_value(key_path: str, value: any) -> bool:
     """
     # Use the same precedence as load_cli_config: user config first, then project config
     user_config_path = _hermes_home / 'config.yaml'
-    project_config_path = Path(__file__).parent / 'cli-config.yaml'
+    project_config_path = Path.cwd() / 'cli-config.yaml'
     config_path = user_config_path if user_config_path.exists() else project_config_path
     
     try:
@@ -2870,7 +2870,7 @@ def save_config_value(key_path: str, value: any) -> bool:
         
         # Save back atomically while preserving comments, ordering, quotes, and
         # readable Unicode in user-edited config.yaml.
-        from utils import atomic_roundtrip_yaml_update
+        from hermes_runtime.utils import atomic_roundtrip_yaml_update
         atomic_roundtrip_yaml_update(config_path, key_path, value)
         
         # Enforce owner-only permissions on config files (contain API keys)
@@ -3175,7 +3175,7 @@ class HermesCLI:
         # Initialize SQLite session store early so /title works before first message
         self._session_db = None
         try:
-            from hermes_state import SessionDB
+            from hermes_runtime.hermes_state import SessionDB
             self._session_db = SessionDB()
         except Exception as e:
             logger.warning("Failed to initialize SessionDB — session will NOT be indexed for search: %s", e)
@@ -4863,7 +4863,7 @@ class HermesCLI:
         # Initialize SQLite session store for CLI sessions (if not already done in __init__)
         if self._session_db is None:
             try:
-                from hermes_state import SessionDB
+                from hermes_runtime.hermes_state import SessionDB
                 self._session_db = SessionDB()
             except Exception as e:
                 logger.warning("SQLite session store not available — session will NOT be indexed: %s", e)
@@ -5549,7 +5549,7 @@ class HermesCLI:
             create_quick_snapshot, list_quick_snapshots,
             restore_quick_snapshot, prune_quick_snapshots,
         )
-        from hermes_constants import display_hermes_home
+        from hermes_runtime.hermes_constants import display_hermes_home
 
         parts = command.split()
         subcmd = parts[1].lower() if len(parts) > 1 else "list"
@@ -5866,7 +5866,7 @@ class HermesCLI:
     def _show_tool_availability_warnings(self):
         """Show warnings about disabled tools due to missing API keys."""
         try:
-            from model_tools import check_tool_availability
+            from hermes_runtime.model_tools import check_tool_availability
             
             available, unavailable = check_tool_availability()
             
@@ -6214,12 +6214,12 @@ class HermesCLI:
         print("  (*) = currently enabled")
         print()
         print("  Tip: Use 'all' or '*' to enable all toolsets")
-        print("  Example: python cli.py --toolsets web,terminal")
+        print("  Example: python -m hermes_runtime.cli --toolsets web,terminal")
         print()
     
     def _handle_profile_command(self):
         """Display active profile name and home directory."""
-        from hermes_constants import display_hermes_home
+        from hermes_runtime.hermes_constants import display_hermes_home
         from hermes_cli.profiles import get_active_profile_name
 
         display = display_hermes_home()
@@ -6238,7 +6238,7 @@ class HermesCLI:
         terminal_timeout = os.getenv("TERMINAL_TIMEOUT", "60")
         
         user_config_path = _hermes_home / 'config.yaml'
-        project_config_path = Path(__file__).parent / 'cli-config.yaml'
+        project_config_path = Path.cwd() / 'cli-config.yaml'
         if user_config_path.exists():
             config_path = user_config_path
         else:
@@ -6472,7 +6472,7 @@ class HermesCLI:
                 except Exception:
                     pass
                 if title and self._session_db:
-                    from hermes_state import SessionDB
+                    from hermes_runtime.hermes_state import SessionDB
                     try:
                         sanitized = SessionDB.sanitize_title(title)
                     except ValueError as e:
@@ -6534,7 +6534,7 @@ class HermesCLI:
         Returns:
             False to signal CLI exit, True to keep going.
         """
-        from hermes_state import format_session_db_unavailable
+        from hermes_runtime.hermes_state import format_session_db_unavailable
 
         parts = cmd_original.split(maxsplit=1)
         if len(parts) < 2 or not parts[1].strip():
@@ -6584,7 +6584,7 @@ class HermesCLI:
         # Make sure we have a SessionDB handle.
         if not self._session_db:
             try:
-                from hermes_state import SessionDB
+                from hermes_runtime.hermes_state import SessionDB
                 self._session_db = SessionDB()
             except Exception:
                 pass
@@ -6693,7 +6693,7 @@ class HermesCLI:
             return
 
         if not self._session_db:
-            from hermes_state import format_session_db_unavailable
+            from hermes_runtime.hermes_state import format_session_db_unavailable
             _cprint(f"  {format_session_db_unavailable()}")
             return
 
@@ -6827,7 +6827,7 @@ class HermesCLI:
         # Bare /sessions or /sessions list — show recent sessions inline.
         if not arg or sub in {"list", "ls", "browse"}:
             if not self._session_db:
-                from hermes_state import format_session_db_unavailable
+                from hermes_runtime.hermes_state import format_session_db_unavailable
                 _cprint(f"  {format_session_db_unavailable()}")
                 return
             if not self._show_recent_sessions(reason="sessions"):
@@ -6849,7 +6849,7 @@ class HermesCLI:
             return
 
         if not self._session_db:
-            from hermes_state import format_session_db_unavailable
+            from hermes_runtime.hermes_state import format_session_db_unavailable
             _cprint(f"  {format_session_db_unavailable()}")
             return
 
@@ -8293,7 +8293,7 @@ class HermesCLI:
             
             print()
             print("  To start the gateway:")
-            print("    python cli.py --gateway")
+            print("    python -m hermes_runtime.cli --gateway")
             print()
             print(f"  Configuration file: {display_hermes_home()}/config.yaml")
             print()
@@ -8440,7 +8440,7 @@ class HermesCLI:
                     if self._session_db:
                         # Sanitize the title early so feedback matches what gets stored
                         try:
-                            from hermes_state import SessionDB
+                            from hermes_runtime.hermes_state import SessionDB
                             new_title = SessionDB.sanitize_title(raw_title)
                         except ValueError as e:
                             _cprint(f"  {e}")
@@ -8466,7 +8466,7 @@ class HermesCLI:
                                 self._pending_title = new_title
                                 _cprint(f"  Session title queued: {new_title} (will be saved on first message)")
                     else:
-                        from hermes_state import format_session_db_unavailable
+                        from hermes_runtime.hermes_state import format_session_db_unavailable
                         _cprint(f"  {format_session_db_unavailable()}")
                 else:
                     _cprint("  Usage: /title <your session title>")
@@ -8481,7 +8481,7 @@ class HermesCLI:
                 else:
                     _cprint("  No title set. Usage: /title <your session title>")
             else:
-                from hermes_state import format_session_db_unavailable
+                from hermes_runtime.hermes_state import format_session_db_unavailable
                 _cprint(f"  {format_session_db_unavailable()}")
         elif canonical == "handoff":
             if not self._handle_handoff_command(cmd_original):
@@ -9942,7 +9942,7 @@ class HermesCLI:
                 )
                 self.conversation_history = compressed
                 # _compress_context ends the old session and creates a new child
-                # session on the agent (run_agent.py::_compress_context). Sync the
+                # session on the agent (runtime/hermes_runtime/run_agent.py::_compress_context). Sync the
                 # CLI's session_id so /status, /resume, exit summary, and title
                 # generation all point at the live continuation session, not the
                 # ended parent. Without this, subsequent end_session() calls target
@@ -10180,7 +10180,7 @@ class HermesCLI:
                 i += 1
 
         try:
-            from hermes_state import SessionDB
+            from hermes_runtime.hermes_state import SessionDB
             from agent.insights import InsightsEngine
 
             db = SessionDB()
@@ -10543,7 +10543,7 @@ class HermesCLI:
 
             result = reload_skills()
 
-            # Sync cli.py's module-level _skill_commands so all consumers
+            # Sync runtime/hermes_runtime/cli.py's module-level _skill_commands so all consumers
             # (help display, command dispatch, Tab-completion lambda) see the
             # updated dict without needing to restart the session.
             global _skill_commands
@@ -11752,7 +11752,7 @@ class HermesCLI:
         # rich-text editors (Google Docs, Word, etc.).  Lone surrogates are invalid
         # UTF-8 and crash JSON serialization in the OpenAI SDK.
         if isinstance(message, str):
-            from run_agent import _sanitize_surrogates
+            from hermes_runtime.run_agent import _sanitize_surrogates
             message = _sanitize_surrogates(message)
 
         # Add user message to history
@@ -13500,7 +13500,7 @@ class HermesCLI:
                 event.app.invalidate()
             if pasted_text:
                 # Sanitize surrogate characters (e.g. from Word/Google Docs paste) before writing
-                from run_agent import _sanitize_surrogates
+                from hermes_runtime.run_agent import _sanitize_surrogates
                 pasted_text = _sanitize_surrogates(pasted_text)
                 line_count = pasted_text.count('\n')
                 buf = event.current_buffer
@@ -14837,7 +14837,7 @@ class HermesCLI:
                 # and SQLite history. Ported from google-gemini/gemini-cli#19332.
                 if getattr(self, '_delete_session_on_exit', False):
                     try:
-                        from hermes_constants import get_hermes_home as _ghh
+                        from hermes_runtime.hermes_constants import get_hermes_home as _ghh
                         _sessions_dir = _ghh() / "sessions"
                         _sid = self.agent.session_id
                         if self._session_db.delete_session(_sid, sessions_dir=_sessions_dir):
@@ -14928,15 +14928,15 @@ def main(
         w: Shorthand for --worktree
     
     Examples:
-        python cli.py                            # Start interactive mode
-        python cli.py --toolsets web,terminal    # Use specific toolsets
-        python cli.py --skills hermes-agent-dev,github-auth
-        python cli.py -q "What is Python?"       # Single query mode
-        python cli.py -q "Describe this" --image ~/storage/shared/Pictures/cat.png
-        python cli.py --list-tools               # List tools and exit
-        python cli.py --resume 20260225_143052_a1b2c3  # Resume session
-        python cli.py -w                         # Start in isolated git worktree
-        python cli.py -w -q "Fix issue #123"     # Single query in worktree
+        python -m hermes_runtime.cli                            # Start interactive mode
+        python -m hermes_runtime.cli --toolsets web,terminal    # Use specific toolsets
+        python -m hermes_runtime.cli --skills hermes-agent-dev,github-auth
+        python -m hermes_runtime.cli -q "What is Python?"       # Single query mode
+        python -m hermes_runtime.cli -q "Describe this" --image ~/storage/shared/Pictures/cat.png
+        python -m hermes_runtime.cli --list-tools               # List tools and exit
+        python -m hermes_runtime.cli --resume 20260225_143052_a1b2c3  # Resume session
+        python -m hermes_runtime.cli -w                         # Start in isolated git worktree
+        python -m hermes_runtime.cli -w -q "Fix issue #123"     # Single query in worktree
     """
     global _active_worktree
 

@@ -108,9 +108,9 @@ class TestLoadCliConfigExpansion:
 
         monkeypatch.setenv("TEST_VISION_KEY_XYZ", "vis-key-123")
         # Patch the hermes home so load_cli_config finds our test config
-        monkeypatch.setattr("cli._hermes_home", tmp_path)
+        monkeypatch.setattr("hermes_runtime.cli._hermes_home", tmp_path)
 
-        from cli import load_cli_config
+        from hermes_runtime.cli import load_cli_config
         config = load_cli_config()
 
         assert config["auxiliary"]["vision"]["api_key"] == "vis-key-123"
@@ -125,9 +125,9 @@ class TestLoadCliConfigExpansion:
         config_file.write_text(config_yaml)
 
         monkeypatch.delenv("UNSET_CLI_VAR_ABC", raising=False)
-        monkeypatch.setattr("cli._hermes_home", tmp_path)
+        monkeypatch.setattr("hermes_runtime.cli._hermes_home", tmp_path)
 
-        from cli import load_cli_config
+        from hermes_runtime.cli import load_cli_config
         config = load_cli_config()
 
         assert config["auxiliary"]["vision"]["api_key"] == "${UNSET_CLI_VAR_ABC}"

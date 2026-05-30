@@ -2,7 +2,7 @@
 
 Wired into the existing ``hermes meet`` parser by the plugin's top-level
 CLI. This module only defines the subparsers and their dispatch — it
-does not mutate the existing cli.py.
+does not mutate the existing runtime/hermes_runtime/cli.py.
 """
 
 from __future__ import annotations

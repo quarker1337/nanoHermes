@@ -11,19 +11,19 @@ across multiple prompts from a dataset. It includes:
 - Tool usage statistics aggregation across all batches
 
 Usage:
-    python batch_runner.py --dataset_file=data.jsonl --batch_size=10 --run_name=my_run
+    python -m hermes_runtime.batch_runner --dataset_file=data.jsonl --batch_size=10 --run_name=my_run
     
     # Resume an interrupted run
-    python batch_runner.py --dataset_file=data.jsonl --batch_size=10 --run_name=my_run --resume
+    python -m hermes_runtime.batch_runner --dataset_file=data.jsonl --batch_size=10 --run_name=my_run --resume
     
     # Use a specific toolset distribution
-    python batch_runner.py --dataset_file=data.jsonl --batch_size=10 --run_name=my_run --distribution=image_gen
+    python -m hermes_runtime.batch_runner --dataset_file=data.jsonl --batch_size=10 --run_name=my_run --distribution=image_gen
 """
 
 # IMPORTANT: hermes_bootstrap must be the very first import — UTF-8 stdio
-# on Windows.  No-op on POSIX.  See hermes_bootstrap.py for full rationale.
+# on Windows.  No-op on POSIX.  See runtime/hermes_runtime/hermes_bootstrap.py for full rationale.
 try:
-    import hermes_bootstrap  # noqa: F401
+    import hermes_runtime.hermes_bootstrap as hermes_bootstrap  # noqa: F401
 except ModuleNotFoundError:
     # Graceful fallback when hermes_bootstrap isn't registered in the venv
     # yet — happens during partial ``hermes update`` where git-reset landed
@@ -46,19 +46,19 @@ from rich.console import Console
 logger = logging.getLogger(__name__)
 import fire
 
-from run_agent import AIAgent
-from toolset_distributions import (
+from hermes_runtime.run_agent import AIAgent
+from hermes_runtime.toolset_distributions import (
     list_distributions, 
     sample_toolsets_from_distribution,
     validate_distribution
 )
-from model_tools import TOOL_TO_TOOLSET_MAP
+from hermes_runtime.model_tools import TOOL_TO_TOOLSET_MAP
 
 
 # Global configuration for worker processes
 _WORKER_CONFIG = {}
 
-# All possible tools - auto-derived from the master mapping in model_tools.py.
+# All possible tools - auto-derived from the master mapping in runtime/hermes_runtime/model_tools.py.
 # This stays in sync automatically when new tools are added to TOOL_TO_TOOLSET_MAP.
 # Used for consistent schema in Arrow/Parquet (HuggingFace datasets) and for
 # filtering corrupted entries during trajectory combination.
@@ -722,7 +722,7 @@ class BatchRunner:
         """
         checkpoint_data["last_updated"] = datetime.now().isoformat()
 
-        from utils import atomic_json_write
+        from hermes_runtime.utils import atomic_json_write
         if lock:
             with lock:
                 atomic_json_write(self.checkpoint_file, checkpoint_data)
@@ -1029,7 +1029,7 @@ class BatchRunner:
         combined_file = self.output_dir / "trajectories.jsonl"
         print(f"\n📦 Combining ALL batch files into {combined_file.name}...")
         
-        # Valid tools auto-derived from model_tools.py — no manual updates needed
+        # Valid tools auto-derived from runtime/hermes_runtime/model_tools.py — no manual updates needed
         VALID_TOOLS = ALL_POSSIBLE_TOOLS
         
         total_entries = 0
@@ -1199,28 +1199,28 @@ def main(
         
     Examples:
         # Basic usage
-        python batch_runner.py --dataset_file=data.jsonl --batch_size=10 --run_name=my_run
+        python -m hermes_runtime.batch_runner --dataset_file=data.jsonl --batch_size=10 --run_name=my_run
         
         # Resume interrupted run
-        python batch_runner.py --dataset_file=data.jsonl --batch_size=10 --run_name=my_run --resume
+        python -m hermes_runtime.batch_runner --dataset_file=data.jsonl --batch_size=10 --run_name=my_run --resume
         
         # Use specific distribution
-        python batch_runner.py --dataset_file=data.jsonl --batch_size=10 --run_name=image_test --distribution=image_gen
+        python -m hermes_runtime.batch_runner --dataset_file=data.jsonl --batch_size=10 --run_name=image_test --distribution=image_gen
         
         # With disabled reasoning and max tokens
-        python batch_runner.py --dataset_file=data.jsonl --batch_size=10 --run_name=my_run \\
+        python -m hermes_runtime.batch_runner --dataset_file=data.jsonl --batch_size=10 --run_name=my_run \\
                                --reasoning_disabled --max_tokens=128000
         
         # With prefill messages from file
-        python batch_runner.py --dataset_file=data.jsonl --batch_size=10 --run_name=my_run \\
+        python -m hermes_runtime.batch_runner --dataset_file=data.jsonl --batch_size=10 --run_name=my_run \\
                                --prefill_messages_file=configs/prefill_opus.json
         
         # List available distributions
-        python batch_runner.py --list_distributions
+        python -m hermes_runtime.batch_runner --list_distributions
     """
     # Handle list distributions
     if list_distributions:
-        from toolset_distributions import print_distribution_info
+        from hermes_runtime.toolset_distributions import print_distribution_info
 
         print("📊 Available Toolset Distributions")
         print("=" * 70)
@@ -1230,7 +1230,7 @@ def main(
             print_distribution_info(dist_name)
         
         print("\n💡 Usage:")
-        print("  python batch_runner.py --dataset_file=data.jsonl --batch_size=10 \\")
+        print("  python -m hermes_runtime.batch_runner --dataset_file=data.jsonl --batch_size=10 \\")
         print("                         --run_name=my_run --distribution=<name>")
         return
     

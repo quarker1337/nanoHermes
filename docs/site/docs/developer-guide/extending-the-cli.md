@@ -26,7 +26,7 @@ The first three are new protected hooks. The last two already existed.
 
 ```python
 #!/usr/bin/env python3
-"""my_cli.py — Example wrapper CLI that extends Hermes."""
+"""my_runtime/hermes_runtime/cli.py — Example wrapper CLI that extends Hermes."""
 
 from cli import HermesCLI
 from prompt_toolkit.layout import FormattedTextControl, Window
@@ -78,7 +78,7 @@ Run it:
 ```bash
 cd ~/.hermes/hermes-agent
 source .venv/bin/activate
-python my_cli.py
+python my_runtime/hermes_runtime/cli.py
 ```
 
 ## Hook reference

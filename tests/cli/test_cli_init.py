@@ -47,7 +47,8 @@ def _make_cli(env_overrides=None, config_overrides=None, **kwargs):
     }
     with patch.dict(sys.modules, prompt_toolkit_stubs), \
          patch.dict("os.environ", clean_env, clear=False):
-        import cli as _cli_mod
+        import hermes_runtime.cli as _cli_mod
+        sys.modules["hermes_runtime.cli"] = _cli_mod
         _cli_mod = importlib.reload(_cli_mod)
         with patch.object(_cli_mod, "get_tool_definitions", return_value=[]), \
              patch.dict(_cli_mod.__dict__, {"CLI_CONFIG": _clean_config}):
@@ -191,7 +192,7 @@ class TestPromptToolkitTerminalCompatibility:
         from unittest.mock import patch as _patch
         from prompt_toolkit.key_binding import KeyBindings
 
-        from cli import _bind_prompt_submit_keys
+        from hermes_runtime.cli import _bind_prompt_submit_keys
 
         def submit_handler(event):
             return None
@@ -238,7 +239,7 @@ class TestPromptToolkitTerminalCompatibility:
             assert ("c-j",) not in bindings
 
     def test_cpr_warning_callback_is_disabled(self):
-        from cli import _disable_prompt_toolkit_cpr_warning
+        from hermes_runtime.cli import _disable_prompt_toolkit_cpr_warning
 
         renderer = SimpleNamespace(cpr_not_supported_callback=lambda: None)
         app = SimpleNamespace(renderer=renderer)
@@ -347,7 +348,7 @@ class TestHistoryDisplay:
 
     def test_resume_updates_hermes_session_id_env_and_context(self, tmp_path):
         from gateway.session_context import _UNSET, _VAR_MAP, get_session_env
-        from hermes_state import SessionDB
+        from hermes_runtime.hermes_state import SessionDB
 
         cli = _make_cli()
         cli.session_id = "current_session"
@@ -504,7 +505,7 @@ class TestRootLevelProviderOverride:
             },
         }))
 
-        import cli
+        import hermes_runtime.cli as cli
         monkeypatch.setattr(cli, "_hermes_home", hermes_home)
         cfg = cli.load_cli_config()
 
@@ -527,7 +528,7 @@ class TestRootLevelProviderOverride:
             },
         }))
 
-        import cli
+        import hermes_runtime.cli as cli
         monkeypatch.setattr(cli, "_hermes_home", hermes_home)
         cfg = cli.load_cli_config()
 
@@ -549,7 +550,7 @@ class TestRootLevelProviderOverride:
             },
         }))
 
-        import cli
+        import hermes_runtime.cli as cli
         monkeypatch.setattr(cli, "_hermes_home", hermes_home)
         cfg = cli.load_cli_config()
 

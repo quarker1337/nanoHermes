@@ -20,7 +20,7 @@ def _make_hermes_tree(root: Path) -> None:
     (root / "config.yaml").write_text("model:\n  provider: openrouter\n")
     (root / ".env").write_text("OPENROUTER_API_KEY=sk-test-123\n")
     (root / "memory_store.db").write_bytes(b"fake-sqlite")
-    (root / "hermes_state.db").write_bytes(b"fake-state")
+    (root / "hermes_runtime.hermes_state.db").write_bytes(b"fake-state")
 
     # Sessions
     (root / "sessions").mkdir(exist_ok=True)
@@ -50,8 +50,8 @@ def _make_hermes_tree(root: Path) -> None:
     (root / "profiles" / "coder" / ".env").write_text("ANTHROPIC_API_KEY=sk-ant-123\n")
 
     # hermes-agent repo (should be EXCLUDED)
-    (root / "hermes-agent").mkdir(exist_ok=True)
-    (root / "hermes-agent" / "run_agent.py").write_text("# big file\n")
+    (root / "hermes-agent" / "runtime" / "hermes_runtime").mkdir(parents=True, exist_ok=True)
+    (root / "hermes-agent" / "runtime/hermes_runtime/run_agent.py").write_text("# big file\n")
     (root / "hermes-agent" / ".git").mkdir()
     (root / "hermes-agent" / ".git" / "HEAD").write_text("ref: refs/heads/main\n")
 
@@ -82,7 +82,7 @@ def _symlink_file_or_skip(link: Path, target: Path) -> None:
 class TestShouldExclude:
     def test_excludes_hermes_agent(self):
         from hermes_cli.backup import _should_exclude
-        assert _should_exclude(Path("hermes-agent/run_agent.py"))
+        assert _should_exclude(Path("hermes-agent/runtime/hermes_runtime/run_agent.py"))
         assert _should_exclude(Path("hermes-agent/.git/HEAD"))
 
     def test_excludes_pycache(self):
@@ -311,7 +311,7 @@ class TestValidateBackupZip:
         """A zip with only hermes_state.db (old wrong name) is rejected."""
         from hermes_cli.backup import _validate_backup_zip
         zip_path = tmp_path / "old.zip"
-        self._make_zip(zip_path, ["hermes_state.db", "memory_store.db"])
+        self._make_zip(zip_path, ["hermes_runtime.hermes_state.db", "memory_store.db"])
         with zipfile.ZipFile(zip_path, "r") as zf:
             ok, reason = _validate_backup_zip(zf)
         assert not ok

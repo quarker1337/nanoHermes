@@ -107,7 +107,7 @@ If a command exists in the TUI but doesn't show in autocomplete:
 
 3. Ensure `subcommands` matches the expected tab-completion options shown by the TUI.
 
-4. If the command runs server-side, add a handler in `HermesCLI.process_command()` in `cli.py`:
+4. If the command runs server-side, add a handler in `HermesCLI.process_command()` in `runtime/hermes_runtime/cli.py`:
    ```python
    elif canonical == "commandname":
        self._handle_commandname(cmd_original)
@@ -125,7 +125,7 @@ If a command exists in the TUI but doesn't show in autocomplete:
 
 2. **Command shows in autocomplete but doesn't work.** Check the command handler in `tui_gateway/server.py` and the frontend handler in `apps/tui/src/app/createSlashHandler.ts`. If the command is local-only in Ink, it must be handled in `app.tsx` built-in branch; otherwise it falls through to `slash.exec` and must have a Python handler.
 
-3. **Command behavior differs between CLI and TUI.** The command might have different implementations. Check both `cli.py::process_command` and the TUI's local handler. Local TUI handlers take precedence over gateway dispatch.
+3. **Command behavior differs between CLI and TUI.** The command might have different implementations. Check both `runtime/hermes_runtime/cli.py::process_command` and the TUI's local handler. Local TUI handlers take precedence over gateway dispatch.
 
 4. **Command persists config but doesn't apply live.** For TUI-local commands, updating `config.set` is not enough. Also patch the relevant nanostore state immediately (usually `patchUiState(...)`) and pass any new state through rendering components. Example: `/details collapsed` must update live detail visibility, not just save `details_mode`; in-session global `/details <mode>` may need a separate command-override flag so live commands can override built-in section defaults while startup/config sync preserves default-expanded thinking/tools behavior.
 

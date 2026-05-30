@@ -1,7 +1,7 @@
 """Model metadata, context lengths, and token estimation utilities.
 
 Pure utility functions with no AIAgent dependency. Used by ContextCompressor
-and run_agent.py for pre-flight context checks.
+and runtime/hermes_runtime/run_agent.py for pre-flight context checks.
 """
 
 import ipaddress
@@ -16,9 +16,9 @@ from urllib.parse import urlparse
 import requests
 import yaml
 
-from utils import base_url_host_matches, base_url_hostname
+from hermes_runtime.utils import base_url_host_matches, base_url_hostname
 
-from hermes_constants import OPENROUTER_MODELS_URL
+from hermes_runtime.hermes_constants import OPENROUTER_MODELS_URL
 
 logger = logging.getLogger(__name__)
 
@@ -815,7 +815,7 @@ def _resolve_endpoint_context_length(
 
 def _get_context_cache_path() -> Path:
     """Return path to the persistent context length cache file."""
-    from hermes_constants import get_hermes_home
+    from hermes_runtime.hermes_constants import get_hermes_home
     return get_hermes_home() / "context_length_cache.yaml"
 
 

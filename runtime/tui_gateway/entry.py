@@ -189,7 +189,7 @@ def main():
 
     # MCP tool discovery — inline is safe here: TUI entry is a plain
     # sync loop with no asyncio event loop to block.  Previously ran as
-    # a model_tools.py module-level side effect; moved to explicit
+    # a runtime/hermes_runtime/model_tools.py module-level side effect; moved to explicit
     # startup calls to avoid freezing the gateway's loop on lazy import
     # (#16856).
     #

@@ -165,6 +165,7 @@ def _install_fakes(monkeypatch, agent_cls, *, cleanup_on: bool):
     fake_run_agent = types.ModuleType("run_agent")
     fake_run_agent.AIAgent = agent_cls
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
+    monkeypatch.setitem(sys.modules, "hermes_runtime.run_agent", fake_run_agent)
     import tools.terminal_tool  # noqa: F401 — register tool emoji
 
     gateway_run = importlib.import_module("gateway.run")

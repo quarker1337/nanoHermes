@@ -329,7 +329,7 @@
 - ACP: preserve session provider on model switch, persist sessions to disk ([#2380](https://github.com/NousResearch/hermes-agent/pull/2380), [#2071](https://github.com/NousResearch/hermes-agent/pull/2071))
 - API server: persist ResponseStore to SQLite across restarts ([#2472](https://github.com/NousResearch/hermes-agent/pull/2472))
 - Fix: `fetch_nous_models` always TypeError from positional args ([#1699](https://github.com/NousResearch/hermes-agent/pull/1699))
-- Fix: resolve merge conflict markers in cli.py breaking startup ([#2347](https://github.com/NousResearch/hermes-agent/pull/2347))
+- Fix: resolve merge conflict markers in runtime/hermes_runtime/cli.py breaking startup ([#2347](https://github.com/NousResearch/hermes-agent/pull/2347))
 - Fix: `minisweagent_path.py` missing from wheel ([#2098](https://github.com/NousResearch/hermes-agent/pull/2098) by @JiwaniZakir)
 
 ### Cron System

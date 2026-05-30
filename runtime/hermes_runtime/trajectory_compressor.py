@@ -15,19 +15,19 @@ Compression Strategy:
 
 Usage:
     # Compress a directory of JSONL files
-    python trajectory_compressor.py --input=data/my_run
+    python -m hermes_runtime.trajectory_compressor --input=data/my_run
     
     # Compress a single JSONL file
-    python trajectory_compressor.py --input=data/trajectories.jsonl
+    python -m hermes_runtime.trajectory_compressor --input=data/trajectories.jsonl
     
     # Compress 15% sample of a file
-    python trajectory_compressor.py --input=data/trajectories.jsonl --sample_percent=15
+    python -m hermes_runtime.trajectory_compressor --input=data/trajectories.jsonl --sample_percent=15
     
     # Compress with custom output and token target
-    python trajectory_compressor.py --input=data/trajectories.jsonl --output=compressed.jsonl --target_max_tokens=16000
+    python -m hermes_runtime.trajectory_compressor --input=data/trajectories.jsonl --output=compressed.jsonl --target_max_tokens=16000
     
     # Compress 10% sample from a directory
-    python trajectory_compressor.py --input=data/my_run --sample_percent=10
+    python -m hermes_runtime.trajectory_compressor --input=data/my_run --sample_percent=10
 """
 
 import json
@@ -41,11 +41,11 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from utils import base_url_host_matches, base_url_hostname
+from hermes_runtime.utils import base_url_host_matches, base_url_hostname
 import fire
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, TimeRemainingColumn
 from rich.console import Console
-from hermes_constants import OPENROUTER_BASE_URL, get_hermes_home
+from hermes_runtime.hermes_constants import OPENROUTER_BASE_URL, get_hermes_home
 from agent.retry_utils import jittered_backoff
 
 # Load .env from HERMES_HOME first, then project root as a dev fallback.
@@ -1316,16 +1316,16 @@ def main(
     
     Examples:
         # Compress a directory (original behavior)
-        python trajectory_compressor.py --input=data/my_run
+        python -m hermes_runtime.trajectory_compressor --input=data/my_run
         
         # Compress a single file
-        python trajectory_compressor.py --input=data/trajectories.jsonl
+        python -m hermes_runtime.trajectory_compressor --input=data/trajectories.jsonl
         
         # Compress 15% sample of a file
-        python trajectory_compressor.py --input=data/trajectories.jsonl --sample_percent=15
+        python -m hermes_runtime.trajectory_compressor --input=data/trajectories.jsonl --sample_percent=15
         
         # Compress 10% sample with custom output
-        python trajectory_compressor.py --input=data/trajectories.jsonl --sample_percent=10 --output=data/sampled_compressed.jsonl
+        python -m hermes_runtime.trajectory_compressor --input=data/trajectories.jsonl --sample_percent=10 --output=data/sampled_compressed.jsonl
     """
     import random
     import tempfile

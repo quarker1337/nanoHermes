@@ -58,7 +58,7 @@ Standalone memory plugins:
 - Implement the same `MemoryProvider` ABC (`agent/memory_provider.py`) — `sync_turn`, `prefetch`, `shutdown`, and optionally `post_setup(hermes_home, config)` for setup-wizard integration
 - Use the same discovery system — `discover_memory_providers()` picks them up from user/project plugin directories and pip entry points
 - Integrate with `hermes memory setup` via `post_setup()` — no need to touch core code
-- Can register their own CLI subcommands via `register_cli(subparser)` in a `cli.py` file
+- Can register their own CLI subcommands via `register_cli(subparser)` in a `runtime/hermes_runtime/cli.py` file
 - Get all the same lifecycle hooks and config plumbing as in-tree providers
 
 PRs that add a new directory under `plugins/memory/` will be closed with a pointer to publish the provider as its own repo. Existing in-tree providers stay; bug fixes to them are welcome.
@@ -135,12 +135,12 @@ pytest tests/ -v
 
 ```
 hermes-agent/
-├── run_agent.py              # AIAgent class — core conversation loop, tool dispatch, session persistence
-├── cli.py                    # HermesCLI class — interactive TUI, prompt_toolkit integration
-├── model_tools.py            # Tool orchestration (thin layer over tools/registry.py)
-├── toolsets.py               # Tool groupings and presets (hermes-cli, hermes-telegram, etc.)
-├── hermes_state.py           # SQLite session database with FTS5 full-text search, session titles
-├── batch_runner.py           # Parallel batch processing for trajectory generation
+├── runtime/hermes_runtime/run_agent.py              # AIAgent class — core conversation loop, tool dispatch, session persistence
+├── runtime/hermes_runtime/cli.py                    # HermesCLI class — interactive TUI, prompt_toolkit integration
+├── runtime/hermes_runtime/model_tools.py            # Tool orchestration (thin layer over tools/registry.py)
+├── runtime/hermes_runtime/toolsets.py               # Tool groupings and presets (hermes-cli, hermes-telegram, etc.)
+├── runtime/hermes_runtime/hermes_state.py           # SQLite session database with FTS5 full-text search, session titles
+├── runtime/hermes_runtime/batch_runner.py           # Parallel batch processing for trajectory generation
 │
 ├── agent/                    # Agent internals (extracted modules)
 │   ├── prompt_builder.py         # System prompt assembly (identity, skills, context files, memory)
@@ -239,9 +239,9 @@ User message → AIAgent._run_agent_loop()
 
 ### Key Design Patterns
 
-- **Self-registering tools**: Each tool file calls `registry.register()` at import time. `model_tools.py` triggers discovery by importing all tool modules.
+- **Self-registering tools**: Each tool file calls `registry.register()` at import time. `runtime/hermes_runtime/model_tools.py` triggers discovery by importing all tool modules.
 - **Toolset grouping**: Tools are grouped into toolsets (`web`, `terminal`, `file`, `browser`, etc.) that can be enabled/disabled per platform.
-- **Session persistence**: All conversations are stored in SQLite (`hermes_state.py`) with full-text search and unique session titles. Per-session JSON snapshots in `~/.hermes/sessions/` were superseded by the SQLite store and are off by default; opt back in with `sessions.write_json_snapshots: true` if you have external tooling that consumes the JSON files directly.
+- **Session persistence**: All conversations are stored in SQLite (`runtime/hermes_runtime/hermes_state.py`) with full-text search and unique session titles. Per-session JSON snapshots in `~/.hermes/sessions/` were superseded by the SQLite store and are off by default; opt back in with `sessions.write_json_snapshots: true` if you have external tooling that consumes the JSON files directly.
 - **Ephemeral injection**: System prompts and prefill messages are injected at API call time, never persisted to the database or logs.
 - **Provider abstraction**: The agent works with any OpenAI-compatible API. Provider resolution happens at init time (Nous Portal OAuth, OpenRouter API key, or custom endpoint).
 - **Provider routing**: When using OpenRouter, `provider_routing` in config.yaml controls provider selection (sort by throughput/latency/price, allow/ignore specific providers, data retention policies). These are injected as `extra_body.provider` in API requests.
@@ -310,12 +310,12 @@ registry.register(
 **Wire into a toolset (required):** Built-in tools are auto-discovered: any
 `tools/*.py` file that contains a top-level `registry.register(...)` call is
 imported by `discover_builtin_tools()` in `tools/registry.py` when `model_tools`
-loads. There is **no** manual import list in `model_tools.py` to maintain.
+loads. There is **no** manual import list in `runtime/hermes_runtime/model_tools.py` to maintain.
 
-You must still add the tool name to the appropriate list in `toolsets.py`
+You must still add the tool name to the appropriate list in `runtime/hermes_runtime/toolsets.py`
 (for example `_HERMES_CORE_TOOLS` or a dedicated toolset); otherwise the tool
 registers but is never exposed to the agent. If you introduce a new toolset,
-add it in `toolsets.py` and wire it into the relevant platform presets.
+add it in `runtime/hermes_runtime/toolsets.py` and wire it into the relevant platform presets.
 
 See `AGENTS.md` (section **Adding New Tools**) for profile-aware paths and
 plugin vs core guidance.

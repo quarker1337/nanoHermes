@@ -3,7 +3,7 @@
 Toggles `model.openai_runtime` between "auto" (= chat_completions, Hermes'
 default) and "codex_app_server" (= hand turns to a codex subprocess).
 
-Both CLI (cli.py) and gateway (gateway/run.py) call into this module so the
+Both CLI (runtime/hermes_runtime/cli.py) and gateway (gateway/run.py) call into this module so the
 behavior stays identical across surfaces.
 
 The actual runtime resolution happens in hermes_cli.runtime_provider's

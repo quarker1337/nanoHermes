@@ -36,13 +36,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from hermes_state import SessionDB
+from hermes_runtime.hermes_state import SessionDB
 
 
 def _build_agent_with_db(db: SessionDB, session_id: str):
     """Build an AIAgent that's wired to ``db`` and pinned to ``session_id``."""
     with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         agent = AIAgent(
             api_key="test-key",

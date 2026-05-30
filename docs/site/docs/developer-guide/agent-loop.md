@@ -6,7 +6,7 @@ description: "Detailed walkthrough of AIAgent execution, API modes, tools, callb
 
 # Agent Loop Internals
 
-The core orchestration engine is `run_agent.py`'s `AIAgent` class — a large file (~4,400 lines) that handles everything from prompt assembly to tool dispatch to provider failover.
+The core orchestration engine is `runtime/hermes_runtime/run_agent.py`'s `AIAgent` class — a large file (~4,400 lines) that handles everything from prompt assembly to tool dispatch to provider failover.
 
 ## Core Responsibilities
 
@@ -149,7 +149,7 @@ for each tool_call in response.tool_calls:
 
 ### Agent-Level Tools
 
-Some tools are intercepted by `run_agent.py` *before* reaching `handle_function_call()`:
+Some tools are intercepted by `runtime/hermes_runtime/run_agent.py` *before* reaching `handle_function_call()`:
 
 | Tool | Why intercepted |
 |------|--------------------|
@@ -214,7 +214,7 @@ The fallback system also covers auxiliary tasks independently — vision, compre
 ### Session Persistence
 
 After each turn:
-- Messages are saved to the session store (SQLite via `hermes_state.py`)
+- Messages are saved to the session store (SQLite via `runtime/hermes_runtime/hermes_state.py`)
 - Memory changes are flushed to `MEMORY.md` / `USER.md`
 - The session can be resumed later via `/resume` or `hermes chat --resume`
 
@@ -222,13 +222,13 @@ After each turn:
 
 | File | Purpose |
 |------|---------|
-| `run_agent.py` | AIAgent class — the complete agent loop |
+| `runtime/hermes_runtime/run_agent.py` | AIAgent class — the complete agent loop |
 | `agent/prompt_builder.py` | System prompt assembly from memory, skills, context files, personality |
 | `agent/context_engine.py` | ContextEngine ABC — pluggable context management |
 | `agent/context_compressor.py` | Default engine — lossy summarization algorithm |
 | `agent/prompt_caching.py` | Anthropic prompt caching markers and cache metrics |
 | `agent/auxiliary_client.py` | Auxiliary LLM client for side tasks (vision, summarization) |
-| `model_tools.py` | Tool schema collection, `handle_function_call()` dispatch |
+| `runtime/hermes_runtime/model_tools.py` | Tool schema collection, `handle_function_call()` dispatch |
 
 ## Related Docs
 

@@ -1,7 +1,7 @@
 """GitHub Copilot ACP provider profile.
 
 copilot-acp uses an external ACP subprocess — NOT the standard
-transport. api_mode="copilot_acp" is handled separately in run_agent.py.
+transport. api_mode="copilot_acp" is handled separately in runtime/hermes_runtime/run_agent.py.
 The profile captures auth + endpoint metadata for registry migration.
 """
 

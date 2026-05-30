@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from hermes_constants import get_hermes_home
+from hermes_runtime.hermes_constants import get_hermes_home
 
 
 class PackageState:

@@ -32,7 +32,7 @@ def _make_minimal_agent():
 
 def _run_hydration(conversation_history, memory_nudge_interval=10,
                    prior_turn_count=0, prior_turns_since_memory=0):
-    """Replicate the hydration block from run_agent.py:11128-11150.
+    """Replicate the hydration block from runtime/hermes_runtime/run_agent.py:11128-11150.
     Keeping this in sync with the production code is a one-line job; the
     block has no dependencies on anything except primitives + history.
     """
@@ -121,10 +121,10 @@ def test_production_code_contains_hydration_block():
     run_conversation(). If someone deletes it, tests above still pass
     against the inline replica — this fails them awake.
 
-    After the run_agent.py refactor the agent-loop body lives in
+    After the runtime/hermes_runtime/run_agent.py refactor the agent-loop body lives in
     ``agent/conversation_loop.py`` and uses ``agent.X`` rather than
     ``self.X``.  Assert the block is present in the extracted module
-    specifically — if it ever drifts back into run_agent.py or
+    specifically — if it ever drifts back into runtime/hermes_runtime/run_agent.py or
     disappears entirely, this guard fails loudly.
     """
     from pathlib import Path

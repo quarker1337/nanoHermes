@@ -768,19 +768,19 @@ class TestPlatformToolsetConsistency:
     def test_all_platforms_have_toolset_definitions(self):
         """Each platform's default_toolset must exist in TOOLSETS."""
         from hermes_cli.tools_config import PLATFORMS
-        from toolsets import TOOLSETS
+        from hermes_runtime.toolsets import TOOLSETS
 
         for platform, meta in PLATFORMS.items():
             ts_name = meta["default_toolset"]
             assert ts_name in TOOLSETS, (
                 f"Platform {platform!r} references toolset {ts_name!r} "
-                f"which is not defined in toolsets.py"
+                f"which is not defined in runtime/hermes_runtime/toolsets.py"
             )
 
     def test_gateway_toolset_includes_all_messaging_platforms(self):
         """hermes-gateway includes list should cover all messaging platforms."""
         from hermes_cli.tools_config import PLATFORMS
-        from toolsets import TOOLSETS
+        from hermes_runtime.toolsets import TOOLSETS
 
         gateway_includes = set(TOOLSETS["hermes-gateway"]["includes"])
         # Exclude non-messaging platforms from the check
@@ -1067,7 +1067,7 @@ def test_get_platform_tools_recovers_non_configurable_toolsets_from_composite():
     """Non-configurable toolsets whose tools are in the composite but not in
     CONFIGURABLE_TOOLSETS should still appear in the result.
     """
-    from toolsets import TOOLSETS
+    from hermes_runtime.toolsets import TOOLSETS
     from hermes_cli.tools_config import PLATFORMS
     from unittest.mock import patch as mock_patch
 
@@ -1088,7 +1088,7 @@ def test_get_platform_tools_recovers_non_configurable_toolsets_from_composite():
     }
 
     with mock_patch("hermes_cli.tools_config.PLATFORMS", {**PLATFORMS, **test_platforms}):
-        with mock_patch("toolsets.TOOLSETS", fake_toolsets):
+        with mock_patch("hermes_runtime.toolsets.TOOLSETS", fake_toolsets):
             enabled = _get_platform_tools({}, "_test_platform")
 
     assert "_test_platform_tool" in enabled

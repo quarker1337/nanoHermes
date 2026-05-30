@@ -39,7 +39,7 @@ def test_make_agent_passes_resolved_provider():
             "hermes_cli.runtime_provider.resolve_runtime_provider",
             return_value=fake_runtime,
         ) as mock_resolve,
-        patch("run_agent.AIAgent") as mock_agent,
+        patch("hermes_runtime.run_agent.AIAgent") as mock_agent,
     ):
 
         from tui_gateway.server import _make_agent
@@ -89,7 +89,7 @@ def test_make_agent_ignores_display_personality_without_system_prompt():
             "hermes_cli.runtime_provider.resolve_runtime_provider",
             return_value=fake_runtime,
         ),
-        patch("run_agent.AIAgent") as mock_agent,
+        patch("hermes_runtime.run_agent.AIAgent") as mock_agent,
     ):
         from tui_gateway.server import _make_agent
 
@@ -126,7 +126,7 @@ def test_make_agent_honors_tui_launch_env_flags():
             "hermes_cli.runtime_provider.resolve_runtime_provider",
             return_value=fake_runtime,
         ),
-        patch("run_agent.AIAgent") as mock_agent,
+        patch("hermes_runtime.run_agent.AIAgent") as mock_agent,
     ):
         from tui_gateway.server import _make_agent
 
@@ -191,7 +191,7 @@ def test_make_agent_tolerates_null_config_sections():
             "hermes_cli.runtime_provider.resolve_runtime_provider",
             return_value=fake_runtime,
         ),
-        patch("run_agent.AIAgent") as mock_agent,
+        patch("hermes_runtime.run_agent.AIAgent") as mock_agent,
     ):
 
         from tui_gateway.server import _make_agent
@@ -220,12 +220,12 @@ def test_make_agent_tolerates_null_personalities_with_active_personality():
     with (
         patch("tui_gateway.server._load_cfg", return_value=cfg),
         patch("tui_gateway.server._get_db", return_value=MagicMock()),
-        patch("cli.load_cli_config", return_value={"agent": {"personalities": None}}),
+        patch("hermes_runtime.cli.load_cli_config", return_value={"agent": {"personalities": None}}),
         patch(
             "hermes_cli.runtime_provider.resolve_runtime_provider",
             return_value=fake_runtime,
         ),
-        patch("run_agent.AIAgent") as mock_agent,
+        patch("hermes_runtime.run_agent.AIAgent") as mock_agent,
     ):
         from tui_gateway.server import _make_agent
 

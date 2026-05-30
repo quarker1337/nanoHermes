@@ -49,7 +49,7 @@ class TestStepCallbackNormalization:
         """When prev_tools is list[dict], tool_names should be list[str]."""
         cb, events, loop = self._extract_step_callback()
 
-        # Simulate the enriched format from run_agent.py
+        # Simulate the enriched format from runtime/hermes_runtime/run_agent.py
         prev_tools = [
             {"name": "terminal", "result": '{"output": "hello"}'},
             {"name": "read_file", "result": '{"content": "..."}'},

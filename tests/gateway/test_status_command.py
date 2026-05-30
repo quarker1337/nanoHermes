@@ -127,7 +127,7 @@ async def test_status_command_includes_session_title_when_present():
 @pytest.mark.asyncio
 async def test_status_command_reads_token_totals_from_session_db():
     """Regression test for #17158: /status must source token totals from the
-    SQLite SessionDB (where run_agent.py persists them) and sum all component
+    SQLite SessionDB (where runtime/hermes_runtime/run_agent.py persists them) and sum all component
     counts, not from SessionEntry (which the agent never writes)."""
     session_entry = SessionEntry(
         session_key=build_session_key(_make_source()),

@@ -37,7 +37,7 @@ def fake_hermes(tmp_path, monkeypatch):
 
     monkeypatch.setenv("HERMES_HOME", str(sec_home))
 
-    import hermes_constants
+    import hermes_runtime.hermes_constants as hermes_constants
     monkeypatch.setattr(hermes_constants, "get_default_hermes_root", lambda: root)
 
     import agent.file_safety as fs

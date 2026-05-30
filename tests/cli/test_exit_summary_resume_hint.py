@@ -3,7 +3,7 @@
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-from cli import HermesCLI
+from hermes_runtime.cli import HermesCLI
 
 
 def _make_cli(session_id="20260524_000001_abc123"):

@@ -779,7 +779,7 @@ def reset_file_dedup(task_id: str = None):
 def notify_other_tool_call(task_id: str = "default"):
     """Reset consecutive read/search counter for a task.
 
-    Called by the tool dispatcher (model_tools.py) whenever a tool OTHER
+    Called by the tool dispatcher (runtime/hermes_runtime/model_tools.py) whenever a tool OTHER
     than read_file / search_files is executed.  This ensures we only warn
     or block on *truly consecutive* repeated reads — if the agent does
     anything else in between (write, patch, terminal, etc.) the counter

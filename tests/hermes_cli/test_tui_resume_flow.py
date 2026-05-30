@@ -670,7 +670,7 @@ def test_oneshot_all_toolsets_warns_about_ignored_extra_entries(monkeypatch, cap
 
 
 def test_oneshot_accepts_plugin_toolset_after_discovery(monkeypatch):
-    import toolsets
+    import hermes_runtime.toolsets as toolsets
 
     from hermes_cli.oneshot import _validate_explicit_toolsets
 

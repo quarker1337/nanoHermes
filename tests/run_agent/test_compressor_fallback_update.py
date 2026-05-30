@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from run_agent import AIAgent
+from hermes_runtime.run_agent import AIAgent
 from agent.context_compressor import ContextCompressor
 
 

@@ -104,8 +104,8 @@ class TestWebServerEndpoints:
         except ImportError:
             pytest.skip("fastapi/starlette not installed")
 
-        import hermes_state
-        from hermes_constants import get_hermes_home
+        import hermes_runtime.hermes_state as hermes_state
+        from hermes_runtime.hermes_constants import get_hermes_home
         from hermes_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
 
         monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", get_hermes_home() / "state.db")
@@ -557,8 +557,8 @@ class TestNewEndpoints:
         except ImportError:
             pytest.skip("fastapi/starlette not installed")
 
-        import hermes_state
-        from hermes_constants import get_hermes_home
+        import hermes_runtime.hermes_state as hermes_state
+        from hermes_runtime.hermes_constants import get_hermes_home
         from hermes_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
 
         monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", get_hermes_home() / "state.db")
@@ -590,7 +590,7 @@ class TestNewEndpoints:
     # --- Profiles ---
 
     def test_profiles_list_includes_default(self):
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
         get_hermes_home().mkdir(parents=True, exist_ok=True)
 
         resp = self.client.get("/api/profiles")
@@ -599,7 +599,7 @@ class TestNewEndpoints:
         assert "default" in names
 
     def test_profiles_list_falls_back_when_profile_listing_fails(self, monkeypatch):
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
         import hermes_cli.profiles as profiles_mod
 
         hermes_home = get_hermes_home()
@@ -654,7 +654,7 @@ class TestNewEndpoints:
         assert "test-prof-2" not in names
 
     def test_profile_setup_command_uses_named_profile_wrapper(self):
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
 
         (get_hermes_home() / "profiles" / "coder").mkdir(parents=True)
 
@@ -664,7 +664,7 @@ class TestNewEndpoints:
         assert resp.json()["command"] == "coder setup"
 
     def test_profile_setup_command_uses_hermes_for_default_profile(self):
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
 
         get_hermes_home().mkdir(parents=True, exist_ok=True)
 
@@ -691,7 +691,7 @@ class TestNewEndpoints:
         assert wrapper_path.read_text() == '#!/bin/sh\nexec hermes -p writer "$@"\n'
 
     def test_profiles_create_with_clone_from_default_copies_default_skills(self, monkeypatch):
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
         import hermes_cli.profiles as profiles_mod
 
         monkeypatch.setattr(profiles_mod, "create_wrapper_script", lambda name: None)
@@ -711,7 +711,7 @@ class TestNewEndpoints:
         assert profiles["cloned"]["skill_count"] == 1
 
     def test_profiles_create_without_clone_seeds_bundled_skills(self, monkeypatch):
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
         import hermes_cli.profiles as profiles_mod
 
         monkeypatch.setattr(profiles_mod, "create_wrapper_script", lambda name: None)
@@ -736,7 +736,7 @@ class TestNewEndpoints:
         assert profiles["fresh"]["skill_count"] == 1
 
     def test_profile_open_terminal_uses_macos_terminal(self, monkeypatch):
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
         import hermes_cli.web_server as web_server
 
         (get_hermes_home() / "profiles" / "coder").mkdir(parents=True)
@@ -752,7 +752,7 @@ class TestNewEndpoints:
         assert "coder setup" in " ".join(calls[0])
 
     def test_profile_open_terminal_uses_windows_cmd(self, monkeypatch):
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
         import hermes_cli.web_server as web_server
 
         (get_hermes_home() / "profiles" / "coder").mkdir(parents=True)
@@ -861,7 +861,7 @@ class TestNewEndpoints:
 
     def test_toolsets_list_matches_cli_enabled_state(self, monkeypatch):
         import hermes_cli.tools_config as tools_config
-        import toolsets as toolsets_module
+        import hermes_runtime.toolsets as toolsets_module
         import hermes_cli.web_server as web_server
 
         monkeypatch.setattr(
@@ -969,7 +969,7 @@ class TestNewEndpoints:
         }
 
     def test_analytics_usage_includes_skill_breakdown(self):
-        from hermes_state import SessionDB
+        from hermes_runtime.hermes_state import SessionDB
 
         db = SessionDB()
         try:
@@ -1833,8 +1833,8 @@ class TestPluginAPIAuth:
         except ImportError:
             pytest.skip("fastapi/starlette not installed")
 
-        import hermes_state
-        from hermes_constants import get_hermes_home
+        import hermes_runtime.hermes_state as hermes_state
+        from hermes_runtime.hermes_constants import get_hermes_home
         from hermes_cli.web_server import app, _SESSION_HEADER_NAME, _SESSION_TOKEN
 
         monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", get_hermes_home() / "state.db")

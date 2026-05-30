@@ -20,7 +20,7 @@ Hermes 刻意将以下内容分离：
 
 主要文件：
 
-- `run_agent.py`
+- `runtime/hermes_runtime/run_agent.py`
 - `agent/prompt_builder.py`
 - `tools/memory_tool.py`
 

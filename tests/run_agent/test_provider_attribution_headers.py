@@ -2,10 +2,10 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from run_agent import AIAgent
+from hermes_runtime.run_agent import AIAgent
 
 
-@patch("run_agent.OpenAI")
+@patch("hermes_runtime.run_agent.OpenAI")
 def test_openrouter_base_url_applies_or_headers(mock_openai):
     mock_openai.return_value = MagicMock()
     agent = AIAgent(
@@ -24,7 +24,7 @@ def test_openrouter_base_url_applies_or_headers(mock_openai):
     assert headers["X-Title"] == "Hermes Agent"
 
 
-@patch("run_agent.OpenAI")
+@patch("hermes_runtime.run_agent.OpenAI")
 def test_routermint_base_url_applies_user_agent_header(mock_openai):
     mock_openai.return_value = MagicMock()
     agent = AIAgent(
@@ -42,7 +42,7 @@ def test_routermint_base_url_applies_user_agent_header(mock_openai):
     assert headers["User-Agent"].startswith("HermesAgent/")
 
 
-@patch("run_agent.OpenAI")
+@patch("hermes_runtime.run_agent.OpenAI")
 def test_nvidia_cloud_base_url_applies_billing_origin_header(mock_openai):
     mock_openai.return_value = MagicMock()
     agent = AIAgent(
@@ -63,7 +63,7 @@ def test_nvidia_cloud_base_url_applies_billing_origin_header(mock_openai):
     assert headers["X-BILLING-INVOKE-ORIGIN"] == "HermesAgent"
 
 
-@patch("run_agent.OpenAI")
+@patch("hermes_runtime.run_agent.OpenAI")
 def test_nvidia_local_base_url_does_not_apply_billing_origin_header(mock_openai):
     mock_openai.return_value = MagicMock()
     agent = AIAgent(
@@ -84,7 +84,7 @@ def test_nvidia_local_base_url_does_not_apply_billing_origin_header(mock_openai)
     assert "default_headers" not in agent._client_kwargs
 
 
-@patch("run_agent.OpenAI")
+@patch("hermes_runtime.run_agent.OpenAI")
 def test_routed_client_preserves_openai_sdk_custom_headers(mock_openai):
     mock_openai.return_value = MagicMock()
     routed_client = SimpleNamespace(
@@ -109,7 +109,7 @@ def test_routed_client_preserves_openai_sdk_custom_headers(mock_openai):
     assert headers["X-BILLING-INVOKE-ORIGIN"] == "HermesAgent"
 
 
-@patch("run_agent.OpenAI")
+@patch("hermes_runtime.run_agent.OpenAI")
 def test_gmi_base_url_picks_up_profile_user_agent(mock_openai):
     """GMI declares User-Agent on its ProviderProfile.default_headers.
 
@@ -134,7 +134,7 @@ def test_gmi_base_url_picks_up_profile_user_agent(mock_openai):
     assert headers["User-Agent"].startswith("HermesAgent/")
 
 
-@patch("run_agent.OpenAI")
+@patch("hermes_runtime.run_agent.OpenAI")
 def test_unknown_base_url_clears_default_headers(mock_openai):
     mock_openai.return_value = MagicMock()
     agent = AIAgent(
@@ -152,7 +152,7 @@ def test_unknown_base_url_clears_default_headers(mock_openai):
     assert "default_headers" not in agent._client_kwargs
 
 
-@patch("run_agent.OpenAI")
+@patch("hermes_runtime.run_agent.OpenAI")
 def test_openrouter_headers_include_response_cache_when_enabled(mock_openai):
     """When openrouter.response_cache is True, the cache header is injected."""
     mock_openai.return_value = MagicMock()
@@ -176,7 +176,7 @@ def test_openrouter_headers_include_response_cache_when_enabled(mock_openai):
     assert headers["X-OpenRouter-Cache-TTL"] == "600"
 
 
-@patch("run_agent.OpenAI")
+@patch("hermes_runtime.run_agent.OpenAI")
 def test_openrouter_headers_no_cache_when_disabled(mock_openai):
     """When openrouter.response_cache is False, no cache headers are sent."""
     mock_openai.return_value = MagicMock()

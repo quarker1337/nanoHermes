@@ -14,7 +14,7 @@ Covered:
     clients inherit Entra auth.
   * ``_truncate_token`` (dashboard preview) renders ``"<entra-id-bearer>"``
     instead of ``"<function ...>"`` and never invokes the callable.
-  * ``run_agent.py`` masked-banner path renders the Entra placeholder
+  * ``runtime/hermes_runtime/run_agent.py`` masked-banner path renders the Entra placeholder
     and never tries to slice/len the callable.
   * Serialization scrub: dumping a runtime dict via ``json.dumps`` with
     a callable api_key raises (default behaviour) — guards against
@@ -51,11 +51,11 @@ class TestCreateOpenAIClientCallable:
             return MagicMock(api_key=kwargs.get("api_key"))
 
         # Patch the module-level OpenAI proxy used by ``_create_openai_client``.
-        monkeypatch.setattr("run_agent.OpenAI", fake_openai)
+        monkeypatch.setattr("hermes_runtime.run_agent.OpenAI", fake_openai)
 
         # Build a minimal stand-in for AIAgent so we can call the bound
         # method directly without paying the full __init__ cost.
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         agent = AIAgent.__new__(AIAgent)
         # Attributes consulted by _create_openai_client / _client_log_context.
@@ -247,7 +247,7 @@ class TestBatchRunnerCallableHandling:
         importing avoids spinning up the full BatchRunner."""
         from pathlib import Path
         src = (Path(__file__).resolve().parent.parent.parent
-               / "batch_runner.py").read_text()
+               / "runtime/hermes_runtime/batch_runner.py").read_text()
         assert "callable(self.api_key) and not isinstance(self.api_key, str)" in src, (
             "BatchRunner.api_key callable check changed — update test or "
             "verify the new predicate still routes Entra token providers "
@@ -261,7 +261,7 @@ class TestBatchRunnerCallableHandling:
 
 
 class TestCliEnsureRuntimeCredentialsCallable:
-    """Regression: ``cli.py:_ensure_runtime_credentials`` previously
+    """Regression: ``runtime/hermes_runtime/cli.py:_ensure_runtime_credentials`` previously
     treated a callable ``api_key`` as "not a string" and overwrote it
     with the ``"no-key-required"`` placeholder, which then got sent as
     ``Authorization: Bearer no-key-required`` and rejected by Azure
@@ -276,11 +276,11 @@ class TestCliEnsureRuntimeCredentialsCallable:
     def test_callable_predicate_present_in_cli_runtime_validation(self):
         from pathlib import Path
         src = (Path(__file__).resolve().parent.parent.parent
-               / "cli.py").read_text()
+               / "runtime/hermes_runtime/cli.py").read_text()
         # The fix introduces ``_is_callable_provider`` which gates the
         # string-only check so callable token providers survive.
         assert "_is_callable_provider = callable(api_key)" in src, (
-            "cli.py:_ensure_runtime_credentials must preserve a callable "
+            "runtime/hermes_runtime/cli.py:_ensure_runtime_credentials must preserve a callable "
             "api_key (Entra ID bearer provider). Without the guard, the "
             "callable is stringified to 'no-key-required' and Azure 401s."
         )
@@ -324,14 +324,14 @@ class TestInlinedDisplayMasks:
         run_agent banners."""
         from pathlib import Path
         src = (Path(__file__).resolve().parent.parent.parent
-               / "cli.py").read_text()
+               / "runtime/hermes_runtime/cli.py").read_text()
         assert "is_token_provider(self.api_key)" in src, (
-            "cli.HermesCLI.show_config must guard self.api_key via "
+            "hermes_runtime.cli.HermesCLI.show_config must guard self.api_key via "
             "is_token_provider so callable Entra ID providers don't "
             "crash /config."
         )
         assert '"Microsoft Entra ID"' in src, (
-            "cli.HermesCLI.show_config must print the static "
+            "hermes_runtime.cli.HermesCLI.show_config must print the static "
             "'Microsoft Entra ID' label (matching run_agent banners) "
             "instead of attempting to slice the callable."
         )
@@ -345,13 +345,13 @@ class TestInlinedDisplayMasks:
         ``len(callable)``."""
         from pathlib import Path
         src = (Path(__file__).resolve().parent.parent.parent
-               / "run_agent.py").read_text()
+               / "runtime/hermes_runtime/run_agent.py").read_text()
         # The function now starts with a callable check.
         assert (
             "if callable(key) and not isinstance(key, str):" in src
             and '"<entra-id-bearer>"' in src
         ), (
-            "run_agent._mask_api_key_for_logs must short-circuit for "
+            "hermes_runtime.run_agent._mask_api_key_for_logs must short-circuit for "
             "callable api_keys to avoid len(callable) crashes in "
             "request-dump paths."
         )

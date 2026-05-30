@@ -139,7 +139,7 @@ def _make_signal_handler(logger, agent_state):
 
     The real handler is defined as a closure inside ``CLI._run_interactive``;
     we reconstruct an equivalent here so the unit tests don't need a full
-    CLI instance.  Mirrors cli.py:_signal_handler as of #13710 regression
+    CLI instance.  Mirrors runtime/hermes_runtime/cli.py:_signal_handler as of #13710 regression
     fix — guarded logger.debug + agent interrupt + KeyboardInterrupt.
     """
     def _signal_handler(signum, frame):

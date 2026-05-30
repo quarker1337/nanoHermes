@@ -7,7 +7,7 @@ from queue import Queue
 import subprocess
 from unittest.mock import patch
 
-from cli import HermesCLI
+from hermes_runtime.cli import HermesCLI
 from hermes_cli.browser_connect import (
     get_chrome_debug_candidates,
     is_browser_debug_ready,
@@ -238,7 +238,7 @@ class TestChromeDebugLaunch:
         cli._pending_input = Queue()
         monkeypatch.delenv("BROWSER_CDP_URL", raising=False)
 
-        with patch("cli.is_browser_debug_ready", return_value=True), \
+        with patch("hermes_runtime.cli.is_browser_debug_ready", return_value=True), \
              patch("tools.browser_tool.cleanup_all_browsers"), \
              patch("tools.browser_tool._ensure_cdp_supervisor"), \
              redirect_stdout(StringIO()):

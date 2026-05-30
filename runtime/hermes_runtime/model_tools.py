@@ -5,14 +5,14 @@ Model Tools Module
 Thin orchestration layer over the tool registry. Each tool file in tools/
 self-registers its schema, handler, and metadata via tools.registry.register().
 This module triggers discovery (by importing all tool modules), then provides
-the public API that run_agent.py, cli.py, batch_runner.py, and the RL
+the public API that runtime/hermes_runtime/run_agent.py, runtime/hermes_runtime/cli.py, runtime/hermes_runtime/batch_runner.py, and the RL
 environments consume.
 
 Public API (signatures preserved from the original 2,400-line version):
     get_tool_definitions(enabled_toolsets, disabled_toolsets, quiet_mode) -> list
     handle_function_call(function_name, function_args, task_id, user_task) -> str
-    TOOL_TO_TOOLSET_MAP: dict          (for batch_runner.py)
-    TOOLSET_REQUIREMENTS: dict         (for cli.py, doctor.py)
+    TOOL_TO_TOOLSET_MAP: dict          (for runtime/hermes_runtime/batch_runner.py)
+    TOOLSET_REQUIREMENTS: dict         (for runtime/hermes_runtime/cli.py, doctor.py)
     get_all_tool_names() -> list
     get_toolset_for_tool(name) -> str
     get_available_toolsets() -> dict
@@ -30,7 +30,7 @@ import time
 from typing import Dict, Any, List, Optional, Tuple
 
 from tools.registry import discover_builtin_tools, registry
-from toolsets import resolve_toolset, validate_toolset
+from hermes_runtime.toolsets import resolve_toolset, validate_toolset
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +188,7 @@ discover_builtin_tools()
 #
 # Each entry point now runs discovery explicitly at its own startup:
 #   - gateway/run.py            -> start_gateway() uses run_in_executor
-#   - cli.py, hermes_cli/*      -> inline on startup (no event loop)
+#   - runtime/hermes_runtime/cli.py, hermes_cli/*      -> inline on startup (no event loop)
 #   - tui_gateway/server.py     -> inline on startup (no event loop)
 #   - acp_adapter/server.py     -> asyncio.to_thread on session init
 
@@ -359,7 +359,7 @@ def _compute_tool_definitions(
                 print(f"⚠️  Unknown toolset: {toolset_name}")
     else:
         # Default: start with everything
-        from toolsets import get_all_toolsets
+        from hermes_runtime.toolsets import get_all_toolsets
         for ts_name in get_all_toolsets():
             tools_to_include.update(resolve_toolset(ts_name))
 
@@ -488,7 +488,7 @@ def _compute_tool_definitions(
 # handle_function_call  (the main dispatcher)
 # =============================================================================
 
-# Tools whose execution is intercepted by the agent loop (run_agent.py)
+# Tools whose execution is intercepted by the agent loop (runtime/hermes_runtime/run_agent.py)
 # because they need agent-level state (TodoStore, MemoryStore, etc.).
 # The registry still holds their schemas; dispatch just returns a stub error
 # so if something slips through, the LLM sees a sensible message.

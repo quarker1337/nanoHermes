@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import run_agent as run_agent_module
-from run_agent import AIAgent
+import hermes_runtime.run_agent as run_agent_module
+from hermes_runtime.run_agent import AIAgent
 
 
 def _bare_agent() -> AIAgent:

@@ -4,7 +4,7 @@ SWE Runner with Hermes Trajectory Format
 
 A runner that uses Hermes-Agent's built-in execution environments
 (local, docker, modal) and outputs trajectories in the Hermes-Agent format
-compatible with batch_runner.py and trajectory_compressor.py.
+compatible with runtime/hermes_runtime/batch_runner.py and runtime/hermes_runtime/trajectory_compressor.py.
 
 Features:
 - Uses Hermes-Agent's Docker, Modal, or Local environments for command execution
@@ -14,16 +14,16 @@ Features:
 
 Usage:
     # Run a single task with local environment
-    python mini_swe_runner.py --task "Create a hello world Python script" --env local
+    python scripts/mini_swe_runner.py --task "Create a hello world Python script" --env local
     
     # Run with Docker
-    python mini_swe_runner.py --task "List files in /tmp" --env docker --image python:3.11-slim
+    python scripts/mini_swe_runner.py --task "List files in /tmp" --env docker --image python:3.11-slim
     
     # Run with Modal (cloud)
-    python mini_swe_runner.py --task "Install numpy and test it" --env modal --image python:3.11-slim
+    python scripts/mini_swe_runner.py --task "Install numpy and test it" --env modal --image python:3.11-slim
     
     # Batch mode from JSONL file
-    python mini_swe_runner.py --prompts_file prompts.jsonl --output_file trajectories.jsonl --env docker
+    python scripts/mini_swe_runner.py --prompts_file prompts.jsonl --output_file trajectories.jsonl --env docker
 """
 
 import json
@@ -310,7 +310,7 @@ class MiniSWERunner:
         """
         Convert internal message format to Hermes trajectory format.
         
-        This produces the exact format used by batch_runner.py.
+        This produces the exact format used by runtime/hermes_runtime/batch_runner.py.
         """
         trajectory = []
         
@@ -666,13 +666,13 @@ def main(
         
     Examples:
         # Single task with local environment
-        python mini_swe_runner.py --task "Create hello.py that prints Hello World"
+        python scripts/mini_swe_runner.py --task "Create hello.py that prints Hello World"
         
         # Single task with Docker
-        python mini_swe_runner.py --task "List files" --env docker
+        python scripts/mini_swe_runner.py --task "List files" --env docker
         
         # Batch from file
-        python mini_swe_runner.py --prompts_file tasks.jsonl --output_file results.jsonl
+        python scripts/mini_swe_runner.py --prompts_file tasks.jsonl --output_file results.jsonl
     """
     print("🚀 Mini-SWE Runner with Hermes Trajectory Format")
     print("=" * 60)
@@ -724,7 +724,7 @@ def main(
     
     else:
         print("❌ Please provide either --task or --prompts_file")
-        print("   Example: python mini_swe_runner.py --task 'Create a hello world script'")
+        print("   Example: python scripts/mini_swe_runner.py --task 'Create a hello world script'")
 
 
 if __name__ == "__main__":

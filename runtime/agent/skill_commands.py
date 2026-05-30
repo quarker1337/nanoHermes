@@ -1,6 +1,6 @@
 """Shared slash command helpers for skills.
 
-Shared between CLI (cli.py) and gateway (gateway/run.py) so both surfaces
+Shared between CLI (runtime/hermes_runtime/cli.py) and gateway (gateway/run.py) so both surfaces
 can invoke skills via /skill-name commands.
 """
 
@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from hermes_constants import display_hermes_home
+from hermes_runtime.hermes_constants import display_hermes_home
 from agent.skill_preprocessing import (
     expand_inline_shell as _expand_inline_shell,
     load_skills_config as _load_skills_config,

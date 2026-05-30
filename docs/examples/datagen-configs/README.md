@@ -1,11 +1,11 @@
 # Data-generation config examples
 
-Examples for `batch_runner.py` and trajectory-compression workflows.
+Examples for `runtime/hermes_runtime/batch_runner.py` and trajectory-compression workflows.
 
 Run from the repository root unless an example says otherwise:
 
 ```bash
-python batch_runner.py --config docs/examples/datagen-configs/web_research.yaml --run_name web_research_v1
+python -m hermes_runtime.batch_runner --config docs/examples/datagen-configs/web_research.yaml --run_name web_research_v1
 bash docs/examples/datagen-configs/run_browser_tasks.sh
 ```
 

@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-import hermes_constants
-from hermes_constants import (
+import hermes_runtime.hermes_constants as hermes_constants
+from hermes_runtime.hermes_constants import (
     VALID_REASONING_EFFORTS,
     get_default_hermes_root,
     is_container,

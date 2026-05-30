@@ -313,7 +313,7 @@
 - Unit tests batch 2: 8 more modules ([#62](https://github.com/NousResearch/hermes-agent/pull/62)) — @0xbyt4
 - Unit tests batch 3: 8 untested modules ([#191](https://github.com/NousResearch/hermes-agent/pull/191)) — @0xbyt4
 - Unit tests batch 4: 5 security/logic-critical modules ([#193](https://github.com/NousResearch/hermes-agent/pull/193)) — @0xbyt4
-- AIAgent (run_agent.py) unit tests ([#67](https://github.com/NousResearch/hermes-agent/pull/67)) — @0xbyt4
+- AIAgent (runtime/hermes_runtime/run_agent.py) unit tests ([#67](https://github.com/NousResearch/hermes-agent/pull/67)) — @0xbyt4
 - Trajectory compressor tests ([#203](https://github.com/NousResearch/hermes-agent/pull/203)) — @0xbyt4
 - Clarify tool tests ([#121](https://github.com/NousResearch/hermes-agent/pull/121)) — @Bartok9
 - Telegram format tests — 43 tests for italic/bold/code rendering ([#204](https://github.com/NousResearch/hermes-agent/pull/204)) — @0xbyt4

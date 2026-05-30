@@ -8,7 +8,7 @@ streamGenerateContent}`` with a Bearer access token obtained via OAuth PKCE.
 Architecture
 ------------
 - ``GeminiCloudCodeClient`` exposes ``.chat.completions.create(**kwargs)``
-  mirroring the subset of the OpenAI SDK that ``run_agent.py`` uses.
+  mirroring the subset of the OpenAI SDK that ``runtime/hermes_runtime/run_agent.py`` uses.
 - Incoming OpenAI ``messages[]`` / ``tools[]`` / ``tool_choice`` are translated
   to Gemini's native ``contents[]`` / ``tools[].functionDeclarations`` /
   ``toolConfig`` / ``systemInstruction`` shape.

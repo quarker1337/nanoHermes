@@ -107,7 +107,7 @@ TUI frontend (apps/tui/src/app/slash/)        <- 本地处理器 + fallthrough
 
 3. 确保 `subcommands` 与 TUI 显示的预期 tab 补全选项一致。
 
-4. 如果命令在服务端运行，在 `cli.py` 的 `HermesCLI.process_command()` 中添加处理器：
+4. 如果命令在服务端运行，在 `runtime/hermes_runtime/cli.py` 的 `HermesCLI.process_command()` 中添加处理器：
    ```python
    elif canonical == "commandname":
        self._handle_commandname(cmd_original)
@@ -125,7 +125,7 @@ TUI frontend (apps/tui/src/app/slash/)        <- 本地处理器 + fallthrough
 
 2. **命令在自动补全中显示但不工作。** 检查 `tui_gateway/server.py` 中的命令处理器，以及 `apps/tui/src/app/createSlashHandler.ts` 中的前端处理器。如果命令在 Ink 中是纯本地命令，必须在 `app.tsx` 的内置分支中处理；否则会 fallthrough 到 `slash.exec`，必须有对应的 Python 处理器。
 
-3. **命令在 CLI 和 TUI 之间行为不同。** 该命令可能有不同的实现。同时检查 `cli.py::process_command` 和 TUI 的本地处理器。TUI 本地处理器优先于 gateway 分发。
+3. **命令在 CLI 和 TUI 之间行为不同。** 该命令可能有不同的实现。同时检查 `runtime/hermes_runtime/cli.py::process_command` 和 TUI 的本地处理器。TUI 本地处理器优先于 gateway 分发。
 
 4. **命令已持久化配置但未实时生效。** 对于 TUI 本地命令，仅更新 `config.set` 是不够的。还需立即修改相关的 nanostore 状态（通常是 `patchUiState(...)`），并将新状态传递给所有渲染组件。示例：`/details collapsed` 必须实时更新详情可见性，而不仅仅是保存 `details_mode`；会话内全局 `/details <mode>` 可能需要单独的命令覆盖标志，以便实时命令能覆盖内置分区默认值，同时启动/配置同步保留默认展开的 thinking/tools 行为。
 

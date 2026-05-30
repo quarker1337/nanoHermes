@@ -25,7 +25,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from utils import atomic_json_write, atomic_replace, atomic_yaml_write
+from hermes_runtime.utils import atomic_json_write, atomic_replace, atomic_yaml_write
 
 
 # ─── Direct helper ────────────────────────────────────────────────────────────

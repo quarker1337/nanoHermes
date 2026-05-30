@@ -1,6 +1,6 @@
 """The agent conversation loop — extracted from ``run_agent.AIAgent``.
 
-This is the biggest single chunk pulled out of ``run_agent.py``: the
+This is the biggest single chunk pulled out of ``runtime/hermes_runtime/run_agent.py``: the
 roughly 3,900-line :func:`run_conversation` body that drives one user
 turn through the agent (model call, tool dispatch, retries, fallbacks,
 compression, post-turn hooks, background memory/skill review nudges).
@@ -56,10 +56,10 @@ from agent.prompt_caching import apply_anthropic_cache_control
 from agent.retry_utils import jittered_backoff
 from agent.trajectory import has_incomplete_scratchpad
 from agent.usage_pricing import estimate_usage_cost, normalize_usage
-from hermes_constants import PARTIAL_STREAM_STUB_ID
-from hermes_logging import set_session_context
+from hermes_runtime.hermes_constants import PARTIAL_STREAM_STUB_ID
+from hermes_runtime.hermes_logging import set_session_context
 from tools.skill_provenance import set_current_write_origin
-from utils import base_url_host_matches, env_var_enabled
+from hermes_runtime.utils import base_url_host_matches, env_var_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +113,7 @@ def _ra():
     ``run_agent.handle_function_call`` / ``run_agent._set_interrupt`` /
     ``run_agent.OpenAI`` and have those patches reach this code path.
     """
-    import run_agent
+    import hermes_runtime.run_agent as run_agent
     return run_agent
 
 
@@ -2337,7 +2337,7 @@ def run_conversation(
                     # Credential refresh didn't help — show diagnostic info.
                     # Most common causes: Portal OAuth expired/revoked,
                     # account out of credits, or agent key blocked.
-                    from hermes_constants import display_hermes_home as _dhh_fn
+                    from hermes_runtime.hermes_constants import display_hermes_home as _dhh_fn
                     _dhh = _dhh_fn()
                     _body_text = ""
                     try:
@@ -2394,7 +2394,7 @@ def run_conversation(
                         print(f"{agent.log_prefix}   Auth method: {auth_method}")
                         print(f"{agent.log_prefix}   Token prefix: {key[:12]}..." if isinstance(key, str) and len(key) > 12 else f"{agent.log_prefix}   Token: (empty or short)")
                     print(f"{agent.log_prefix}   Troubleshooting:")
-                    from hermes_constants import display_hermes_home as _dhh_fn
+                    from hermes_runtime.hermes_constants import display_hermes_home as _dhh_fn
                     _dhh = _dhh_fn()
                     print(f"{agent.log_prefix}     • Check ANTHROPIC_TOKEN in {_dhh}/.env for Hermes-managed OAuth/setup tokens")
                     print(f"{agent.log_prefix}     • Check ANTHROPIC_API_KEY in {_dhh}/.env for API keys or legacy token values")

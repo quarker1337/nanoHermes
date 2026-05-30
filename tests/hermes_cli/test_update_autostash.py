@@ -257,7 +257,7 @@ def test_restore_stashed_changes_auto_resets_non_interactive(monkeypatch, tmp_pa
         if cmd[1:3] == ["stash", "apply"]:
             return SimpleNamespace(stdout="applied\n", stderr="", returncode=0)
         if cmd[1:3] == ["diff", "--name-only"]:
-            return SimpleNamespace(stdout="cli.py\n", stderr="", returncode=0)
+            return SimpleNamespace(stdout="runtime/hermes_runtime/cli.py\n", stderr="", returncode=0)
         if cmd[1:3] == ["reset", "--hard"]:
             return SimpleNamespace(stdout="", stderr="", returncode=0)
         raise AssertionError(f"unexpected command: {cmd}")

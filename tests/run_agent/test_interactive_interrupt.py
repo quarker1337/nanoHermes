@@ -23,7 +23,7 @@ log = logging.getLogger("interrupt_test")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from unittest.mock import MagicMock, patch
-from run_agent import AIAgent, IterationBudget
+from hermes_runtime.run_agent import AIAgent, IterationBudget
 from tools.interrupt import set_interrupt
 
 def make_slow_response(delay=2.0):
@@ -96,10 +96,10 @@ def main() -> int:
     agent_result = [None]
 
     def agent_thread_func():
-        """Simulates the agent_thread in cli.py's chat() method."""
+        """Simulates the agent_thread in runtime/hermes_runtime/cli.py's chat() method."""
         log.info("🟢 agent_thread starting")
 
-        with patch("run_agent.OpenAI") as MockOpenAI:
+        with patch("hermes_runtime.run_agent.OpenAI") as MockOpenAI:
             mock_client = MagicMock()
             mock_client.chat.completions.create = make_slow_response(delay=3.0)
             mock_client.close = MagicMock()

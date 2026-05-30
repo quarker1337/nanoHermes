@@ -26,7 +26,7 @@ from types import SimpleNamespace
 from typing import Any, Dict, Optional
 
 from hermes_cli.timeouts import get_provider_request_timeout, get_provider_stale_timeout
-from hermes_constants import PARTIAL_STREAM_STUB_ID, FINISH_REASON_LENGTH
+from hermes_runtime.hermes_constants import PARTIAL_STREAM_STUB_ID, FINISH_REASON_LENGTH
 from agent.error_classifier import FailoverReason
 from agent.model_metadata import is_local_endpoint
 from agent.message_sanitization import (
@@ -34,7 +34,7 @@ from agent.message_sanitization import (
     _repair_tool_call_arguments,
 )
 from tools.terminal_tool import is_persistent_env
-from utils import base_url_host_matches, base_url_hostname
+from hermes_runtime.utils import base_url_host_matches, base_url_hostname
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +43,10 @@ def _ra():
     """Lazy ``run_agent`` reference.
 
     Used to honor test patches like
-    ``patch("run_agent.cleanup_vm")`` / ``patch("run_agent.cleanup_browser")``
+    ``patch("hermes_runtime.run_agent.cleanup_vm")`` / ``patch("hermes_runtime.run_agent.cleanup_browser")``
     that target symbols imported into ``run_agent``'s namespace.
     """
-    import run_agent
+    import hermes_runtime.run_agent as run_agent
     return run_agent
 
 
@@ -815,7 +815,7 @@ def build_assistant_message(agent, assistant_message, finish_reason: str) -> dic
         # When streaming is NOT active, always fire so non-streaming modes
         # (gateway, batch, quiet) still get reasoning.
         # Any reasoning that wasn't shown during streaming is caught by the
-        # CLI post-response display fallback (cli.py _reasoning_shown_this_turn).
+        # CLI post-response display fallback (runtime/hermes_runtime/cli.py _reasoning_shown_this_turn).
         if not agent.stream_delta_callback and not agent._stream_callback:
             try:
                 agent.reasoning_callback(reasoning_text)

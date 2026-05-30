@@ -21,7 +21,7 @@ from unittest.mock import MagicMock, patch
 class TestCompressionBoundaryHook:
     def _make_agent(self, session_db):
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
-            from run_agent import AIAgent
+            from hermes_runtime.run_agent import AIAgent
             return AIAgent(
                 api_key="test-key",
                 base_url="https://openrouter.ai/api/v1",
@@ -34,7 +34,7 @@ class TestCompressionBoundaryHook:
             )
 
     def test_on_session_start_called_with_compression_boundary(self):
-        from hermes_state import SessionDB
+        from hermes_runtime.hermes_state import SessionDB
 
         with tempfile.TemporaryDirectory() as tmpdir:
             db = SessionDB(db_path=Path(tmpdir) / "test.db")
@@ -92,7 +92,7 @@ class TestCompressionBoundaryHook:
 
     def test_no_hook_when_no_session_db(self):
         """Without session_db, session_id does not rotate and the hook is not fired."""
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
             agent = AIAgent(
                 api_key="test-key",
@@ -129,7 +129,7 @@ class TestCompressionBoundaryHook:
 
     def test_hook_failure_does_not_break_compression(self):
         """If the context engine raises from on_session_start, compression still completes."""
-        from hermes_state import SessionDB
+        from hermes_runtime.hermes_state import SessionDB
 
         with tempfile.TemporaryDirectory() as tmpdir:
             db = SessionDB(db_path=Path(tmpdir) / "test.db")

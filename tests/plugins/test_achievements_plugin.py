@@ -123,9 +123,14 @@ def _install_fake_session_db(plugin_api, fake_db):
     ``sys.modules['hermes_state']`` swap is auto-restored at test teardown
     and cannot leak into unrelated tests in the same xdist worker.
     """
-    fake_module = type(sys)("hermes_state")
+    # hermes-achievements imports SessionDB from the relocated runtime module;
+    # also provide the legacy key for older import paths used by downstreams.
+    fake_module = type(sys)("hermes_runtime.hermes_state")
     fake_module.SessionDB = lambda: fake_db
-    plugin_api._test_monkeypatch.setitem(sys.modules, "hermes_state", fake_module)
+    plugin_api._test_monkeypatch.setitem(sys.modules, "hermes_runtime.hermes_state", fake_module)
+    legacy_module = type(sys)("hermes_state")
+    legacy_module.SessionDB = lambda: fake_db
+    plugin_api._test_monkeypatch.setitem(sys.modules, "hermes_state", legacy_module)
 
 
 def test_scan_sessions_default_scans_all_history_not_first_200(plugin_api):

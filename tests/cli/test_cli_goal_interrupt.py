@@ -41,7 +41,7 @@ def hermes_home(tmp_path, monkeypatch):
 
 def _make_cli_with_goal(session_id: str, goal_text: str = "build a thing"):
     """Build a minimal HermesCLI stub with an active goal wired in."""
-    from cli import HermesCLI
+    from hermes_runtime.cli import HermesCLI
     from hermes_cli.goals import GoalManager
 
     cli = HermesCLI.__new__(HermesCLI)
@@ -207,7 +207,7 @@ class TestInterruptFlagLifecycle:
         # We can't run chat() end-to-end here, but we can assert the reset
         # is the first thing after the secret-capture registration by
         # inspecting the source shape.
-        from cli import HermesCLI
+        from hermes_runtime.cli import HermesCLI
         import inspect
 
         src = inspect.getsource(HermesCLI.chat)

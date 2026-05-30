@@ -12,7 +12,7 @@ Registration:
   Plugins ship in plugins/memory/<name>/ and are activated via
   the memory.provider config key.
 
-Lifecycle (called by MemoryManager, wired in run_agent.py):
+Lifecycle (called by MemoryManager, wired in runtime/hermes_runtime/run_agent.py):
   initialize()          — connect, create resources, warm up
   system_prompt_block()  — static text for the system prompt
   prefetch(query)        — background recall before each turn

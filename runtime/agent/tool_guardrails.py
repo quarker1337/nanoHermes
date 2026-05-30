@@ -13,7 +13,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
-from utils import safe_json_loads
+from hermes_runtime.utils import safe_json_loads
 from agent.tool_result_classification import file_mutation_result_landed
 
 
@@ -191,7 +191,7 @@ def classify_tool_failure(tool_name: str, result: str | None) -> tuple[bool, str
 
     Mirrors ``agent.display._detect_tool_failure`` exactly so the guardrail
     never disagrees with the CLI's user-visible ``[error]`` tag. Production
-    callers in ``run_agent.py`` always pass an explicit ``failed=`` derived
+    callers in ``runtime/hermes_runtime/run_agent.py`` always pass an explicit ``failed=`` derived
     from ``_detect_tool_failure``; this function exists so standalone callers
     (tests, tooling) still get consistent behavior.
     """

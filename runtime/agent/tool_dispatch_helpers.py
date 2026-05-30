@@ -1,6 +1,6 @@
 """Tool-dispatch helpers — parallelism gating, multimodal envelopes, mutation tracking.
 
-Pure module-level utilities extracted from ``run_agent.py``:
+Pure module-level utilities extracted from ``runtime/hermes_runtime/run_agent.py``:
 
 * ``_is_destructive_command`` — terminal-command heuristic used to gate
   parallel batch dispatch.

@@ -148,7 +148,7 @@ reader has the source README.>
 ## Entry Points
 
 - [`path/to/main.py`](<link>) — <what runs when you start it>
-- [`path/to/cli.py`](<link>) — <CLI surface>
+- [`path/to/runtime/hermes_runtime/cli.py`](<link>) — <CLI surface>
 
 ## High-Level Architecture
 
@@ -307,8 +307,8 @@ sequenceDiagram
 
 ### Walkthrough
 
-1. **User input** — [`cli.py:HermesCLI.run_session`](<link>)
-2. **Message dispatch** — [`run_agent.py:AIAgent.chat`](<link>)
+1. **User input** — [`runtime/hermes_runtime/cli.py:HermesCLI.run_session`](<link>)
+2. **Message dispatch** — [`runtime/hermes_runtime/run_agent.py:AIAgent.chat`](<link>)
 ````
 
 Don't invent participants. Every box must correspond to a real component the reader can find in the code.

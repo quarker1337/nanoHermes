@@ -54,10 +54,10 @@ class TestGetRandomTip:
 
 
 class TestTipIntegrationInCLI:
-    """Test that the tip display code in cli.py works correctly."""
+    """Test that the tip display code in runtime/hermes_runtime/cli.py works correctly."""
 
     def test_tip_import_works(self):
-        """The import used in cli.py must succeed."""
+        """The import used in runtime/hermes_runtime/cli.py must succeed."""
         from hermes_cli.tips import get_random_tip
         assert callable(get_random_tip)
 

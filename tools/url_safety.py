@@ -29,7 +29,7 @@ import os
 import socket
 from urllib.parse import urlparse
 
-from utils import is_truthy_value
+from hermes_runtime.utils import is_truthy_value
 
 logger = logging.getLogger(__name__)
 

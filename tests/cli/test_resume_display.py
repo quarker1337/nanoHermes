@@ -10,15 +10,20 @@ import sys
 from io import StringIO
 from unittest.mock import MagicMock, patch
 
-import cli as cli_mod
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+
+def _cli_module():
+    import hermes_runtime
+    import hermes_runtime.cli as mod
+
+    hermes_runtime.cli = mod
+    return mod
 
 
 def _make_cli(config_overrides=None, env_overrides=None, **kwargs):
     """Create a HermesCLI instance with minimal mocking."""
-    import cli as _cli_mod
-    from cli import HermesCLI
+    _cli_mod = _cli_module()
 
     _clean_config = {
         "model": {
@@ -41,11 +46,11 @@ def _make_cli(config_overrides=None, env_overrides=None, **kwargs):
     if env_overrides:
         clean_env.update(env_overrides)
     with (
-        patch("cli.get_tool_definitions", return_value=[]),
+        patch("hermes_runtime.cli.get_tool_definitions", return_value=[]),
         patch.dict("os.environ", clean_env, clear=False),
         patch.dict(_cli_mod.__dict__, {"CLI_CONFIG": _clean_config}),
     ):
-        return HermesCLI(**kwargs)
+        return _cli_mod.HermesCLI(**kwargs)
 
 
 # ── Sample conversation histories for tests ──────────────────────────
@@ -157,7 +162,7 @@ class TestDisplayResumedHistory:
         # Disable tool-only skip so the summary line is rendered for this fixture.
         cli = _make_cli(config_overrides={"display": {"resume_skip_tool_only": False}})
         cli.conversation_history = _tool_call_history()
-        import cli as _cli_mod
+        _cli_mod = _cli_module()
         # CLI_CONFIG is read at call-time inside _display_resumed_history, so
         # apply the override for the duration of the capture, not just at init.
         with patch.dict(_cli_mod.__dict__, {"CLI_CONFIG": {
@@ -309,17 +314,18 @@ class TestDisplayResumedHistory:
     def test_panel_is_stored_as_resize_aware_history_entry(self):
         cli = _make_cli()
         cli.conversation_history = _simple_history()
-        cli_mod._configure_output_history(True, 10)
-        cli_mod._clear_output_history()
+        active_cli_mod = _cli_module()
+        active_cli_mod._configure_output_history(True, 10)
+        active_cli_mod._clear_output_history()
 
         try:
             output = self._capture_display(cli)
 
             assert "Previous Conversation" in output
-            assert len(cli_mod._OUTPUT_HISTORY) == 1
-            assert callable(cli_mod._OUTPUT_HISTORY[0])
+            assert len(active_cli_mod._OUTPUT_HISTORY) == 1
+            assert callable(active_cli_mod._OUTPUT_HISTORY[0])
         finally:
-            cli_mod._configure_output_history(True, 200)
+            active_cli_mod._configure_output_history(True, 200)
 
     def test_assistant_with_no_content_no_tools_skipped(self):
         """Assistant messages with no visible output (e.g. pure reasoning)
@@ -717,8 +723,8 @@ class TestResumeDisplayConfig:
         assert display["resume_display"] == "full"
 
     def test_cli_defaults_have_resume_display(self):
-        """cli.py load_cli_config defaults include resume_display."""
-        from cli import load_cli_config
+        """runtime/hermes_runtime/cli.py load_cli_config defaults include resume_display."""
+        from hermes_runtime.cli import load_cli_config
 
         with (
             patch("pathlib.Path.exists", return_value=False),

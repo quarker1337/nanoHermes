@@ -1,6 +1,6 @@
 """Oneshot (-z) mode: send a prompt, get the final content block, exit.
 
-Bypasses cli.py entirely.  No banner, no spinner, no session_id line,
+Bypasses runtime/hermes_runtime/cli.py entirely.  No banner, no spinner, no session_id line,
 no stderr chatter.  Just the agent's final text to stdout.
 
 Toolsets = explicit --toolsets when provided, otherwise whatever the user has
@@ -54,7 +54,7 @@ def _validate_explicit_toolsets(toolsets: object = None) -> tuple[list[str] | No
         return None, None
 
     try:
-        from toolsets import validate_toolset
+        from hermes_runtime.toolsets import validate_toolset
     except Exception as exc:
         return None, f"hermes -z: failed to validate --toolsets: {exc}\n"
 
@@ -207,7 +207,7 @@ def _create_session_db_for_oneshot():
     advertised but every call returns "Session database not available.".
     """
     try:
-        from hermes_state import SessionDB
+        from hermes_runtime.hermes_state import SessionDB
 
         return SessionDB()
     except Exception as exc:
@@ -230,7 +230,7 @@ def _run_agent(
     from hermes_cli.models import detect_provider_for_model
     from hermes_cli.runtime_provider import resolve_runtime_provider
     from hermes_cli.tools_config import _get_platform_tools
-    from run_agent import AIAgent
+    from hermes_runtime.run_agent import AIAgent
 
     cfg = load_config()
 

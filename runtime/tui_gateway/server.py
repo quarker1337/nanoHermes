@@ -15,9 +15,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from hermes_constants import get_hermes_home
+from hermes_runtime.hermes_constants import get_hermes_home
 from hermes_cli.env_loader import load_hermes_dotenv
-from utils import is_truthy_value
+from hermes_runtime.utils import is_truthy_value
 from tui_gateway.transport import (
     StdioTransport,
     Transport,
@@ -147,7 +147,7 @@ _DETAIL_MODES = frozenset({"hidden", "collapsed", "expanded"})
 _LONG_HANDLERS = frozenset(
     {
         "browser.manage",
-        "cli.exec",
+        "hermes_runtime.cli.exec",
         "session.branch",
         "session.compress",
         "session.resume",
@@ -342,7 +342,7 @@ atexit.register(_shutdown_sessions)
 def _get_db():
     global _db, _db_error
     if _db is None:
-        from hermes_state import SessionDB
+        from hermes_runtime.hermes_state import SessionDB
 
         try:
             _db = SessionDB()
@@ -897,7 +897,7 @@ def _display_mouse_tracking(display: dict) -> str:
 
 
 def _load_reasoning_config() -> dict | None:
-    from hermes_constants import parse_reasoning_effort
+    from hermes_runtime.hermes_constants import parse_reasoning_effort
 
     effort = str(
         (_load_cfg().get("agent") or {}).get("reasoning_effort", "") or ""
@@ -945,7 +945,7 @@ def _load_enabled_toolsets() -> list[str] | None:
     fallback_notice = None
 
     try:
-        from toolsets import validate_toolset
+        from hermes_runtime.toolsets import validate_toolset
     except Exception:
         validate_toolset = None
 
@@ -1456,7 +1456,7 @@ def _session_info(agent) -> dict:
     except Exception:
         pass
     try:
-        from model_tools import get_toolset_for_tool
+        from hermes_runtime.model_tools import get_toolset_for_tool
 
         for t in getattr(agent, "tools", []) or []:
             name = t["function"]["name"]
@@ -1837,7 +1837,7 @@ def _render_personality_prompt(value) -> str:
 
 def _available_personalities(cfg: dict | None = None) -> dict:
     try:
-        from cli import load_cli_config
+        from hermes_runtime.cli import load_cli_config
 
         return (load_cli_config().get("agent") or {}).get("personalities", {}) or {}
     except Exception:
@@ -2002,7 +2002,7 @@ def _reset_session_agent(sid: str, session: dict) -> dict:
 
 
 def _make_agent(sid: str, key: str, session_id: str | None = None):
-    from run_agent import AIAgent
+    from hermes_runtime.run_agent import AIAgent
     from hermes_cli.runtime_provider import resolve_runtime_provider
 
     cfg = _load_cfg()
@@ -2040,7 +2040,7 @@ def _make_agent(sid: str, key: str, session_id: str | None = None):
         quiet_mode=True,
         # verbose_logging controls DEBUG-level agent logging; it is intentionally
         # independent of tool_progress_mode (which only controls per-tool
-        # display detail).  See cli.py PR (decoupling fix) for the matching
+        # display detail).  See runtime/hermes_runtime/cli.py PR (decoupling fix) for the matching
         # change on the classic CLI side.
         verbose_logging=False,
         reasoning_config=_load_reasoning_config(),
@@ -2748,7 +2748,7 @@ def _(rid, params: dict) -> dict:
     if err:
         return err
 
-    from hermes_constants import display_hermes_home
+    from hermes_runtime.hermes_constants import display_hermes_home
 
     key = session.get("session_key") or params.get("session_id") or ""
     agent = session.get("agent")
@@ -3128,7 +3128,7 @@ def _(rid, params: dict) -> dict:
 
 
 def _spawn_trees_root():
-    from hermes_constants import get_hermes_home
+    from hermes_runtime.hermes_constants import get_hermes_home
 
     root = get_hermes_home() / "spawn-trees"
     root.mkdir(parents=True, exist_ok=True)
@@ -3648,7 +3648,7 @@ def _run_prompt_submit(rid, sid: str, session: dict, text: Any) -> None:
                 # When the backend produced no visible response AND reported a
                 # real error (e.g. invalid model slug → provider 4xx), surface
                 # that error as the visible text instead of shipping an empty
-                # turn to Ink. Mirrors classic CLI behavior at cli.py where
+                # turn to Ink. Mirrors classic CLI behavior at runtime/hermes_runtime/cli.py where
                 # (failed|partial) + no final_response → "Error: <detail>".
                 # Leaves the None-with-no-error path untouched: an empty
                 # successful turn still renders as empty, and the existing
@@ -3764,7 +3764,7 @@ def _run_prompt_submit(rid, sid: str, session: dict, text: Any) -> None:
                     pass
 
             # CLI parity: when voice-mode TTS is on, speak the agent reply
-            # (cli.py:_voice_speak_response).  Only the final text — tool
+            # (runtime/hermes_runtime/cli.py:_voice_speak_response).  Only the final text — tool
             # calls / reasoning already stream separately and would be
             # noisy to read aloud.
             if (
@@ -3921,7 +3921,7 @@ def _(rid, params: dict) -> dict:
     if not raw:
         return _err(rid, 4015, "path required")
     try:
-        from cli import (
+        from hermes_runtime.cli import (
             _IMAGE_EXTENSIONS,
             _detect_file_drop,
             _resolve_attachment_path,
@@ -3961,7 +3961,7 @@ def _(rid, params: dict) -> dict:
     if err:
         return err
     try:
-        from cli import _detect_file_drop
+        from hermes_runtime.cli import _detect_file_drop
 
         raw = str(params.get("text", "") or "")
         dropped = _detect_file_drop(raw)
@@ -4015,7 +4015,7 @@ def _(rid, params: dict) -> dict:
     def run():
         session_tokens = _set_session_context(task_id)
         try:
-            from run_agent import AIAgent
+            from hermes_runtime.run_agent import AIAgent
 
             result = AIAgent(
                 **_background_agent_kwargs(session["agent"], task_id)
@@ -4270,7 +4270,7 @@ def _(rid, params: dict) -> dict:
 
     if key == "reasoning":
         try:
-            from hermes_constants import parse_reasoning_effort
+            from hermes_runtime.hermes_constants import parse_reasoning_effort
 
             arg = str(value or "").strip().lower()
             if arg in {"show", "on"}:
@@ -4509,7 +4509,7 @@ def _(rid, params: dict) -> dict:
         except Exception as e:
             return _err(rid, 5013, str(e))
     if key == "profile":
-        from hermes_constants import display_hermes_home
+        from hermes_runtime.hermes_constants import display_hermes_home
 
         return _ok(rid, {"home": str(_hermes_home), "display": display_hermes_home()})
     if key == "full":
@@ -4697,7 +4697,7 @@ def _(rid, params: dict) -> dict:
         # Honor `always=true` by persisting the opt-out to config.
         if bool(params.get("always", False)):
             try:
-                from cli import save_config_value as _save_cfg
+                from hermes_runtime.cli import save_config_value as _save_cfg
 
                 _save_cfg("approvals.mcp_reload_confirm", False)
             except Exception as _exc:
@@ -4882,7 +4882,7 @@ def _cli_exec_blocked(argv: list[str]) -> str | None:
     return None
 
 
-@method("cli.exec")
+@method("hermes_runtime.cli.exec")
 def _(rid, params: dict) -> dict:
     """Run `python -m hermes_cli.main` with argv; capture stdout/stderr (non-interactive only)."""
     argv = params.get("argv", [])
@@ -4906,7 +4906,7 @@ def _(rid, params: dict) -> dict:
             rid, {"blocked": False, "code": r.returncode, "output": out[:48_000]}
         )
     except subprocess.TimeoutExpired:
-        return _err(rid, 5016, "cli.exec: timeout")
+        return _err(rid, 5016, "hermes_runtime.cli.exec: timeout")
     except Exception as e:
         return _err(rid, 5017, str(e))
 
@@ -5993,7 +5993,7 @@ def _voice_emit(event: str, payload: dict | None = None) -> None:
 def _voice_mode_enabled() -> bool:
     """Current voice-mode flag (runtime-only, CLI parity).
 
-    cli.py initialises ``_voice_mode = False`` at startup and only flips
+    runtime/hermes_runtime/cli.py initialises ``_voice_mode = False`` at startup and only flips
     it via ``/voice on``; it never reads a persisted enable bit from
     config.yaml.  We match that: no config lookup, env var only.  This
     avoids the TUI auto-starting in REC the next time the user opens it
@@ -6041,7 +6041,7 @@ def _(rid, params: dict) -> dict:
     * ``on`` / ``off`` — flip voice *mode* (the umbrella bit). Turning it
       off also tears down any active continuous recording loop. Does NOT
       start recording on its own; recording is driven by ``voice.record``
-      (Ctrl+B) after mode is on, matching cli.py's enable/Ctrl+B split.
+      (Ctrl+B) after mode is on, matching runtime/hermes_runtime/cli.py's enable/Ctrl+B split.
     * ``tts`` — toggle speech-output of agent replies. Requires mode on
       (mirrors CLI's _toggle_voice_tts guard).
     """
@@ -6658,7 +6658,7 @@ def _(rid, params: dict) -> dict:
 @method("tools.list")
 def _(rid, params: dict) -> dict:
     try:
-        from toolsets import get_all_toolsets, get_toolset_info
+        from hermes_runtime.toolsets import get_all_toolsets, get_toolset_info
 
         session = _sessions.get(params.get("session_id", ""))
         enabled = (
@@ -6689,7 +6689,7 @@ def _(rid, params: dict) -> dict:
 @method("tools.show")
 def _(rid, params: dict) -> dict:
     try:
-        from model_tools import get_toolset_for_tool, get_tool_definitions
+        from hermes_runtime.model_tools import get_toolset_for_tool, get_tool_definitions
 
         session = _sessions.get(params.get("session_id", ""))
         enabled = (
@@ -6795,10 +6795,10 @@ def _(rid, params: dict) -> dict:
         return _err(rid, 5035, str(e))
 
 
-@method("toolsets.list")
+@method("hermes_runtime.toolsets.list")
 def _(rid, params: dict) -> dict:
     try:
-        from toolsets import get_all_toolsets, get_toolset_info
+        from hermes_runtime.toolsets import get_all_toolsets, get_toolset_info
 
         session = _sessions.get(params.get("session_id", ""))
         enabled = (

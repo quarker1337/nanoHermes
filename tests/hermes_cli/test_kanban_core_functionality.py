@@ -1,7 +1,7 @@
 """Core-functionality tests for the kanban kernel + CLI additions.
 
 Complements tests/hermes_cli/test_kanban_db.py (schema + CAS atomicity)
-and tests/hermes_cli/test_kanban_cli.py (end-to-end run_slash).  The
+and tests/hermes_cli/test_kanban_runtime/hermes_runtime/cli.py (end-to-end run_slash).  The
 tests here exercise the pieces added as part of the kanban hardening
 pass: circuit breaker, crash detection, daemon loop, idempotency,
 retention/gc, stats, notify subscriptions, worker log accessor, run_slash

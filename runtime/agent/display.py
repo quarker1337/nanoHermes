@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from difflib import unified_diff
 from pathlib import Path
 
-from utils import safe_json_loads
+from hermes_runtime.utils import safe_json_loads
 from agent.tool_result_classification import file_mutation_result_landed
 
 # ANSI escape codes for coloring tool failure indicators

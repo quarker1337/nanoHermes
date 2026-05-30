@@ -1,7 +1,7 @@
-"""Tests for toolsets.py — toolset resolution, validation, and composition."""
+"""Tests for runtime/hermes_runtime/toolsets.py — toolset resolution, validation, and composition."""
 
 from tools.registry import ToolRegistry
-from toolsets import (
+from hermes_runtime.toolsets import (
     TOOLSETS,
     get_toolset,
     resolve_toolset,

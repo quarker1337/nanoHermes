@@ -13,7 +13,7 @@ unclosed brackets, Python None) don't kill the session.
 
 import json
 
-from run_agent import _repair_tool_call_arguments
+from hermes_runtime.run_agent import _repair_tool_call_arguments
 
 
 class TestStreamingAssemblyRepair:
@@ -22,7 +22,7 @@ class TestStreamingAssemblyRepair:
 
     These tests verify the REPAIR FUNCTION itself works correctly for the
     cases that arise during streaming assembly.  Integration tests that
-    exercise the full streaming path are in run_agent.py's streaming tests.
+    exercise the full streaming path are in runtime/hermes_runtime/run_agent.py's streaming tests.
     """
 
     # -- Truncation cases (most common streaming failure) --

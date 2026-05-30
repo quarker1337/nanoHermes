@@ -114,7 +114,7 @@ Default deny on exception/cancel/timeout.
 **Objective:** Ensure mutation cannot happen before approval.
 
 **Files:**
-- Likely modify: `model_tools.py` or `acp_adapter/server.py` session-context tool wrapper
+- Likely modify: `runtime/hermes_runtime/model_tools.py` or `acp_adapter/server.py` session-context tool wrapper
 
 Do not bury this inside post-execution `acp_adapter/events.py`; that is too late.
 

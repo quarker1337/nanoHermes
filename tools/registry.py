@@ -1,7 +1,7 @@
 """Central registry for all hermes-agent tools.
 
 Each tool file calls ``registry.register()`` at module level to declare its
-schema, handler, toolset membership, and availability check.  ``model_tools.py``
+schema, handler, toolset membership, and availability check.  ``runtime/hermes_runtime/model_tools.py``
 queries the registry instead of maintaining its own parallel data structures.
 
 Import chain (circular-import safe):
@@ -9,9 +9,9 @@ Import chain (circular-import safe):
            ^
     tools/*.py  (import from tools.registry at module level)
            ^
-    model_tools.py  (imports tools.registry + all tool modules)
+    runtime/hermes_runtime/model_tools.py  (imports tools.registry + all tool modules)
            ^
-    run_agent.py, cli.py, batch_runner.py, etc.
+    runtime/hermes_runtime/run_agent.py, runtime/hermes_runtime/cli.py, runtime/hermes_runtime/batch_runner.py, etc.
 """
 
 import ast
@@ -399,7 +399,7 @@ class ToolRegistry:
             return json.dumps({"error": f"Unknown tool: {name}"})
         try:
             if entry.is_async:
-                from model_tools import _run_async
+                from hermes_runtime.model_tools import _run_async
                 return _run_async(entry.handler(args, **kwargs))
             return entry.handler(args, **kwargs)
         except Exception as e:
@@ -409,14 +409,14 @@ class ToolRegistry:
             # See model_tools._sanitize_tool_error for rationale.
             raw = f"Tool execution failed: {type(e).__name__}: {e}"
             try:
-                from model_tools import _sanitize_tool_error
+                from hermes_runtime.model_tools import _sanitize_tool_error
                 sanitized = _sanitize_tool_error(raw)
             except Exception:
                 sanitized = raw  # defensive: never let the sanitizer block error propagation
             return json.dumps({"error": sanitized})
 
     # ------------------------------------------------------------------
-    # Query helpers  (replace redundant dicts in model_tools.py)
+    # Query helpers  (replace redundant dicts in runtime/hermes_runtime/model_tools.py)
     # ------------------------------------------------------------------
 
     def get_max_result_size(self, name: str, default: int | float | None = None) -> int | float:

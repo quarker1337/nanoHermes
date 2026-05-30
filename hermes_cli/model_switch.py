@@ -1,6 +1,6 @@
 """Shared model-switching logic for CLI and gateway /model commands.
 
-Both the CLI (cli.py) and gateway (gateway/run.py) /model handlers
+Both the CLI (runtime/hermes_runtime/cli.py) and gateway (gateway/run.py) /model handlers
 share the same core pipeline:
 
   parse flags -> alias resolution -> provider resolution ->
@@ -76,7 +76,7 @@ def is_nous_hermes_non_agentic(model_name: str) -> bool:
     """Return True if *model_name* is a real Nous Hermes 3/4 chat model.
 
     Used to decide whether to surface the non-agentic warning at startup.
-    Callers in :mod:`cli.py` and here should go through this single helper
+    Callers in :mod:`runtime/hermes_runtime/cli.py` and here should go through this single helper
     so the two sites don't drift.
     """
     if not model_name:
@@ -1644,7 +1644,7 @@ def list_authenticated_providers(
             # active model. Hermes's own writer (main.py::_save_custom_provider)
             # stores every configured model as a dict under ``models:``;
             # downstream readers (agent/models_dev.py, gateway/run.py,
-            # run_agent.py, hermes_cli/config.py) already consume that dict.
+            # runtime/hermes_runtime/run_agent.py, hermes_cli/config.py) already consume that dict.
             default_model = (entry.get("model") or "").strip()
             if default_model and default_model not in groups[group_key]["models"]:
                 groups[group_key]["models"].append(default_model)

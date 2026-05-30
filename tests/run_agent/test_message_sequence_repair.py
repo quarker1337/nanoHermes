@@ -9,7 +9,7 @@ providers (violating role alternation), which retriggered the empty-retry
 recovery every turn.
 """
 
-from run_agent import AIAgent
+from hermes_runtime.run_agent import AIAgent
 
 
 def _bare_agent():

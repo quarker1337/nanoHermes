@@ -27,12 +27,12 @@ import pytest
 def _fast_retry_backoff(monkeypatch):
     """Short-circuit retry backoff for all tests in this directory."""
     try:
-        import run_agent
+        import hermes_runtime.run_agent as run_agent
     except ImportError:
         return
 
     monkeypatch.setattr(run_agent, "jittered_backoff", lambda *a, **k: 0.0)
-    # The conversation loop was extracted out of run_agent.py into
+    # The conversation loop was extracted out of runtime/hermes_runtime/run_agent.py into
     # ``agent.conversation_loop``, which imports ``jittered_backoff``
     # directly (``from agent.retry_utils import jittered_backoff``).
     # Patching ``run_agent.jittered_backoff`` alone misses every retry

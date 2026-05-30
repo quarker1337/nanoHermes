@@ -121,15 +121,15 @@ class TestBrowserConsoleToolsetWiring:
     """browser_console must be reachable via toolset resolution."""
 
     def test_in_browser_toolset(self):
-        from toolsets import TOOLSETS
+        from hermes_runtime.toolsets import TOOLSETS
         assert "browser_console" in TOOLSETS["browser"]["tools"]
 
     def test_in_hermes_core_tools(self):
-        from toolsets import _HERMES_CORE_TOOLS
+        from hermes_runtime.toolsets import _HERMES_CORE_TOOLS
         assert "browser_console" in _HERMES_CORE_TOOLS
 
     def test_in_legacy_toolset_map(self):
-        from model_tools import _LEGACY_TOOLSET_MAP
+        from hermes_runtime.model_tools import _LEGACY_TOOLSET_MAP
         assert "browser_console" in _LEGACY_TOOLSET_MAP["browser_tools"]
 
     def test_in_registry(self):
@@ -212,7 +212,7 @@ class TestBrowserVisionConfig:
         mock_response.choices = [mock_choice]
 
         with (
-            patch("hermes_constants.get_hermes_dir", return_value=shots_dir),
+            patch("hermes_runtime.hermes_constants.get_hermes_dir", return_value=shots_dir),
             patch("tools.browser_tool._cleanup_old_screenshots"),
             patch("tools.browser_tool._run_browser_command", return_value={"success": True, "data": {"path": str(screenshot)}}),
             patch("tools.browser_tool._get_vision_model", return_value="test-model"),
@@ -236,7 +236,7 @@ class TestBrowserVisionConfig:
         mock_response.choices = [mock_choice]
 
         with (
-            patch("hermes_constants.get_hermes_dir", return_value=shots_dir),
+            patch("hermes_runtime.hermes_constants.get_hermes_dir", return_value=shots_dir),
             patch("tools.browser_tool._cleanup_old_screenshots"),
             patch("tools.browser_tool._run_browser_command", return_value={"success": True, "data": {"path": str(screenshot)}}),
             patch("tools.browser_tool._get_vision_model", return_value="test-model"),

@@ -14,7 +14,7 @@ gmi = ProviderProfile(
     base_url="https://api.gmi-serving.com/v1",
     auth_type="api_key",
     # Attribution so GMI can identify traffic from Hermes Agent.
-    # The generic profile.default_headers fallback in run_agent.py and
+    # The generic profile.default_headers fallback in runtime/hermes_runtime/run_agent.py and
     # agent/auxiliary_client.py picks this up at client construction time.
     default_headers={"User-Agent": f"HermesAgent/{_HERMES_VERSION}"},
     default_aux_model="google/gemini-3.1-flash-lite-preview",

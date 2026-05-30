@@ -121,7 +121,7 @@ def test_validate_critical_files_syntax_tolerates_missing_files(tmp_path):
     guard should skip missing files, not falsely flag the install as broken."""
     # Populate everything except hermes_constants.py
     for relpath in hermes_main._UPDATE_CRITICAL_FILES:
-        if relpath == "hermes_constants.py":
+        if relpath == "runtime/hermes_runtime/hermes_constants.py":
             continue
         path = tmp_path / relpath
         path.parent.mkdir(parents=True, exist_ok=True)

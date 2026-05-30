@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from run_agent import AIAgent
+from hermes_runtime.run_agent import AIAgent
 
 
 def _make_agent_openrouter():

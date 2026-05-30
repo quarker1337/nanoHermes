@@ -14,7 +14,7 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 
-from cli import HermesCLI
+from hermes_runtime.cli import HermesCLI
 
 
 def _make_cli(quiet=False, session_id="20260524_111111_xyz", db=None):
@@ -47,7 +47,7 @@ class TestResumeQuietStderr:
         db.get_session.return_value = None
         cli = _make_cli(quiet=True, db=db)
 
-        with patch("cli._prepare_deferred_agent_startup"):
+        with patch("hermes_runtime.cli._prepare_deferred_agent_startup"):
             result = cli._init_agent()
 
         captured = capsys.readouterr()
@@ -58,18 +58,20 @@ class TestResumeQuietStderr:
         assert "Session not found" in captured.err
         assert "hermes sessions list" in captured.err
 
-    def test_session_not_found_goes_to_stdout_in_full_mode(self, capsys):
+    def test_session_not_found_uses_cprint_in_full_mode(self):
         db = MagicMock()
         db.get_session.return_value = None
         cli = _make_cli(quiet=False, db=db)
 
-        with patch("cli._prepare_deferred_agent_startup"):
+        with (
+            patch("hermes_runtime.cli._prepare_deferred_agent_startup"),
+            patch("hermes_runtime.cli._cprint") as mock_cprint,
+        ):
             result = cli._init_agent()
 
-        captured = capsys.readouterr()
         assert result is False
-        # Interactive mode keeps the existing _cprint path → stdout.
-        assert "Session not found" in captured.out
+        # Interactive mode keeps the existing _cprint path (quiet mode writes stderr).
+        assert any("Session not found" in str(call.args[0]) for call in mock_cprint.call_args_list)
 
     def test_resumed_banner_goes_to_stderr_in_quiet_mode(self, capsys):
         db = MagicMock()
@@ -84,7 +86,7 @@ class TestResumeQuietStderr:
         cli = _make_cli(quiet=True, db=db)
         # Stop _init_agent right after the resume banner: prevent it from
         # constructing a real AIAgent (the next code path).
-        with patch("cli._prepare_deferred_agent_startup"):
+        with patch("hermes_runtime.cli._prepare_deferred_agent_startup"):
             try:
                 cli._init_agent()
             except Exception:
@@ -108,7 +110,7 @@ class TestResumeQuietStderr:
         db._conn = MagicMock()
 
         cli = _make_cli(quiet=True, db=db)
-        with patch("cli._prepare_deferred_agent_startup"):
+        with patch("hermes_runtime.cli._prepare_deferred_agent_startup"):
             try:
                 cli._init_agent()
             except Exception:

@@ -28,7 +28,7 @@ def test_kanban_tools_hidden_without_env_var(monkeypatch, tmp_path):
 
     import tools.kanban_tools  # ensure registered
     from tools.registry import invalidate_check_fn_cache, registry
-    from toolsets import resolve_toolset
+    from hermes_runtime.toolsets import resolve_toolset
 
     invalidate_check_fn_cache()
     schema = registry.get_definitions(set(resolve_toolset("hermes-cli")), quiet=True)
@@ -48,7 +48,7 @@ def test_kanban_tools_visible_with_env_var(monkeypatch, tmp_path):
 
     import tools.kanban_tools  # ensure registered
     from tools.registry import invalidate_check_fn_cache, registry
-    from toolsets import resolve_toolset
+    from hermes_runtime.toolsets import resolve_toolset
 
     invalidate_check_fn_cache()
     schema = registry.get_definitions(set(resolve_toolset("hermes-cli")), quiet=True)
@@ -71,7 +71,7 @@ def test_kanban_worker_env_overrides_profile_toolset_filter(monkeypatch, tmp_pat
     monkeypatch.setenv("HERMES_HOME", str(home))
 
     import tools.kanban_tools  # ensure registered
-    from model_tools import _clear_tool_defs_cache, get_tool_definitions
+    from hermes_runtime.model_tools import _clear_tool_defs_cache, get_tool_definitions
     from tools.registry import invalidate_check_fn_cache
 
     invalidate_check_fn_cache()
@@ -102,7 +102,7 @@ def test_worker_with_kanban_toolset_still_hides_board_routing(monkeypatch, tmp_p
 
     import tools.kanban_tools  # ensure registered
     from tools.registry import invalidate_check_fn_cache, registry
-    from toolsets import resolve_toolset
+    from hermes_runtime.toolsets import resolve_toolset
 
     invalidate_check_fn_cache()
     schema = registry.get_definitions(set(resolve_toolset("hermes-cli")), quiet=True)
@@ -127,7 +127,7 @@ def test_kanban_tools_visible_with_toolset_config(monkeypatch, tmp_path):
 
     import tools.kanban_tools  # ensure registered
     from tools.registry import invalidate_check_fn_cache, registry
-    from toolsets import resolve_toolset
+    from hermes_runtime.toolsets import resolve_toolset
 
     invalidate_check_fn_cache()
     schema = registry.get_definitions(set(resolve_toolset("hermes-cli")), quiet=True)
@@ -1094,11 +1094,11 @@ def test_kanban_guidance_not_in_normal_prompt(monkeypatch, tmp_path):
     monkeypatch.setattr(_P, "home", lambda: tmp_path)
 
     from tools.registry import invalidate_check_fn_cache
-    from model_tools import _clear_tool_defs_cache
+    from hermes_runtime.model_tools import _clear_tool_defs_cache
     invalidate_check_fn_cache()
     _clear_tool_defs_cache()
 
-    from run_agent import AIAgent
+    from hermes_runtime.run_agent import AIAgent
     a = AIAgent(
         api_key="test",
         base_url="https://openrouter.ai/api/v1",
@@ -1122,11 +1122,11 @@ def test_kanban_guidance_in_worker_prompt(monkeypatch, tmp_path):
     monkeypatch.setattr(_P, "home", lambda: tmp_path)
 
     from tools.registry import invalidate_check_fn_cache
-    from model_tools import _clear_tool_defs_cache
+    from hermes_runtime.model_tools import _clear_tool_defs_cache
     invalidate_check_fn_cache()
     _clear_tool_defs_cache()
 
-    from run_agent import AIAgent
+    from hermes_runtime.run_agent import AIAgent
     a = AIAgent(
         api_key="test",
         base_url="https://openrouter.ai/api/v1",

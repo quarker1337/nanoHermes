@@ -216,7 +216,7 @@ Memory provider plugins can register their own CLI subcommand tree (e.g. `hermes
 
 ### How it works
 
-1. Add a `cli.py` file to your plugin directory
+1. Add a `runtime/hermes_runtime/cli.py` file to your plugin directory
 2. Define a `register_cli(subparser)` function that builds the argparse tree
 3. The memory plugin system discovers it at startup via `discover_plugin_cli_commands()`
 4. Your commands appear under `hermes <provider-name> <subcommand>`
@@ -226,7 +226,7 @@ Memory provider plugins can register their own CLI subcommand tree (e.g. `hermes
 ### Example
 
 ```python
-# plugins/memory/my-provider/cli.py
+# plugins/memory/my-provider/runtime/hermes_runtime/cli.py
 
 def my_command(args):
     """Handler dispatched by argparse."""
@@ -251,7 +251,7 @@ def register_cli(subparser) -> None:
 
 ### Reference implementation
 
-See `plugins/memory/honcho/cli.py` for a full example with 13 subcommands, cross-profile management (`--target-profile`), and config read/write.
+See `plugins/memory/honcho/runtime/hermes_runtime/cli.py` for a full example with 13 subcommands, cross-profile management (`--target-profile`), and config read/write.
 
 ### Directory structure with CLI
 
@@ -259,7 +259,7 @@ See `plugins/memory/honcho/cli.py` for a full example with 13 subcommands, cross
 plugins/memory/my-provider/
 ├── __init__.py      # MemoryProvider implementation + register()
 ├── plugin.yaml      # Metadata
-├── cli.py           # register_cli(subparser) — CLI commands
+├── runtime/hermes_runtime/cli.py           # register_cli(subparser) — CLI commands
 └── README.md        # Setup instructions
 ```
 

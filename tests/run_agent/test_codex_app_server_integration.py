@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import pytest
 
-import run_agent
+import hermes_runtime.run_agent as run_agent
 from agent.transports.codex_app_server_session import CodexAppServerSession, TurnResult
 
 
@@ -285,7 +285,7 @@ class TestReviewForkApiModeDowngrade:
                 return None
             self.close = _no_op_close
 
-        with _patch("run_agent.AIAgent.__init__", _capture_init):
+        with _patch("hermes_runtime.run_agent.AIAgent.__init__", _capture_init):
             agent._spawn_background_review(
                 messages_snapshot=[{"role": "user", "content": "x"}],
                 review_memory=True,
@@ -345,7 +345,7 @@ class TestErrorHandling:
 
 
 class TestSessionRetirementOnRunAgent:
-    """run_agent.py side: when run_turn returns should_retire=True, the
+    """runtime/hermes_runtime/run_agent.py side: when run_turn returns should_retire=True, the
     AIAgent must close + null _codex_session so the next turn respawns."""
 
     def test_should_retire_drops_session(self, monkeypatch):

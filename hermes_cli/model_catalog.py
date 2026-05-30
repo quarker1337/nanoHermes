@@ -53,7 +53,7 @@ from pathlib import Path
 from typing import Any
 
 from hermes_cli import __version__ as _HERMES_VERSION
-from utils import atomic_replace
+from hermes_runtime.utils import atomic_replace
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +113,7 @@ def _load_catalog_config() -> dict[str, Any]:
 
 def _cache_path() -> Path:
     """Return the disk cache path. Import lazily so tests can monkeypatch home."""
-    from hermes_constants import get_hermes_home
+    from hermes_runtime.hermes_constants import get_hermes_home
     return get_hermes_home() / "cache" / "model_catalog.json"
 
 

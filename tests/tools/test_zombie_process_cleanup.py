@@ -99,8 +99,8 @@ class TestAgentCloseMethod:
         """close() should call kill_all, cleanup_vm, cleanup_browser."""
         from unittest.mock import patch
 
-        with patch("run_agent.AIAgent.__init__", return_value=None):
-            from run_agent import AIAgent
+        with patch("hermes_runtime.run_agent.AIAgent.__init__", return_value=None):
+            from hermes_runtime.run_agent import AIAgent
             agent = AIAgent.__new__(AIAgent)
             agent.session_id = "test-close-cleanup"
             agent._active_children = []
@@ -108,8 +108,8 @@ class TestAgentCloseMethod:
             agent.client = None
 
             with patch("tools.process_registry.process_registry") as mock_registry, \
-                 patch("run_agent.cleanup_vm") as mock_cleanup_vm, \
-                 patch("run_agent.cleanup_browser") as mock_cleanup_browser:
+                 patch("hermes_runtime.run_agent.cleanup_vm") as mock_cleanup_vm, \
+                 patch("hermes_runtime.run_agent.cleanup_browser") as mock_cleanup_browser:
                 agent.close()
 
                 mock_registry.kill_all.assert_called_once_with(
@@ -122,8 +122,8 @@ class TestAgentCloseMethod:
         """close() can be called multiple times without error."""
         from unittest.mock import patch
 
-        with patch("run_agent.AIAgent.__init__", return_value=None):
-            from run_agent import AIAgent
+        with patch("hermes_runtime.run_agent.AIAgent.__init__", return_value=None):
+            from hermes_runtime.run_agent import AIAgent
             agent = AIAgent.__new__(AIAgent)
             agent.session_id = "test-close-idempotent"
             agent._active_children = []
@@ -138,8 +138,8 @@ class TestAgentCloseMethod:
         """close() should call close() on all active child agents."""
         from unittest.mock import MagicMock, patch
 
-        with patch("run_agent.AIAgent.__init__", return_value=None):
-            from run_agent import AIAgent
+        with patch("hermes_runtime.run_agent.AIAgent.__init__", return_value=None):
+            from hermes_runtime.run_agent import AIAgent
             agent = AIAgent.__new__(AIAgent)
             agent.session_id = "test-close-children"
             agent._active_children_lock = threading.Lock()
@@ -159,8 +159,8 @@ class TestAgentCloseMethod:
         """close() continues cleanup even if one step fails."""
         from unittest.mock import patch
 
-        with patch("run_agent.AIAgent.__init__", return_value=None):
-            from run_agent import AIAgent
+        with patch("hermes_runtime.run_agent.AIAgent.__init__", return_value=None):
+            from hermes_runtime.run_agent import AIAgent
             agent = AIAgent.__new__(AIAgent)
             agent.session_id = "test-close-partial"
             agent._active_children = []
@@ -170,9 +170,9 @@ class TestAgentCloseMethod:
             with patch(
                 "tools.process_registry.process_registry"
             ) as mock_reg, patch(
-                "run_agent.cleanup_vm"
+                "hermes_runtime.run_agent.cleanup_vm"
             ) as mock_vm, patch(
-                "run_agent.cleanup_browser"
+                "hermes_runtime.run_agent.cleanup_browser"
             ) as mock_browser:
                 mock_reg.kill_all.side_effect = RuntimeError("boom")
 

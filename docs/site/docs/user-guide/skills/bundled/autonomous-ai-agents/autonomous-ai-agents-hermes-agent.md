@@ -451,7 +451,7 @@ Enable/disable via `hermes tools` (interactive) or `hermes tools enable/disable 
 | `rl` | Reinforcement learning tools (off by default) |
 | `moa` | Mixture of Agents (off by default) |
 
-Full enumeration lives in `toolsets.py` as the `TOOLSETS` dict; `_HERMES_CORE_TOOLS` is the default bundle most platforms inherit from.
+Full enumeration lives in `runtime/hermes_runtime/toolsets.py` as the `TOOLSETS` dict; `_HERMES_CORE_TOOLS` is the default bundle most platforms inherit from.
 
 Tool changes take effect on `/reset` (new session). They do NOT apply mid-conversation to preserve prompt caching.
 
@@ -741,7 +741,7 @@ at the terminal layer to toggle fullscreen — the keystroke never reaches
 prompt_toolkit. Use **Ctrl+Enter** instead. Windows Terminal delivers
 Ctrl+Enter as LF (`c-j`), distinct from plain Enter (`c-m` / CR), and the
 CLI binds `c-j` to newline insertion on `win32` only (see
-`_bind_prompt_submit_keys` + the Windows-only `c-j` binding in `cli.py`).
+`_bind_prompt_submit_keys` + the Windows-only `c-j` binding in `runtime/hermes_runtime/cli.py`).
 Side effect: the raw Ctrl+J keystroke also inserts a newline on Windows —
 unavoidable, because Windows Terminal collapses Ctrl+Enter and Ctrl+J to
 the same keycode at the Win32 console API layer. No conflicting binding
@@ -900,11 +900,11 @@ For occasional contributors and PR authors. Full developer docs: https://hermes-
 <!-- ascii-guard-ignore -->
 ```
 hermes-agent/
-├── run_agent.py          # AIAgent — core conversation loop
-├── model_tools.py        # Tool discovery and dispatch
-├── toolsets.py           # Toolset definitions
-├── cli.py                # Interactive CLI (HermesCLI)
-├── hermes_state.py       # SQLite session store
+├── runtime/hermes_runtime/run_agent.py          # AIAgent — core conversation loop
+├── runtime/hermes_runtime/model_tools.py        # Tool discovery and dispatch
+├── runtime/hermes_runtime/toolsets.py           # Toolset definitions
+├── runtime/hermes_runtime/cli.py                # Interactive CLI (HermesCLI)
+├── runtime/hermes_runtime/hermes_state.py       # SQLite session store
 ├── agent/                # Prompt builder, context compression, memory, model routing, credential pooling, skill dispatch
 ├── hermes_cli/           # CLI subcommands, config, setup, commands
 │   ├── commands.py       # Slash command registry (CommandDef)
@@ -946,7 +946,7 @@ registry.register(
 )
 ```
 
-**2. Add to `toolsets.py`** → `_HERMES_CORE_TOOLS` list.
+**2. Add to `runtime/hermes_runtime/toolsets.py`** → `_HERMES_CORE_TOOLS` list.
 
 Auto-discovery: any `tools/*.py` file with a top-level `registry.register()` call is imported automatically — no manual list needed.
 
@@ -955,7 +955,7 @@ All handlers must return JSON strings. Use `get_hermes_home()` for paths, never 
 ### Adding a Slash Command
 
 1. Add `CommandDef` to `COMMAND_REGISTRY` in `hermes_cli/commands.py`
-2. Add handler in `cli.py` → `process_command()`
+2. Add handler in `runtime/hermes_runtime/cli.py` → `process_command()`
 3. (Optional) Add gateway handler in `gateway/run.py`
 
 All consumers (help text, autocomplete, Telegram menu, Slack mapping) derive from the central registry automatically.

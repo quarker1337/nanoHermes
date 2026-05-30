@@ -571,8 +571,8 @@ Five touchpoints:
 
 ### 8. Toolsets
 
-1. **`toolsets.py`** — Add `"hermes-newplat"` toolset definition with `_HERMES_CORE_TOOLS`
-2. **`toolsets.py`** — Add `"hermes-newplat"` to the `"hermes-gateway"` includes list
+1. **`runtime/hermes_runtime/toolsets.py`** — Add `"hermes-newplat"` toolset definition with `_HERMES_CORE_TOOLS`
+2. **`runtime/hermes_runtime/toolsets.py`** — Add `"hermes-newplat"` to the `"hermes-gateway"` includes list
 
 ### 9. Optional: Platform Hints
 

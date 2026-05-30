@@ -629,7 +629,7 @@ def _converse_stop_reason_to_openai(stop_reason: str) -> str:
 def normalize_converse_response(response: Dict) -> SimpleNamespace:
     """Convert a Bedrock Converse API response to an OpenAI-compatible object.
 
-    The agent loop in ``run_agent.py`` expects responses shaped like
+    The agent loop in ``runtime/hermes_runtime/run_agent.py`` expects responses shaped like
     ``openai.ChatCompletion`` — this function bridges the gap.
 
     Returns a SimpleNamespace with:
@@ -1186,7 +1186,7 @@ def get_bedrock_model_ids(region: str) -> List[str]:
 # in extensions/amazon-bedrock/register.sync.runtime.ts.
 
 # Patterns that indicate the input context exceeded the model's token limit.
-# Used by run_agent.py to trigger context compression instead of retrying.
+# Used by runtime/hermes_runtime/run_agent.py to trigger context compression instead of retrying.
 CONTEXT_OVERFLOW_PATTERNS = [
     re.compile(r"ValidationException.*(?:input is too long|max input token|input token.*exceed)", re.IGNORECASE),
     re.compile(r"ValidationException.*(?:exceeds? the (?:maximum|max) (?:number of )?(?:input )?tokens)", re.IGNORECASE),

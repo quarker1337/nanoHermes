@@ -41,7 +41,7 @@ _MEMORY_PLUGINS_DIR = Path(__file__).parent
 def _get_user_plugins_dir() -> Optional[Path]:
     """Return ``$HERMES_HOME/plugins/`` or None if unavailable."""
     try:
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
         d = get_hermes_home() / "plugins"
         return d if d.is_dir() else None
     except Exception:
@@ -329,13 +329,13 @@ def discover_plugin_cli_commands() -> List[dict]:
     If no provider is active, no commands are registered.
 
     Looks for a ``register_cli(subparser)`` function in the active
-    plugin's ``cli.py``.  Returns a list of at most one dict with
+    plugin's local ``cli.py``.  Returns a list of at most one dict with
     keys: ``name``, ``help``, ``description``, ``setup_fn``,
     ``handler_fn``.
 
-    This is a lightweight scan — it only imports ``cli.py``, not the
-    full plugin module.  Safe to call during argparse setup before
-    any provider is loaded.
+    This is a lightweight scan — it only imports the provider's local
+    ``cli.py``, not the full plugin module.  Safe to call during argparse
+    setup before any provider is loaded.
     """
     results: List[dict] = []
     if not _MEMORY_PLUGINS_DIR.is_dir():

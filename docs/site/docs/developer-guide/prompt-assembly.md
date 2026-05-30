@@ -20,7 +20,7 @@ This is one of the most important design choices in the project because it affec
 
 Primary files:
 
-- `run_agent.py`
+- `runtime/hermes_runtime/run_agent.py`
 - `agent/prompt_builder.py`
 - `tools/memory_tool.py`
 

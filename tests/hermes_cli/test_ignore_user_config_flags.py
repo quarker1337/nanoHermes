@@ -61,7 +61,7 @@ class TestIgnoreUserConfigEnvGate:
 
     def _reload_cli(self, monkeypatch, tmp_path):
         """Point cli._hermes_home at tmp_path and return a fresh load_cli_config."""
-        import cli
+        import hermes_runtime.cli as cli
         monkeypatch.setattr(cli, "_hermes_home", tmp_path)
         return cli.load_cli_config
 
@@ -117,9 +117,9 @@ class TestIgnoreRulesEnvGate:
         """Setting HERMES_IGNORE_RULES=1 flips HermesCLI.ignore_rules True."""
         monkeypatch.setenv("HERMES_IGNORE_RULES", "1")
 
-        # Import HermesCLI lazily — cli.py has heavy module-init side effects
+        # Import HermesCLI lazily — runtime/hermes_runtime/cli.py has heavy module-init side effects
         # that we don't want to run at test collection time.
-        import cli
+        import hermes_runtime.cli as cli
         importlib.reload(cli)
 
         # Build only enough of HermesCLI to reach the ignore_rules assignment.
@@ -127,7 +127,7 @@ class TestIgnoreRulesEnvGate:
         # create the object via object.__new__ and manually run the assignment
         # the same way the real constructor does.
         obj = object.__new__(cli.HermesCLI)
-        # Replicate the exact logic from cli.py HermesCLI.__init__:
+        # Replicate the exact logic from runtime/hermes_runtime/cli.py HermesCLI.__init__:
         ignore_rules = False  # constructor default
         obj.ignore_rules = ignore_rules or os.environ.get("HERMES_IGNORE_RULES") == "1"
 
@@ -135,7 +135,7 @@ class TestIgnoreRulesEnvGate:
 
     def test_constructor_flag_alone_enables_ignore_rules(self, monkeypatch):
         monkeypatch.delenv("HERMES_IGNORE_RULES", raising=False)
-        import cli
+        import hermes_runtime.cli as cli
         obj = object.__new__(cli.HermesCLI)
         ignore_rules = True  # constructor argument
         obj.ignore_rules = ignore_rules or os.environ.get("HERMES_IGNORE_RULES") == "1"
@@ -143,7 +143,7 @@ class TestIgnoreRulesEnvGate:
 
     def test_neither_flag_nor_env_leaves_rules_enabled(self, monkeypatch):
         monkeypatch.delenv("HERMES_IGNORE_RULES", raising=False)
-        import cli
+        import hermes_runtime.cli as cli
         obj = object.__new__(cli.HermesCLI)
         ignore_rules = False
         obj.ignore_rules = ignore_rules or os.environ.get("HERMES_IGNORE_RULES") == "1"

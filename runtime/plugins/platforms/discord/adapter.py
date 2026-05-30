@@ -51,7 +51,7 @@ from gateway.config import Platform, PlatformConfig
 import re
 
 from gateway.platforms.helpers import MessageDeduplicator, ThreadParticipationTracker
-from utils import atomic_json_write
+from hermes_runtime.utils import atomic_json_write
 from gateway.platforms.base import (
     BasePlatformAdapter,
     MessageEvent,
@@ -934,7 +934,7 @@ class DiscordAdapter(BasePlatformAdapter):
         logger.info("[%s] Disconnected", self.name)
 
     def _command_sync_state_path(self) -> _Path:
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
 
         directory = get_hermes_home() / _DISCORD_COMMAND_SYNC_STATE_SUBDIR
         try:
@@ -5301,7 +5301,7 @@ def _define_discord_view_classes() -> None:
 
             # Write response file
             try:
-                from hermes_constants import get_hermes_home
+                from hermes_runtime.hermes_constants import get_hermes_home
                 home = get_hermes_home()
                 response_path = home / ".update_response"
                 tmp = response_path.with_suffix(".tmp")

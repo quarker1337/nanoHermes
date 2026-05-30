@@ -18,7 +18,7 @@ import os
 import tempfile
 import time
 from typing import Any, Mapping, Optional
-from utils import atomic_replace
+from hermes_runtime.utils import atomic_replace
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ _STATE_FILENAME = "nous.json"
 def _state_path() -> str:
     """Return the path to the Nous rate limit state file."""
     try:
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
         base = get_hermes_home()
     except ImportError:
         base = os.path.join(os.path.expanduser("~"), ".hermes")

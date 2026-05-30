@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-import hermes_logging
+import hermes_runtime.hermes_logging as hermes_logging
 
 
 @pytest.fixture(autouse=True)

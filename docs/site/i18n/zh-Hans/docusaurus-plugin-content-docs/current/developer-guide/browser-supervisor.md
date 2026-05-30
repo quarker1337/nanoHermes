@@ -138,7 +138,7 @@ browser_dialog(action, prompt_text=None, dialog_id=None)
 
 ### 修改
 
-- `toolsets.py` — 在 `browser`、`hermes-acp`、`hermes-api-server`、核心工具集中注册 `browser_dialog`（通过 CDP 可达性门控）
+- `runtime/hermes_runtime/toolsets.py` — 在 `browser`、`hermes-acp`、`hermes-api-server`、核心工具集中注册 `browser_dialog`（通过 CDP 可达性门控）
 - `tools/browser_tool.py`
   - `browser_navigate` 启动钩子：若 CDP URL 可解析，调用 `SupervisorRegistry.get_or_start(task_id, cdp_url)`
   - `browser_snapshot`（约第 1536 行）：将 supervisor 状态合并到返回载荷

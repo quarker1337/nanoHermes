@@ -1,4 +1,4 @@
-"""Tests for plugins/memory/honcho/cli.py."""
+"""Tests for plugins/memory/honcho/runtime/hermes_runtime/cli.py."""
 
 from types import SimpleNamespace
 

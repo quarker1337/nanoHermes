@@ -5,7 +5,7 @@ prompt_toolkit's `ANSI_SEQUENCES` so byte sequences emitted by modern
 keyboard protocols (Kitty / xterm `modifyOtherKeys`) decode to existing
 key tuples Hermes already binds.
 
-Kept in a standalone module — separate from `cli.py` — so the registrations
+Kept in a standalone module — separate from `runtime/hermes_runtime/cli.py` — so the registrations
 can be unit-tested without importing the whole CLI runtime.
 """
 

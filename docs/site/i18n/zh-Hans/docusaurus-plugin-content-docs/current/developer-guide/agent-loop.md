@@ -6,7 +6,7 @@ description: "AIAgent 执行流程、API 模式、工具、回调及回退行为
 
 # Agent Loop 内部机制
 
-核心编排引擎是 `run_agent.py` 中的 `AIAgent` 类——这是一个大型文件（15k+ 行），负责处理从 prompt（提示词）组装到工具分发再到 provider 故障转移的所有逻辑。
+核心编排引擎是 `runtime/hermes_runtime/run_agent.py` 中的 `AIAgent` 类——这是一个大型文件（15k+ 行），负责处理从 prompt（提示词）组装到工具分发再到 provider 故障转移的所有逻辑。
 
 ## 核心职责
 
@@ -149,7 +149,7 @@ for each tool_call in response.tool_calls:
 
 ### Agent 级工具
 
-部分工具在到达 `handle_function_call()` 之前，由 `run_agent.py` *提前*拦截：
+部分工具在到达 `handle_function_call()` 之前，由 `runtime/hermes_runtime/run_agent.py` *提前*拦截：
 
 | 工具 | 拦截原因 |
 |------|---------|
@@ -214,7 +214,7 @@ agent 通过 `IterationBudget` 追踪迭代次数：
 ### Session 持久化
 
 每轮结束后：
-- 消息保存到 session 存储（通过 `hermes_state.py` 使用 SQLite）
+- 消息保存到 session 存储（通过 `runtime/hermes_runtime/hermes_state.py` 使用 SQLite）
 - 内存变更刷写到 `MEMORY.md` / `USER.md`
 - 可通过 `/resume` 或 `hermes chat --resume` 恢复 session
 
@@ -222,13 +222,13 @@ agent 通过 `IterationBudget` 追踪迭代次数：
 
 | 文件 | 用途 |
 |------|------|
-| `run_agent.py` | AIAgent 类——完整的 agent loop |
+| `runtime/hermes_runtime/run_agent.py` | AIAgent 类——完整的 agent loop |
 | `agent/prompt_builder.py` | 从内存、技能、上下文文件和个性组装系统 prompt |
 | `agent/context_engine.py` | ContextEngine ABC——可插拔的上下文管理 |
 | `agent/context_compressor.py` | 默认引擎——有损摘要算法 |
 | `agent/prompt_caching.py` | Anthropic prompt 缓存标记和缓存指标 |
 | `agent/auxiliary_client.py` | 用于辅助任务的辅助 LLM 客户端（视觉、摘要） |
-| `model_tools.py` | 工具 schema 集合，`handle_function_call()` 分发 |
+| `runtime/hermes_runtime/model_tools.py` | 工具 schema 集合，`handle_function_call()` 分发 |
 
 ## 相关文档
 

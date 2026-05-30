@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 def _run_auxiliary_bridge(config_dict, monkeypatch):
     """Simulate the auxiliary config → env var bridging logic shared by CLI and gateway.
 
-    This mirrors the code in cli.py load_cli_config() and gateway/run.py.
+    This mirrors the code in runtime/hermes_runtime/cli.py load_cli_config() and gateway/run.py.
     Both use the same pattern; we test it once here.
     """
     # Clear env vars
@@ -291,17 +291,17 @@ class TestDefaultConfigShape:
 
 
 class TestCLIDefaultsHaveAuxiliaryKeys:
-    """Verify cli.py load_cli_config() defaults dict does NOT include auxiliary
+    """Verify runtime/hermes_runtime/cli.py load_cli_config() defaults dict does NOT include auxiliary
     (it comes from config.yaml deep merge, not hardcoded defaults)."""
 
     def test_cli_defaults_can_merge_auxiliary(self):
         """The load_cli_config deep merge logic handles keys not in defaults.
         Verify auxiliary would be picked up from config.yaml."""
-        # This is a structural assertion: cli.py's second-pass loop
+        # This is a structural assertion: runtime/hermes_runtime/cli.py's second-pass loop
         # carries over keys from file_config that aren't in defaults.
         # So auxiliary config from config.yaml gets merged even though
-        # cli.py's defaults dict doesn't define it.
-        import cli as _cli_mod
+        # runtime/hermes_runtime/cli.py's defaults dict doesn't define it.
+        import hermes_runtime.cli as _cli_mod
         # See note in test_gateway_has_auxiliary_bridge — pin UTF-8 so the
         # test runs on Windows where the default locale is cp1252.
         source = Path(_cli_mod.__file__).read_text(encoding="utf-8")

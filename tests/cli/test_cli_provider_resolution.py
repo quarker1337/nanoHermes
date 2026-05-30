@@ -11,8 +11,9 @@ from hermes_cli import main as hermes_main
 
 
 # ---------------------------------------------------------------------------
-# Module isolation: _import_cli() wipes tools.* / cli / run_agent from
-# sys.modules so it can re-import cli fresh.  Without cleanup the wiped
+# Module isolation: _import_cli() wipes tools.* / hermes_runtime.cli /
+# hermes_runtime.run_agent from sys.modules so it can re-import the CLI fresh.
+# Without cleanup the wiped
 # modules leak into subsequent tests on the same xdist worker, breaking
 # mock patches that target "tools.file_tools._get_file_ops" etc.
 # ---------------------------------------------------------------------------
@@ -25,8 +26,8 @@ def _reset_modules(prefixes: tuple[str, ...]):
 
 @pytest.fixture(autouse=True)
 def _restore_cli_and_tool_modules():
-    """Save and restore tools/cli/run_agent modules around every test."""
-    prefixes = ("tools", "cli", "run_agent")
+    """Save and restore tools/hermes_runtime modules around every test."""
+    prefixes = ("tools", "hermes_runtime.cli", "hermes_runtime.run_agent")
     original_modules = {
         name: module
         for name, module in sys.modules.items()
@@ -110,7 +111,7 @@ def _install_prompt_toolkit_stubs():
 
 def _import_cli():
     for name in list(sys.modules):
-        if name == "cli" or name == "run_agent" or name == "tools" or name.startswith("tools."):
+        if name in {"hermes_runtime.cli", "hermes_runtime.run_agent"} or name == "tools" or name.startswith("tools."):
             sys.modules.pop(name, None)
 
     if "firecrawl" not in sys.modules:
@@ -120,7 +121,7 @@ def _import_cli():
         importlib.import_module("prompt_toolkit")
     except ModuleNotFoundError:
         _install_prompt_toolkit_stubs()
-    return importlib.import_module("cli")
+    return importlib.import_module("hermes_runtime.cli")
 
 
 def test_hermes_cli_init_does_not_eagerly_resolve_runtime_provider(monkeypatch):

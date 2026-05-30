@@ -92,7 +92,7 @@ def _big_png_data_url(size_kb: int) -> str:
 
 def _make_agent():
     """Build a bare AIAgent for method-level testing, no provider setup."""
-    from run_agent import AIAgent
+    from hermes_runtime.run_agent import AIAgent
     agent = object.__new__(AIAgent)
     agent.provider = "anthropic"
     agent.model = "claude-sonnet-4-6"

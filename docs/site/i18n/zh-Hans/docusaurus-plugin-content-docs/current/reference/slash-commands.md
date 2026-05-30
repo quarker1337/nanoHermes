@@ -8,7 +8,7 @@ description: "交互式 CLI 和消息平台斜杠命令完整参考"
 
 Hermes 有两个斜杠命令入口，均由 `hermes_cli/commands.py` 中的中央 `COMMAND_REGISTRY` 驱动：
 
-- **交互式 CLI 斜杠命令** — 由 `cli.py` 分发，支持从注册表自动补全
+- **交互式 CLI 斜杠命令** — 由 `runtime/hermes_runtime/cli.py` 分发，支持从注册表自动补全
 - **消息平台斜杠命令** — 由 `gateway/run.py` 分发，帮助文本和平台菜单均从注册表生成
 
 已安装的 skill（技能）也会在两个入口以动态斜杠命令的形式暴露。这包括内置 skill，如 `/plan`，它会打开计划模式并将 markdown 计划保存在活动工作区/后端工作目录下的 `.hermes/plans/` 中。

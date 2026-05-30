@@ -23,11 +23,11 @@ class TestGeneric400Heuristic:
     def _make_agent(self):
         """Create a minimal AIAgent for testing error handling."""
         with (
-            patch("run_agent.get_tool_definitions", return_value=[]),
-            patch("run_agent.check_toolset_requirements", return_value={}),
-            patch("run_agent.OpenAI"),
+            patch("hermes_runtime.run_agent.get_tool_definitions", return_value=[]),
+            patch("hermes_runtime.run_agent.check_toolset_requirements", return_value={}),
+            patch("hermes_runtime.run_agent.OpenAI"),
         ):
-            from run_agent import AIAgent
+            from hermes_runtime.run_agent import AIAgent
             a = AIAgent(
                 api_key="test-key-12345",
                 base_url="https://openrouter.ai/api/v1",

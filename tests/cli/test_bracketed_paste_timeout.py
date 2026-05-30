@@ -1,6 +1,6 @@
 """Tests for bracketed-paste timeout safety valve (#16263).
 
-Verifies the production helper in cli.py monkey-patches prompt_toolkit's
+Verifies the production helper in runtime/hermes_runtime/cli.py monkey-patches prompt_toolkit's
 Vt100Parser.feed() so the parser auto-escapes from bracketed-paste mode when
 the ESC[201~ end mark is never received.
 """
@@ -15,13 +15,13 @@ from prompt_toolkit.keys import Keys
 
 
 ROOT = Path(__file__).resolve().parents[2]
-CLI_PATH = ROOT / "cli.py"
+CLI_PATH = ROOT / "runtime" / "hermes_runtime" / "cli.py"
 
 
 def _load_production_patch_helper():
     """Load cli._apply_bracketed_paste_timeout_patch without importing cli.
 
-    Importing cli.py pulls optional runtime deps that aren't required for this
+    Importing runtime/hermes_runtime/cli.py pulls optional runtime deps that aren't required for this
     parser-level regression.  AST-loading the exact helper keeps the test tied
     to production code while avoiding unrelated import side effects.  If the
     production helper is removed, this test fails.
@@ -38,7 +38,7 @@ def _load_production_patch_helper():
         None,
     )
     assert helper_node is not None, (
-        "cli.py must define _apply_bracketed_paste_timeout_patch()"
+        "runtime/hermes_runtime/cli.py must define _apply_bracketed_paste_timeout_patch()"
     )
     helper_source = ast.get_source_segment(source, helper_node)
     namespace = {"time": time, "logger": logging.getLogger("test.cli")}

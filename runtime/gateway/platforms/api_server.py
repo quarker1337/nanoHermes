@@ -369,7 +369,7 @@ class ResponseStore:
         # gracefully on NFS/SMB/FUSE-mounted HERMES_HOME (same filesystem
         # issue addressed for state.db/kanban.db — see
         # hermes_state._WAL_INCOMPAT_MARKERS).
-        from hermes_state import apply_wal_with_fallback
+        from hermes_runtime.hermes_state import apply_wal_with_fallback
         apply_wal_with_fallback(self._conn, db_label="response_store.db")
         self._conn.execute(
             """CREATE TABLE IF NOT EXISTS responses (
@@ -943,7 +943,7 @@ class APIServerAdapter(BasePlatformAdapter):
         """
         if self._session_db is None:
             try:
-                from hermes_state import SessionDB
+                from hermes_runtime.hermes_state import SessionDB
                 self._session_db = SessionDB()
             except Exception as e:
                 logger.debug("SessionDB unavailable for API server: %s", e)
@@ -978,7 +978,7 @@ class APIServerAdapter(BasePlatformAdapter):
         providers (e.g. Honcho) can scope their per-chat state correctly
         — matching the semantics of the native gateway's ``session_key``.
         """
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
         from gateway.run import _resolve_runtime_agent_kwargs, _resolve_gateway_model, _load_gateway_config, GatewayRunner
         from hermes_cli.tools_config import _get_platform_tools
 
@@ -1197,7 +1197,7 @@ class APIServerAdapter(BasePlatformAdapter):
                 _get_platform_tools,
                 _toolset_has_keys,
             )
-            from toolsets import resolve_toolset
+            from hermes_runtime.toolsets import resolve_toolset
 
             config = load_config()
             enabled_toolsets = _get_platform_tools(

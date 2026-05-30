@@ -52,7 +52,7 @@ from pathlib import Path
 from typing import Callable, Dict, Any, Optional
 from urllib.parse import urljoin
 
-from hermes_constants import display_hermes_home
+from hermes_runtime.hermes_constants import display_hermes_home
 
 logger = logging.getLogger(__name__)
 def get_env_value(name, default=None):
@@ -183,7 +183,7 @@ GEMINI_TTS_CHANNELS = 1
 GEMINI_TTS_SAMPLE_WIDTH = 2  # 16-bit PCM (L16)
 
 def _get_default_output_dir() -> str:
-    from hermes_constants import get_hermes_dir
+    from hermes_runtime.hermes_constants import get_hermes_dir
     return str(get_hermes_dir("cache/audio", "audio_cache"))
 
 DEFAULT_OUTPUT_DIR = _get_default_output_dir()
@@ -1619,7 +1619,7 @@ def _get_piper_voices_dir() -> Path:
     Resolves to ``~/.hermes/cache/piper-voices/`` under the active
     HERMES_HOME so voice downloads follow profile boundaries.
     """
-    from hermes_constants import get_hermes_dir
+    from hermes_runtime.hermes_constants import get_hermes_dir
     root = Path(get_hermes_dir("cache/piper-voices", "piper_voices_cache"))
     root.mkdir(parents=True, exist_ok=True)
     return root
@@ -2236,7 +2236,7 @@ def _has_openai_audio_backend() -> bool:
 # Sentence boundary pattern: punctuation followed by space or newline
 _SENTENCE_BOUNDARY_RE = re.compile(r'(?<=[.!?])(?:\s|\n)|(?:\n\n)')
 
-# Markdown stripping patterns (same as cli.py _voice_speak_response)
+# Markdown stripping patterns (same as runtime/hermes_runtime/cli.py _voice_speak_response)
 _MD_CODE_BLOCK = re.compile(r'```[\s\S]*?```')
 _MD_LINK = re.compile(r'\[([^\]]+)\]\([^)]+\)')
 _MD_URL = re.compile(r'https?://\S+')

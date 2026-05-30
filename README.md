@@ -161,7 +161,7 @@ Before calling a NanoHermes change ready, prefer at least:
 
 ```bash
 python3 -m py_compile hermes_cli/main.py scripts/sync_upstream.py scripts/upstream_sync_report.py
-uv run --with pytest python -m pytest tests/package_manager/test_package_manager_cli.py -q -o 'addopts='
+uv run --with pytest python -m pytest tests/package_manager/test_package_manager_runtime/hermes_runtime/cli.py -q -o 'addopts='
 ```
 
 Use temp homes or `--home` in smoke tests so package-manager experiments do not

@@ -23,7 +23,7 @@ For captures / actions with `capture_after=True`:
         "text_summary": "<text used for fallback string content>",
       }
 
-  run_agent.py's tool-message builder inspects `_multimodal` and emits a
+  runtime/hermes_runtime/run_agent.py's tool-message builder inspects `_multimodal` and emits a
   list-shaped `content` for OpenAI-compatible providers. The Anthropic
   adapter splices the base64 image into a `tool_result` block (see
   `agent/anthropic_adapter.py`). Every provider that supports multi-part
@@ -213,7 +213,7 @@ def handle_computer_use(args: Dict[str, Any], **kwargs) -> Any:
     """Main entry point — dispatched by tools.registry.
 
     Returns either a JSON string (text-only) or a dict marked `_multimodal`
-    (image + summary) which run_agent.py wraps into the tool message.
+    (image + summary) which runtime/hermes_runtime/run_agent.py wraps into the tool message.
     """
     action = (args.get("action") or "").strip().lower()
     if not action:
@@ -596,8 +596,8 @@ def _route_capture_through_aux_vision(
         import os as _os
         import uuid as _uuid
 
-        from hermes_constants import get_hermes_dir
-        from model_tools import _run_async
+        from hermes_runtime.hermes_constants import get_hermes_dir
+        from hermes_runtime.model_tools import _run_async
         from tools.vision_tools import vision_analyze_tool
     except Exception as exc:  # pragma: no cover - defensive
         logger.debug("computer_use: aux-vision import failed: %s", exc)

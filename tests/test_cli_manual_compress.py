@@ -1,6 +1,6 @@
 from contextlib import nullcontext
 
-from cli import HermesCLI
+from hermes_runtime.cli import HermesCLI
 
 
 class DummyAgent:

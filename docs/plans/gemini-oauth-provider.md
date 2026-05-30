@@ -54,7 +54,7 @@ Add a first-class `gemini` provider that authenticates via Google OAuth, using t
 4. `hermes_cli/runtime_provider.py` — Add gemini branch (read OAuth token, build OpenAI client)
 5. `hermes_cli/main.py` — Add `_model_flow_gemini()`, add to provider choices
 6. `hermes_cli/setup.py` — Add gemini auth flow (trigger browser OAuth)
-7. `run_agent.py` — Token refresh before API calls (like Copilot pattern)
+7. `runtime/hermes_runtime/run_agent.py` — Token refresh before API calls (like Copilot pattern)
 8. `agent/auxiliary_client.py` — Add gemini to aux resolution chain
 9. `agent/model_metadata.py` — Add Gemini model context lengths
 

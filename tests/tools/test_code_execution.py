@@ -184,7 +184,7 @@ class TestExecuteCode(unittest.TestCase):
             # Use real execution but mock the tool dispatcher
             pass
         # Actually run with full integration, mocking at the model_tools level
-        with patch("model_tools.handle_function_call", side_effect=_mock_handle_function_call):
+        with patch("hermes_runtime.model_tools.handle_function_call", side_effect=_mock_handle_function_call):
             result = execute_code(
                 code=code,
                 task_id="test-task",
@@ -199,11 +199,11 @@ class TestExecuteCode(unittest.TestCase):
         self.assertIn("hello world", result["output"])
         self.assertEqual(result["tool_calls_made"], 0)
 
-    def test_repo_root_modules_are_importable(self):
-        """Sandboxed scripts can import modules that live at the repo root."""
-        result = self._run('import hermes_constants; print(hermes_constants.__file__)')
+    def test_runtime_modules_are_importable(self):
+        """Sandboxed scripts can import modules from the runtime package."""
+        result = self._run('import hermes_runtime.hermes_constants as hermes_constants; print(hermes_constants.__file__)')
         self.assertEqual(result["status"], "success")
-        self.assertIn("hermes_constants.py", result["output"])
+        self.assertIn("runtime/hermes_runtime/hermes_constants.py", result["output"])
 
     def test_single_tool_call(self):
         """Script calls terminal and prints the result."""
@@ -288,7 +288,7 @@ else:
                 function_name, function_args, task_id=task_id, user_task=user_task
             )
 
-        with patch("model_tools.handle_function_call", side_effect=slow_mock):
+        with patch("hermes_runtime.model_tools.handle_function_call", side_effect=slow_mock):
             raw = execute_code(
                 code=code,
                 task_id="test-concurrent",
@@ -342,7 +342,7 @@ raise RuntimeError("deliberate crash")
     def test_timeout_enforcement(self):
         """Script that sleeps too long is killed."""
         code = "import time; time.sleep(999)"
-        with patch("model_tools.handle_function_call", side_effect=_mock_handle_function_call):
+        with patch("hermes_runtime.model_tools.handle_function_call", side_effect=_mock_handle_function_call):
             # Override config to use a very short timeout
             with patch("tools.code_execution_tool._load_config", return_value={"timeout": 2, "max_tool_calls": 50}):
                 result = json.loads(execute_code(
@@ -602,12 +602,12 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
                          "Empty enabled set produces broken import syntax in description")
 
     def test_real_scenario_all_sandbox_tools_disabled(self):
-        """Reproduce the exact code path from model_tools.py:231-234.
+        """Reproduce the exact code path from runtime/hermes_runtime/model_tools.py:231-234.
 
         Scenario: user runs `hermes tools code_execution` (only code_execution
         toolset enabled). tools_to_include = {"execute_code"}.
 
-        model_tools.py does:
+        runtime/hermes_runtime/model_tools.py does:
             sandbox_enabled = SANDBOX_ALLOWED_TOOLS & tools_to_include
             dynamic_schema = build_execute_code_schema(sandbox_enabled)
 
@@ -616,7 +616,7 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
         tools_to_include  = {"execute_code"}
         intersection      = empty set
         """
-        # Simulate model_tools.py:233
+        # Simulate runtime/hermes_runtime/model_tools.py:233
         tools_to_include = {"execute_code"}
         sandbox_enabled = SANDBOX_ALLOWED_TOOLS & tools_to_include
 
@@ -685,7 +685,7 @@ class TestEnvVarFiltering(unittest.TestCase):
         try:
             if extra_env:
                 os.environ.update(extra_env)
-            with patch("model_tools.handle_function_call", return_value='{}'), \
+            with patch("hermes_runtime.model_tools.handle_function_call", return_value='{}'), \
                  patch("tools.code_execution_tool._load_config",
                        return_value={"timeout": 10, "max_tool_calls": 50}):
                 raw = execute_code(code, task_id="test-env",
@@ -797,7 +797,7 @@ class TestExecuteCodeEdgeCases(unittest.TestCase):
             "from hermes_tools import terminal, web_search, read_file\n"
             "print('all imports ok')\n"
         )
-        with patch("model_tools.handle_function_call",
+        with patch("hermes_runtime.model_tools.handle_function_call",
                     return_value=json.dumps({"ok": True})):
             result = json.loads(execute_code(code, task_id="test-none",
                                              enabled_tools=None))
@@ -811,7 +811,7 @@ class TestExecuteCodeEdgeCases(unittest.TestCase):
             "from hermes_tools import terminal, web_search\n"
             "print('imports ok')\n"
         )
-        with patch("model_tools.handle_function_call",
+        with patch("hermes_runtime.model_tools.handle_function_call",
                     return_value=json.dumps({"ok": True})):
             result = json.loads(execute_code(code, task_id="test-empty",
                                              enabled_tools=[]))
@@ -826,7 +826,7 @@ class TestExecuteCodeEdgeCases(unittest.TestCase):
             "from hermes_tools import terminal\n"
             "print('fallback ok')\n"
         )
-        with patch("model_tools.handle_function_call",
+        with patch("hermes_runtime.model_tools.handle_function_call",
                     return_value=json.dumps({"ok": True})):
             result = json.loads(execute_code(
                 code, task_id="test-nonoverlap",
@@ -888,7 +888,7 @@ class TestInterruptHandling(unittest.TestCase):
         t.start()
 
         try:
-            with patch("model_tools.handle_function_call",
+            with patch("hermes_runtime.model_tools.handle_function_call",
                         return_value=json.dumps({"ok": True})), \
                  patch("tools.code_execution_tool._load_config",
                        return_value={"timeout": 30, "max_tool_calls": 50}):
@@ -907,7 +907,7 @@ class TestHeadTailTruncation(unittest.TestCase):
     """Tests for head+tail truncation of large stdout in execute_code."""
 
     def _run(self, code):
-        with patch("model_tools.handle_function_call", side_effect=_mock_handle_function_call):
+        with patch("hermes_runtime.model_tools.handle_function_call", side_effect=_mock_handle_function_call):
             result = execute_code(
                 code=code,
                 task_id="test-task",

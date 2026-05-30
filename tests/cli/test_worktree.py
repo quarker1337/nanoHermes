@@ -96,7 +96,7 @@ def git_repo_remote_no_tracking(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Lightweight reimplementations for testing (avoid importing cli.py)
+# Lightweight reimplementations for testing (avoid importing runtime/hermes_runtime/cli.py)
 # ---------------------------------------------------------------------------
 
 def _git_repo_root(cwd=None):
@@ -395,7 +395,7 @@ class TestWorktreeInclude:
         info = _setup_worktree(str(git_repo))
         assert info is not None
 
-        # Manually copy .worktreeinclude entries (mirrors cli.py logic)
+        # Manually copy .worktreeinclude entries (mirrors runtime/hermes_runtime/cli.py logic)
         include_file = git_repo / ".worktreeinclude"
         wt_path = Path(info["path"])
         for line in include_file.read_text().splitlines():
@@ -437,7 +437,7 @@ class TestGitignoreManagement:
         info = _setup_worktree(str(git_repo))
         assert info is not None
 
-        # Now manually add .worktrees/ to .gitignore (mirrors cli.py logic)
+        # Now manually add .worktrees/ to .gitignore (mirrors runtime/hermes_runtime/cli.py logic)
         _ignore_entry = ".worktrees/"
         existing = gitignore.read_text() if gitignore.exists() else ""
         if _ignore_entry not in existing.splitlines():
@@ -534,7 +534,7 @@ class TestWorktreeDirectorySymlink:
         src = git_repo / ".venv"
         dst = wt_path / ".venv"
 
-        # Manually symlink (mirrors cli.py logic)
+        # Manually symlink (mirrors runtime/hermes_runtime/cli.py logic)
         if not dst.exists():
             dst.parent.mkdir(parents=True, exist_ok=True)
             os.symlink(str(src.resolve()), str(dst))
@@ -558,7 +558,7 @@ class TestStaleWorktreePruning:
         old_time = time.time() - (25 * 3600)
         os.utime(info["path"], (old_time, old_time))
 
-        # Reimplementation of prune logic (matches cli.py)
+        # Reimplementation of prune logic (matches runtime/hermes_runtime/cli.py)
         worktrees_dir = git_repo / ".worktrees"
         cutoff = time.time() - (24 * 3600)
 

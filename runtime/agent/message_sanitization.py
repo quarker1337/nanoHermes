@@ -1,6 +1,6 @@
 """Message and tool-payload sanitization helpers.
 
-Pure functions extracted from ``run_agent.py`` so the AIAgent module can
+Pure functions extracted from ``runtime/hermes_runtime/run_agent.py`` so the AIAgent module can
 stay focused on the conversation loop.  These walk OpenAI-format message
 lists and structured payloads, repairing or stripping problematic
 characters that would otherwise crash ``json.dumps`` inside the OpenAI

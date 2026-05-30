@@ -21,14 +21,14 @@ entry points you'll actually edit.
 
 ```
 hermes-agent/
-├── run_agent.py          # AIAgent class — core conversation loop (~12k LOC)
-├── model_tools.py        # Tool orchestration, discover_builtin_tools(), handle_function_call()
-├── toolsets.py           # Toolset definitions, _HERMES_CORE_TOOLS list
-├── cli.py                # HermesCLI class — interactive CLI orchestrator (~11k LOC)
-├── hermes_state.py       # SessionDB — SQLite session store (FTS5 search)
+├── runtime/hermes_runtime/run_agent.py          # AIAgent class — core conversation loop (~12k LOC)
+├── runtime/hermes_runtime/model_tools.py        # Tool orchestration, discover_builtin_tools(), handle_function_call()
+├── runtime/hermes_runtime/toolsets.py           # Toolset definitions, _HERMES_CORE_TOOLS list
+├── runtime/hermes_runtime/cli.py                # HermesCLI class — interactive CLI orchestrator (~11k LOC)
+├── runtime/hermes_runtime/hermes_state.py       # SessionDB — SQLite session store (FTS5 search)
 ├── hermes_constants.py   # get_hermes_home(), display_hermes_home() — profile-aware paths
 ├── hermes_logging.py     # setup_logging() — agent.log / errors.log / gateway.log (profile-aware)
-├── batch_runner.py       # Parallel batch processing
+├── runtime/hermes_runtime/batch_runner.py       # Parallel batch processing
 ├── agent/                # Agent internals (provider adapters, memory, caching, compression, etc.)
 ├── hermes_cli/           # CLI subcommands, setup wizard, plugins loader, skin engine
 ├── tools/                # Tool implementations — auto-discovered via tools/registry.py
@@ -75,18 +75,18 @@ tools/registry.py  (no deps — imported by all tool files)
        ↑
 tools/*.py  (each calls registry.register() at import time)
        ↑
-model_tools.py  (imports tools/registry + triggers tool discovery)
+runtime/hermes_runtime/model_tools.py  (imports tools/registry + triggers tool discovery)
        ↑
-run_agent.py, cli.py, batch_runner.py, environments/
+runtime/hermes_runtime/run_agent.py, runtime/hermes_runtime/cli.py, runtime/hermes_runtime/batch_runner.py, environments/
 ```
 
 ---
 
-## AIAgent Class (run_agent.py)
+## AIAgent Class (runtime/hermes_runtime/run_agent.py)
 
 The real `AIAgent.__init__` takes ~60 parameters (credentials, routing, callbacks,
 session context, budget, credential pool, etc.). The signature below is the
-minimum subset you'll usually touch — read `run_agent.py` for the full list.
+minimum subset you'll usually touch — read `runtime/hermes_runtime/run_agent.py` for the full list.
 
 ```python
 class AIAgent:
@@ -142,11 +142,11 @@ Reasoning content is stored in `assistant_msg["reasoning"]`.
 
 ---
 
-## CLI Architecture (cli.py)
+## CLI Architecture (runtime/hermes_runtime/cli.py)
 
 - **Rich** for banner/panels, **prompt_toolkit** for input with autocomplete
 - **KawaiiSpinner** (`agent/display.py`) — animated faces during API calls, `┊` activity feed for tool results
-- `load_cli_config()` in cli.py merges hardcoded defaults + user config YAML
+- `load_cli_config()` in runtime/hermes_runtime/cli.py merges hardcoded defaults + user config YAML
 - **Skin engine** (`hermes_cli/skin_engine.py`) — data-driven CLI theming; initialized from `display.skin` config key at startup; skins customize banner colors, spinner faces/verbs/wings, tool prefix, response box, branding text
 - `process_command()` is a method on `HermesCLI` — dispatches on canonical command name resolved via `resolve_command()` from the central registry
 - Skill slash commands: `agent/skill_commands.py` scans `~/.hermes/skills/`, injects as **user message** (not system prompt) to preserve prompt caching
@@ -170,7 +170,7 @@ All slash commands are defined in a central `COMMAND_REGISTRY` list of `CommandD
 CommandDef("mycommand", "Description of what it does", "Session",
            aliases=("mc",), args_hint="[arg]"),
 ```
-2. Add handler in `HermesCLI.process_command()` in `cli.py`:
+2. Add handler in `HermesCLI.process_command()` in `runtime/hermes_runtime/cli.py`:
 ```python
 elif canonical == "mycommand":
     self._handle_mycommand(cmd_original)
@@ -180,7 +180,7 @@ elif canonical == "mycommand":
 if canonical == "mycommand":
     return await self._handle_mycommand(event)
 ```
-4. For persistent settings, use `save_config_value()` in `cli.py`
+4. For persistent settings, use `save_config_value()` in `runtime/hermes_runtime/cli.py`
 
 **CommandDef fields:**
 - `name` — canonical name without slash (e.g. `"background"`)
@@ -268,7 +268,7 @@ For most custom or local-only tools, do **not** edit Hermes core. Use the plugin
 route instead: create `~/.hermes/plugins/<name>/plugin.yaml` and
 `~/.hermes/plugins/<name>/__init__.py`, then register tools with
 `ctx.register_tool(...)`. Plugin toolsets are discovered automatically and can be
-enabled or disabled without touching `tools/` or `toolsets.py`.
+enabled or disabled without touching `tools/` or `runtime/hermes_runtime/toolsets.py`.
 
 Use the built-in route below only when the user is explicitly contributing a new
 core Hermes tool that should ship in the base system.
@@ -296,7 +296,7 @@ registry.register(
 )
 ```
 
-**2. Add to `toolsets.py`** — either `_HERMES_CORE_TOOLS` (all platforms) or a new toolset. **This step is required:** auto-discovery imports the tool and registers its schema, but the tool is only *exposed to an agent* if its name appears in a toolset. `_HERMES_CORE_TOOLS` is not dead code — it's the default bundle every platform's base toolset inherits from.
+**2. Add to `runtime/hermes_runtime/toolsets.py`** — either `_HERMES_CORE_TOOLS` (all platforms) or a new toolset. **This step is required:** auto-discovery imports the tool and registers its schema, but the tool is only *exposed to an agent* if its name appears in a toolset. `_HERMES_CORE_TOOLS` is not dead code — it's the default bundle every platform's base toolset inherits from.
 
 Auto-discovery: any `tools/*.py` file with a top-level `registry.register()` call is imported automatically — no manual import list to maintain. Wiring into a toolset is still a deliberate, manual step.
 
@@ -306,7 +306,7 @@ The registry handles schema collection, dispatch, availability checking, and err
 
 **State files**: If a tool stores persistent state (caches, logs, checkpoints), use `get_hermes_home()` for the base directory — never `Path.home() / ".hermes"`. This ensures each profile gets its own state.
 
-**Agent-level tools** (todo, memory): intercepted by `run_agent.py` before `handle_function_call()`. See `tools/todo_tool.py` for the pattern.
+**Agent-level tools** (todo, memory): intercepted by `runtime/hermes_runtime/run_agent.py` before `handle_function_call()`. See `tools/todo_tool.py` for the pattern.
 
 ---
 
@@ -380,7 +380,7 @@ the env var in code (see `gateway_timeout`, `terminal.cwd` → `TERMINAL_CWD`).
 
 | Loader | Used by | Location |
 |--------|---------|----------|
-| `load_cli_config()` | CLI mode | `cli.py` — merges CLI-specific defaults + user YAML |
+| `load_cli_config()` | CLI mode | `runtime/hermes_runtime/cli.py` — merges CLI-specific defaults + user YAML |
 | `load_config()` | `hermes tools`, `hermes setup`, most CLI subcommands | `hermes_cli/config.py` — merges `DEFAULT_CONFIG` + user YAML |
 | Direct YAML load | Gateway runtime | `gateway/run.py` + `gateway/config.py` — reads user YAML raw |
 
@@ -423,17 +423,17 @@ hermes_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
 | Banner section headers | `colors.banner_accent` | `banner.py` |
 | Banner dim text | `colors.banner_dim` | `banner.py` |
 | Banner body text | `colors.banner_text` | `banner.py` |
-| Response box border | `colors.response_border` | `cli.py` |
+| Response box border | `colors.response_border` | `runtime/hermes_runtime/cli.py` |
 | Spinner faces (waiting) | `spinner.waiting_faces` | `display.py` |
 | Spinner faces (thinking) | `spinner.thinking_faces` | `display.py` |
 | Spinner verbs | `spinner.thinking_verbs` | `display.py` |
 | Spinner wings (optional) | `spinner.wings` | `display.py` |
 | Tool output prefix | `tool_prefix` | `display.py` |
 | Per-tool emojis | `tool_emojis` | `display.py` → `get_tool_emoji()` |
-| Agent name | `branding.agent_name` | `banner.py`, `cli.py` |
-| Welcome message | `branding.welcome` | `cli.py` |
-| Response box label | `branding.response_label` | `cli.py` |
-| Prompt symbol | `branding.prompt_symbol` | `cli.py` |
+| Agent name | `branding.agent_name` | `banner.py`, `runtime/hermes_runtime/cli.py` |
+| Welcome message | `branding.welcome` | `runtime/hermes_runtime/cli.py` |
+| Response box label | `branding.response_label` | `runtime/hermes_runtime/cli.py` |
+| Prompt symbol | `branding.prompt_symbol` | `runtime/hermes_runtime/cli.py` |
 
 ### Built-in skins
 
@@ -506,10 +506,10 @@ can:
   plugin's argparse tree is wired into `hermes` at startup so
   `hermes <pluginname> <subcmd>` works with no change to `main.py`
 
-Hooks are invoked from `model_tools.py` (pre/post tool) and `run_agent.py`
+Hooks are invoked from `runtime/hermes_runtime/model_tools.py` (pre/post tool) and `runtime/hermes_runtime/run_agent.py`
 (lifecycle). **Discovery timing pitfall:** `discover_plugins()` only runs
-as a side effect of importing `model_tools.py`. Code paths that read plugin
-state without importing `model_tools.py` first must call `discover_plugins()`
+as a side effect of importing `runtime/hermes_runtime/model_tools.py`. Code paths that read plugin
+state without importing `runtime/hermes_runtime/model_tools.py` first must call `discover_plugins()`
 explicitly (it's idempotent).
 
 ### Memory-provider plugins (`plugins/memory/<name>/`)
@@ -523,7 +523,7 @@ and is orchestrated by `agent/memory_manager.py`. Lifecycle hooks include
 `sync_turn(turn_messages)`, `prefetch(query)`, `shutdown()`, and optional
 `post_setup(hermes_home, config)` for setup-wizard integration.
 
-**CLI commands via `plugins/memory/<name>/cli.py`:** if a memory plugin
+**CLI commands via `plugins/memory/<name>/runtime/hermes_runtime/cli.py`:** if a memory plugin
 defines `register_cli(subparser)`, `discover_plugin_cli_commands()` finds
 it at argparse setup time and wires it into `hermes <plugin>`. The
 framework only exposes CLI commands for the **currently active** memory
@@ -531,7 +531,7 @@ provider (read from `memory.provider` in config.yaml), so disabled
 providers don't clutter `hermes --help`.
 
 **Rule (Teknium, May 2026):** plugins MUST NOT modify core files
-(`run_agent.py`, `cli.py`, `gateway/run.py`, `hermes_cli/main.py`, etc.).
+(`runtime/hermes_runtime/run_agent.py`, `runtime/hermes_runtime/cli.py`, `gateway/run.py`, `hermes_cli/main.py`, etc.).
 If a plugin needs a capability the framework doesn't expose, expand the
 generic plugin surface (new hook, new ctx method) — never hardcode
 plugin-specific logic into core. PR #5295 removed 95 lines of hardcoded
@@ -699,7 +699,7 @@ contributor skill PRs.
 
 ## Toolsets
 
-All toolsets are defined in `toolsets.py` as a single `TOOLSETS` dict.
+All toolsets are defined in `runtime/hermes_runtime/toolsets.py` as a single `TOOLSETS` dict.
 Each platform's adapter picks a base toolset (e.g. Telegram uses
 `"messaging"`); `_HERMES_CORE_TOOLS` is the default bundle most
 platforms inherit from.
@@ -963,11 +963,11 @@ interactive menus must use `hermes_cli/curses_ui.py` — see
 ### DO NOT use `\033[K` (ANSI erase-to-EOL) in spinner/display code
 Leaks as literal `?[K` text under `prompt_toolkit`'s `patch_stdout`. Use space-padding: `f"\r{line}{' ' * pad}"`.
 
-### `_last_resolved_tool_names` is a process-global in `model_tools.py`
+### `_last_resolved_tool_names` is a process-global in `runtime/hermes_runtime/model_tools.py`
 `_run_single_child()` in `delegate_tool.py` saves and restores this global around subagent execution. If you add new code that reads this global, be aware it may be temporarily stale during child agent runs.
 
 ### DO NOT hardcode cross-tool references in schema descriptions
-Tool schema descriptions must not mention tools from other toolsets by name (e.g., `browser_navigate` saying "prefer web_search"). Those tools may be unavailable (missing API keys, disabled toolset), causing the model to hallucinate calls to non-existent tools. If a cross-reference is needed, add it dynamically in `get_tool_definitions()` in `model_tools.py` — see the `browser_navigate` / `execute_code` post-processing blocks for the pattern.
+Tool schema descriptions must not mention tools from other toolsets by name (e.g., `browser_navigate` saying "prefer web_search"). Those tools may be unavailable (missing API keys, disabled toolset), causing the model to hallucinate calls to non-existent tools. If a cross-reference is needed, add it dynamically in `get_tool_definitions()` in `runtime/hermes_runtime/model_tools.py` — see the `browser_navigate` / `execute_code` post-processing blocks for the pattern.
 
 ### The gateway has TWO message guards — both must bypass approval/control commands
 When an agent is running, messages pass through two sequential guards:

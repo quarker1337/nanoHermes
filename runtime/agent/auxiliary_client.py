@@ -101,8 +101,8 @@ OpenAI = _OpenAIProxy()  # module-level name, resolves lazily on call/isinstance
 
 from agent.credential_pool import load_pool
 from hermes_cli.config import get_hermes_home
-from hermes_constants import OPENROUTER_BASE_URL
-from utils import base_url_host_matches, base_url_hostname, normalize_proxy_env_vars
+from hermes_runtime.hermes_constants import OPENROUTER_BASE_URL
+from hermes_runtime.utils import base_url_host_matches, base_url_hostname, normalize_proxy_env_vars
 
 logger = logging.getLogger(__name__)
 
@@ -1732,7 +1732,7 @@ def _resolve_custom_runtime() -> Tuple[Optional[str], Optional[str], Optional[st
 
     # Local servers (Ollama, llama.cpp, vLLM, LM Studio) don't require auth.
     # Use a placeholder key — the OpenAI SDK requires a non-empty string but
-    # local servers ignore the Authorization header.  Same fix as cli.py
+    # local servers ignore the Authorization header.  Same fix as runtime/hermes_runtime/cli.py
     # _ensure_runtime_credentials() (PR #2556).
     if not isinstance(custom_key, str) or not custom_key.strip():
         custom_key = "no-key-required"
@@ -4719,7 +4719,7 @@ def _build_call_kwargs(
     if tools:
         # Defensive dedup: providers like Google Vertex, Azure, and Bedrock
         # reject requests with duplicate tool names (HTTP 400).  The upstream
-        # injection paths (run_agent.py) already dedup, but this guard
+        # injection paths (runtime/hermes_runtime/run_agent.py) already dedup, but this guard
         # converts a hard API failure into a warning if an upstream regression
         # reintroduces duplicates.  See: #18478
         _seen: set = set()

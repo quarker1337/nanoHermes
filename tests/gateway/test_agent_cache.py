@@ -310,7 +310,7 @@ class TestAgentCacheLifecycle:
 
     def test_cache_hit_returns_same_agent(self):
         """Second message with same config reuses the cached agent instance."""
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         runner = _make_runner()
         session_key = "telegram:12345"
@@ -337,7 +337,7 @@ class TestAgentCacheLifecycle:
 
     def test_cache_miss_on_model_change(self):
         """Model change produces different signature → cache miss."""
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         runner = _make_runner()
         session_key = "telegram:12345"
@@ -364,7 +364,7 @@ class TestAgentCacheLifecycle:
 
     def test_evict_on_session_reset(self):
         """_evict_cached_agent removes the entry."""
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         runner = _make_runner()
         session_key = "telegram:12345"
@@ -398,7 +398,7 @@ class TestAgentCacheLifecycle:
 
     def test_reasoning_config_updates_in_place(self):
         """Reasoning config can be set on a cached agent without eviction."""
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         agent = AIAgent(
             model="anthropic/claude-sonnet-4", api_key="test",
@@ -421,7 +421,7 @@ class TestAgentCacheLifecycle:
 
     def test_system_prompt_frozen_across_cache_reuse(self):
         """The cached agent's system prompt stays identical across turns."""
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         agent = AIAgent(
             model="anthropic/claude-sonnet-4", api_key="test",
@@ -440,7 +440,7 @@ class TestAgentCacheLifecycle:
 
     def test_callbacks_update_without_cache_eviction(self):
         """Per-message callbacks can be set on cached agent."""
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         agent = AIAgent(
             model="anthropic/claude-sonnet-4", api_key="test",
@@ -837,7 +837,7 @@ class TestAgentCacheActiveSafety:
         active._last_activity_ts = __import__("time").time()
         active.client = MagicMock()  # simulate an OpenAI client
         def _real_close():
-            active.client = None  # mirrors run_agent.py:3299
+            active.client = None  # mirrors runtime/hermes_runtime/run_agent.py:3299
         active.close = _real_close
         active.shutdown_memory_provider = MagicMock()
 
@@ -878,7 +878,7 @@ class TestAgentCacheSpilloverLive:
 
     def _real_agent(self):
         """A genuine AIAgent; no API calls are made during these tests."""
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
         return AIAgent(
             model="anthropic/claude-sonnet-4", api_key="test",
             base_url="https://openrouter.ai/api/v1", provider="openrouter",
@@ -1025,7 +1025,7 @@ class TestAgentCacheIdleResume:
 
     def test_release_clients_does_not_touch_process_registry(self, monkeypatch):
         """release_clients must not call process_registry.kill_all for task_id."""
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         agent = AIAgent(
             model="anthropic/claude-sonnet-4", api_key="test",
@@ -1056,7 +1056,7 @@ class TestAgentCacheIdleResume:
 
     def test_release_clients_does_not_touch_terminal_or_browser(self, monkeypatch):
         """release_clients must not call cleanup_vm or cleanup_browser."""
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
         from tools import terminal_tool as _tt
         from tools import browser_tool as _bt
 
@@ -1095,7 +1095,7 @@ class TestAgentCacheIdleResume:
 
     def test_release_clients_closes_llm_client(self):
         """release_clients IS expected to close the OpenAI/httpx client."""
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         agent = AIAgent(
             model="anthropic/claude-sonnet-4", api_key="test",
@@ -1118,8 +1118,8 @@ class TestAgentCacheIdleResume:
         (full teardown — session is done), cache-eviction path uses
         release_clients() (soft — session may resume).
         """
-        from run_agent import AIAgent
-        import run_agent as _ra
+        from hermes_runtime.run_agent import AIAgent
+        import hermes_runtime.run_agent as _ra
 
         # Agent A: evicted from cache (soft) — terminal survives.
         # Agent B: session expired (hard) — terminal torn down.
@@ -1164,7 +1164,7 @@ class TestAgentCacheIdleResume:
         that persisted across eviction is reachable via the new agent.
         """
         from gateway import run as gw_run
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         monkeypatch.setattr(gw_run, "_AGENT_CACHE_IDLE_TTL_SECS", 0.01)
         runner = self._runner()

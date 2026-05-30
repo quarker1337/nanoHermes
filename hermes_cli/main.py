@@ -57,7 +57,7 @@ Usage:
 # ``hermes update`` to recover.  Missing the bootstrap means UTF-8 stdio
 # setup is skipped on Windows — degraded, not broken.  POSIX is unaffected.
 try:
-    import hermes_bootstrap  # noqa: F401
+    import hermes_runtime.hermes_bootstrap as hermes_bootstrap  # noqa: F401
 except ModuleNotFoundError:
     pass
 
@@ -258,7 +258,7 @@ def _apply_profile_override() -> None:
     # 2. If no flag, check active_profile in the hermes root
     if profile_name is None:
         try:
-            from hermes_constants import get_default_hermes_root
+            from hermes_runtime.hermes_constants import get_default_hermes_root
 
             active_path = get_default_hermes_root() / "active_profile"
             if active_path.exists():
@@ -342,7 +342,7 @@ except Exception:
 # Initialize centralized file logging early — all `hermes` subcommands
 # (chat, setup, gateway, config, etc.) write to agent.log + errors.log.
 try:
-    from hermes_logging import setup_logging as _setup_logging
+    from hermes_runtime.hermes_logging import setup_logging as _setup_logging
 
     _setup_logging(mode="cli")
 except Exception:
@@ -353,7 +353,7 @@ except Exception:
 # this just calls the toggle without a redundant load_config() round trip.
 if _FORCE_IPV4_EARLY:
     try:
-        from hermes_constants import apply_ipv4_preference as _apply_ipv4
+        from hermes_runtime.hermes_constants import apply_ipv4_preference as _apply_ipv4
 
         _apply_ipv4(force=True)
     except Exception:
@@ -883,7 +883,7 @@ def _resolve_last_session(source: str = "cli") -> Optional[str]:
     """Look up the most recently-used session ID for a source."""
     db = None
     try:
-        from hermes_state import SessionDB
+        from hermes_runtime.hermes_state import SessionDB
 
         db = SessionDB()
         sessions = db.search_sessions(source=source, limit=1)
@@ -1022,7 +1022,7 @@ def _resolve_session_by_name_or_id(name_or_id: str) -> Optional[str]:
       resumed at the live tip instead of a stale parent with no messages.
     """
     try:
-        from hermes_state import SessionDB
+        from hermes_runtime.hermes_state import SessionDB
 
         db = SessionDB()
 
@@ -1075,7 +1075,7 @@ def _print_tui_exit_summary(
 
     db = None
     try:
-        from hermes_state import SessionDB
+        from hermes_runtime.hermes_state import SessionDB
 
         db = SessionDB()
         session = db.get_session(target)
@@ -1525,7 +1525,7 @@ def _launch_tui(
     wt_info = None
     if worktree:
         try:
-            from cli import (
+            from hermes_runtime.cli import (
                 _cleanup_worktree,
                 _git_repo_root,
                 _prune_stale_worktrees,
@@ -1815,7 +1815,7 @@ def cmd_chat(args):
         )
 
     # Import and run the CLI
-    from cli import main as cli_main
+    from hermes_runtime.cli import main as cli_main
 
     # Build kwargs from args
     kwargs = {
@@ -2941,7 +2941,7 @@ def _prompt_provider_choice(choices, *, default=0):
 
 def _model_flow_openrouter(config, current_model=""):
     """OpenRouter provider: ensure API key, then pick model."""
-    from hermes_constants import OPENROUTER_BASE_URL
+    from hermes_runtime.hermes_constants import OPENROUTER_BASE_URL
     from hermes_cli.auth import (
         ProviderConfig,
         _prompt_model_selection,
@@ -5896,7 +5896,7 @@ def _run_anthropic_oauth_flow(save_env_value):
         ):
             use_anthropic_claude_code_credentials(save_fn=save_env_value)
             print("  ✓ Claude Code credentials linked.")
-            from hermes_constants import display_hermes_home as _dhh_fn
+            from hermes_runtime.hermes_constants import display_hermes_home as _dhh_fn
 
             print(
                 f"    Hermes will use Claude's credential store directly instead of copying a setup-token into {_dhh_fn()}/.env."
@@ -6364,11 +6364,11 @@ _UPDATE_CRITICAL_FILES = (
     "hermes_cli/main.py",
     "hermes_cli/config.py",
     "hermes_cli/__init__.py",
-    "cli.py",
-    "run_agent.py",
-    "model_tools.py",
-    "toolsets.py",
-    "hermes_constants.py",
+    "runtime/hermes_runtime/cli.py",
+    "runtime/hermes_runtime/run_agent.py",
+    "runtime/hermes_runtime/model_tools.py",
+    "runtime/hermes_runtime/toolsets.py",
+    "runtime/hermes_runtime/hermes_constants.py",
 )
 
 
@@ -6441,7 +6441,7 @@ def _gateway_prompt(prompt_text: str, default: str = "", timeout: float = 300.0)
     """
     import json as _json
     import uuid as _uuid
-    from hermes_constants import get_hermes_home
+    from hermes_runtime.hermes_constants import get_hermes_home
 
     home = get_hermes_home()
     prompt_path = home / ".update_prompt.json"
@@ -7548,7 +7548,7 @@ def _count_commits_between(git_cmd: list[str], cwd: Path, base: str, head: str) 
 
 def _should_skip_upstream_prompt() -> bool:
     """Check if user previously declined to add upstream."""
-    from hermes_constants import get_hermes_home
+    from hermes_runtime.hermes_constants import get_hermes_home
 
     return (get_hermes_home() / SKIP_UPSTREAM_PROMPT_FILE).exists()
 
@@ -7556,7 +7556,7 @@ def _should_skip_upstream_prompt() -> bool:
 def _mark_skip_upstream_prompt():
     """Create marker file to skip future upstream prompts."""
     try:
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
 
         (get_hermes_home() / SKIP_UPSTREAM_PROMPT_FILE).touch()
     except Exception:
@@ -7703,7 +7703,7 @@ def _invalidate_update_cache():
     """
     homes = []
     # Default profile home (Docker-aware — uses /opt/data in Docker)
-    from hermes_constants import get_default_hermes_root
+    from hermes_runtime.hermes_constants import get_default_hermes_root
 
     default_home = get_default_hermes_root()
     homes.append(default_home)
@@ -8817,7 +8817,7 @@ def _run_pre_update_backup(args) -> None:
 
     # Render path using display_hermes_home so the user sees ~/.hermes/...
     try:
-        from hermes_constants import get_hermes_home, display_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home, display_hermes_home
 
         home = get_hermes_home()
         try:
@@ -9322,7 +9322,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # attributes like display_hermes_home() added since the last release.
         try:
             import importlib
-            import hermes_constants as _hc
+            import hermes_runtime.hermes_constants as _hc
 
             importlib.reload(_hc)
         except Exception:
@@ -9648,7 +9648,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             # systemd units without SIGUSR1 wiring this wait just times out
             # and we fall back to ``systemctl restart`` (the old behaviour).
             try:
-                from hermes_constants import (
+                from hermes_runtime.hermes_constants import (
                     DEFAULT_GATEWAY_RESTART_DRAIN_TIMEOUT as _DEFAULT_DRAIN,
                 )
             except Exception:
@@ -10209,7 +10209,7 @@ def cmd_profile(args):
         _is_wrapper_dir_in_path,
         _get_wrapper_dir,
     )
-    from hermes_constants import display_hermes_home
+    from hermes_runtime.hermes_constants import display_hermes_home
 
     action = getattr(args, "profile_action", None)
 
@@ -10440,7 +10440,7 @@ def cmd_profile(args):
         if name and not text_value and not auto_flag:
             try:
                 if _profiles_mod.normalize_profile_name(name) == "default":
-                    from hermes_constants import get_hermes_home as _hh
+                    from hermes_runtime.hermes_constants import get_hermes_home as _hh
                     profile_dir = Path(_hh())
                 else:
                     profile_dir = _profiles_mod.get_profile_dir(name)
@@ -10463,7 +10463,7 @@ def cmd_profile(args):
         if text_value:
             try:
                 if _profiles_mod.normalize_profile_name(name) == "default":
-                    from hermes_constants import get_hermes_home as _hh
+                    from hermes_runtime.hermes_constants import get_hermes_home as _hh
                     profile_dir = Path(_hh())
                 else:
                     profile_dir = _profiles_mod.get_profile_dir(name)
@@ -11133,7 +11133,7 @@ def _prepare_agent_startup(args) -> None:
         )
     try:
         # MCP tool discovery — no event loop running in CLI/TUI startup,
-        # so inline is safe.  Moved here from model_tools.py module scope
+        # so inline is safe.  Moved here from runtime/hermes_runtime/model_tools.py module scope
         # to avoid freezing the gateway's event loop on its first message
         # via the same lazy import path (#16856).
         from tools.mcp_tool import discover_mcp_tools
@@ -13053,7 +13053,7 @@ Examples:
             print("\n  ✓ Memory provider: built-in only")
             print("  Saved to config.yaml\n")
         elif sub == "reset":
-            from hermes_constants import get_hermes_home, display_hermes_home
+            from hermes_runtime.hermes_constants import get_hermes_home, display_hermes_home
 
             mem_dir = get_hermes_home() / "memories"
             target = getattr(args, "target", "all")
@@ -13428,7 +13428,7 @@ Examples:
         import json as _json
 
         try:
-            from hermes_state import SessionDB
+            from hermes_runtime.hermes_state import SessionDB
 
             db = SessionDB()
         except Exception as e:
@@ -13608,7 +13608,7 @@ Examples:
 
     def cmd_insights(args):
         try:
-            from hermes_state import SessionDB
+            from hermes_runtime.hermes_state import SessionDB
             from agent.insights import InsightsEngine
 
             db = SessionDB()
@@ -14259,7 +14259,7 @@ Examples:
     _prepare_agent_startup(args)
 
     # Handle top-level --oneshot / -z: single-shot mode, stdout = final
-    # response only, nothing else. Bypasses cli.py entirely.
+    # response only, nothing else. Bypasses runtime/hermes_runtime/cli.py entirely.
     if getattr(args, "oneshot", None):
         from hermes_cli.oneshot import run_oneshot
 

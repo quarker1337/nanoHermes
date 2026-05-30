@@ -39,7 +39,7 @@ class ToolCall:
 
     # ── Backward compatibility ──────────────────────────────────
     # The agent loop reads tc.function.name / tc.function.arguments
-    # throughout run_agent.py (45+ sites).  These properties let
+    # throughout runtime/hermes_runtime/run_agent.py (45+ sites).  These properties let
     # NormalizedResponse pass through without the _nr_to_assistant_message
     # shim, while keeping ToolCall's canonical fields flat.
     @property

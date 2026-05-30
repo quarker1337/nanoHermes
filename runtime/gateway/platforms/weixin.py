@@ -66,8 +66,8 @@ from gateway.platforms.base import (
     cache_document_from_bytes,
     cache_image_from_bytes,
 )
-from hermes_constants import get_hermes_home
-from utils import atomic_json_write
+from hermes_runtime.hermes_constants import get_hermes_home
+from hermes_runtime.utils import atomic_json_write
 
 ILINK_BASE_URL = "https://ilinkai.weixin.qq.com"
 WEIXIN_CDN_BASE_URL = "https://novac2c.cdn.weixin.qq.com/c2c"

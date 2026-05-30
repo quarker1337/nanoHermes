@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import json
 import sys
 
-from run_agent import AIAgent
+from hermes_runtime.run_agent import AIAgent
 
 
 def _mock_response(*, usage: dict, content: str = "done"):
@@ -18,9 +18,9 @@ def _mock_response(*, usage: dict, content: str = "done"):
 
 def _make_agent(session_db, *, platform: str):
     with (
-        patch("run_agent.get_tool_definitions", return_value=[]),
-        patch("run_agent.check_toolset_requirements", return_value={}),
-        patch("run_agent.OpenAI"),
+        patch("hermes_runtime.run_agent.get_tool_definitions", return_value=[]),
+        patch("hermes_runtime.run_agent.check_toolset_requirements", return_value={}),
+        patch("hermes_runtime.run_agent.OpenAI"),
     ):
         agent = AIAgent(
             api_key="test-key",
@@ -73,9 +73,9 @@ def test_session_search_lazily_opens_db_when_entrypoint_did_not_pass_one(monkeyp
         def __new__(cls):
             return sentinel_db
 
-    hermes_state = ModuleType("hermes_state")
+    hermes_state = ModuleType("hermes_runtime.hermes_state")
     hermes_state.SessionDB = FakeSessionDB
-    monkeypatch.setitem(sys.modules, "hermes_state", hermes_state)
+    monkeypatch.setitem(sys.modules, "hermes_runtime.hermes_state", hermes_state)
 
     session_search_mod = ModuleType("tools.session_search_tool")
 

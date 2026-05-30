@@ -70,7 +70,7 @@ instead of merging `upstream/main`, so pushes stay small.
 ```bash
 bash -n scripts/install.sh
 python3 -m py_compile hermes_cli/main.py scripts/sync_upstream.py scripts/upstream_sync_report.py
-uv run --with pytest python -m pytest tests/package_manager/test_package_manager_cli.py -q -o 'addopts='
+uv run --with pytest python -m pytest tests/package_manager/test_package_manager_runtime/hermes_runtime/cli.py -q -o 'addopts='
 ```
 """
     if args.output:

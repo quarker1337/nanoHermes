@@ -14,9 +14,9 @@ Usage::
 """
 
 # IMPORTANT: hermes_bootstrap must be the very first import — UTF-8 stdio
-# on Windows.  No-op on POSIX.  See hermes_bootstrap.py for full rationale.
+# on Windows.  No-op on POSIX.  See runtime/hermes_runtime/hermes_bootstrap.py for full rationale.
 try:
-    import hermes_bootstrap  # noqa: F401
+    import hermes_runtime.hermes_bootstrap as hermes_bootstrap  # noqa: F401
 except ModuleNotFoundError:
     # Graceful fallback when hermes_bootstrap isn't registered in the venv
     # yet — happens during partial ``hermes update`` where git-reset landed
@@ -29,7 +29,7 @@ import asyncio
 import logging
 import sys
 from pathlib import Path
-from hermes_constants import get_hermes_home
+from hermes_runtime.hermes_constants import get_hermes_home
 
 
 # Methods clients send as periodic liveness probes. They are not part of the
@@ -244,7 +244,7 @@ def main(argv: list[str] | None = None) -> None:
     # MCP tool discovery from config.yaml — run before asyncio.run() so
     # it's safe to use blocking waits.  (ACP also registers per-session
     # MCP servers dynamically via asyncio.to_thread inside the event
-    # loop; that path is unaffected.)  Moved from model_tools.py module
+    # loop; that path is unaffected.)  Moved from runtime/hermes_runtime/model_tools.py module
     # scope to avoid freezing the gateway's loop on lazy import (#16856).
     try:
         from tools.mcp_tool import discover_mcp_tools

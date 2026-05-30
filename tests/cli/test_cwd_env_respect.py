@@ -11,7 +11,7 @@ _CWD_PLACEHOLDERS = (".", "auto", "cwd")
 
 
 def _resolve_cwd(terminal_config: dict, defaults: dict, env: dict):
-    """Mirror the CWD resolution logic from cli.py load_cli_config()."""
+    """Mirror the CWD resolution logic from runtime/hermes_runtime/cli.py load_cli_config()."""
     effective_backend = terminal_config.get("env_type", "local")
 
     if effective_backend == "local":
@@ -82,7 +82,7 @@ class TestNonLocalBackends:
 
 
 class TestGatewayLazyImport:
-    """Gateway lazy import of cli.py must not clobber TERMINAL_CWD."""
+    """Gateway lazy import of runtime/hermes_runtime/cli.py must not clobber TERMINAL_CWD."""
 
     def test_gateway_cwd_preserved(self):
         env = {"_HERMES_GATEWAY": "1", "TERMINAL_CWD": "/home/user/project"}

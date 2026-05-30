@@ -27,7 +27,7 @@ A built-in provider has to line up across a few layers:
    - `base_url`
    - `api_key`
    - `source`
-3. `run_agent.py` uses `api_mode` to decide how requests are built and sent.
+3. `runtime/hermes_runtime/run_agent.py` uses `api_mode` to decide how requests are built and sent.
 4. `hermes_cli/models.py` and `hermes_cli/main.py` make the provider show up in the CLI. (`hermes_cli/setup.py` delegates to `main.py` automatically — no changes needed there.)
 5. `agent/auxiliary_client.py` and `agent/model_metadata.py` keep side tasks and token budgeting working.
 
@@ -67,7 +67,7 @@ Examples in-tree today:
 This path includes everything from Path A plus:
 
 - a provider adapter in `agent/`
-- `run_agent.py` branches for request building, dispatch, usage extraction, interrupt handling, and response normalization
+- `runtime/hermes_runtime/run_agent.py` branches for request building, dispatch, usage extraction, interrupt handling, and response normalization
 - adapter tests
 
 ## File checklist
@@ -90,7 +90,7 @@ This path includes everything from Path A plus:
 ### Additional for native / non-OpenAI providers
 
 10. `agent/<provider>_adapter.py`
-11. `run_agent.py`
+11. `runtime/hermes_runtime/run_agent.py`
 12. `pyproject.toml` if a provider SDK is required
 
 ## Fast path: Simple API-key providers
@@ -267,11 +267,11 @@ If the provider has no sensible aux default, side tasks may fall back badly or u
 
 Add context lengths for the provider's models so token budgeting, compression thresholds, and limits stay sane.
 
-## Step 7: If the provider is native, add an adapter and `run_agent.py` support
+## Step 7: If the provider is native, add an adapter and `runtime/hermes_runtime/run_agent.py` support
 
 If the provider is not plain chat completions, isolate the provider-specific logic in `agent/<provider>_adapter.py`.
 
-Keep `run_agent.py` focused on orchestration. It should call adapter helpers, not hand-build provider payloads inline all over the file.
+Keep `runtime/hermes_runtime/run_agent.py` focused on orchestration. It should call adapter helpers, not hand-build provider payloads inline all over the file.
 
 A native provider usually needs work in these places:
 
@@ -283,10 +283,10 @@ Typical responsibilities:
 - resolve tokens
 - convert OpenAI-style conversation messages to the provider's request format
 - convert tool schemas if needed
-- normalize provider responses back into what `run_agent.py` expects
+- normalize provider responses back into what `runtime/hermes_runtime/run_agent.py` expects
 - extract usage and finish-reason data
 
-### `run_agent.py`
+### `runtime/hermes_runtime/run_agent.py`
 
 Search for `api_mode` and audit every switch point. At minimum, verify:
 
@@ -301,7 +301,7 @@ Search for `api_mode` and audit every switch point. At minimum, verify:
 - fallback-model activation can switch into the new provider cleanly
 - summary-generation and memory-flush paths still work
 
-Also search `run_agent.py` for `self.client.`. Any code path that assumes the standard OpenAI client exists can break when a native provider uses a different client object or `self.client = None`.
+Also search `runtime/hermes_runtime/run_agent.py` for `self.client.`. Any code path that assumes the standard OpenAI client exists can break when a native provider uses a different client object or `self.client = None`.
 
 ### Prompt caching and provider-specific request fields
 
@@ -326,7 +326,7 @@ Common places:
 - `tests/hermes_cli/test_model_switch_custom_providers.py` (and adjacent `tests/hermes_cli/test_model_switch_*.py`)
 - `tests/hermes_cli/test_setup_model_provider.py`
 - `tests/run_agent/test_provider_parity.py`
-- `tests/run_agent/test_run_agent.py`
+- `tests/run_agent/test_runtime/hermes_runtime/run_agent.py`
 - `tests/test_<provider>_adapter.py` for a native provider
 
 For docs-only examples, the exact file set may differ. The point is to cover:
@@ -401,7 +401,7 @@ Use this when the provider needs a new protocol path.
 
 - [ ] everything in the OpenAI-compatible checklist
 - [ ] adapter added in `agent/<provider>_adapter.py`
-- [ ] new `api_mode` supported in `run_agent.py`
+- [ ] new `api_mode` supported in `runtime/hermes_runtime/run_agent.py`
 - [ ] interrupt / rebuild path works
 - [ ] usage and finish-reason extraction works
 - [ ] fallback path works
@@ -426,7 +426,7 @@ If the service is just OpenAI-compatible, a custom provider may already solve th
 
 The main chat path can work while summarization, memory flushes, or vision helpers fail because aux routing was never updated.
 
-### 5. Native-provider branches hiding in `run_agent.py`
+### 5. Native-provider branches hiding in `runtime/hermes_runtime/run_agent.py`
 
 Search for `api_mode` and `self.client.`. Do not assume the obvious request path is the only one.
 

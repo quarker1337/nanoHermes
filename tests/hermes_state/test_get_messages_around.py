@@ -7,7 +7,7 @@ boundaries.
 """
 import pytest
 
-from hermes_state import SessionDB
+from hermes_runtime.hermes_state import SessionDB
 
 
 @pytest.fixture

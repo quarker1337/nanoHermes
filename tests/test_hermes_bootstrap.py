@@ -1,7 +1,7 @@
 """Tests for hermes_bootstrap — Windows UTF-8 stdio shim.
 
 The bootstrap module is imported at the top of every Hermes entry point
-(hermes, hermes-agent, hermes-acp, gateway, batch_runner, cli.py).  It
+(hermes, hermes-agent, hermes-acp, gateway, batch_runner, runtime/hermes_runtime/cli.py).  It
 fixes Python's Windows UTF-8 defaults so print("café") doesn't crash and
 subprocess children inherit UTF-8 mode.
 
@@ -38,7 +38,7 @@ def _fresh_import():
     runs again and the platform check re-evaluates.
     """
     sys.modules.pop("hermes_bootstrap", None)
-    import hermes_bootstrap  # noqa: WPS433
+    import hermes_runtime.hermes_bootstrap as hermes_bootstrap  # noqa: WPS433
     return hermes_bootstrap
 
 
@@ -241,11 +241,11 @@ class TestEntryPointsImportBootstrap:
     # import hermes_bootstrap before doing any file I/O or stdout writes.
     ENTRY_POINTS = [
         "hermes_cli/main.py",   # hermes CLI (console_script)
-        "run_agent.py",          # hermes-agent (console_script)
+        "runtime/hermes_runtime/run_agent.py",          # hermes-agent (console_script)
         "runtime/acp_adapter/entry.py",  # hermes-acp (console_script)
         "runtime/gateway/run.py",        # gateway
-        "batch_runner.py",       # batch mode
-        "cli.py",                # legacy direct-launch CLI
+        "runtime/hermes_runtime/batch_runner.py",       # batch mode
+        "runtime/hermes_runtime/cli.py",                # legacy direct-launch CLI
     ]
 
     @pytest.mark.parametrize("path", ENTRY_POINTS)
@@ -267,7 +267,7 @@ class TestEntryPointsImportBootstrap:
         inside it to verify bootstrap is the imported module.
         """
         # Resolve relative to the hermes-agent repo root.  Tests live
-        # at tests/test_hermes_bootstrap.py, so go up one dir.
+        # at tests/test_runtime/hermes_runtime/hermes_bootstrap.py, so go up one dir.
         import pathlib
         here = pathlib.Path(__file__).resolve()
         repo_root = here.parent.parent  # tests/ -> repo root
@@ -305,9 +305,9 @@ class TestEntryPointsImportBootstrap:
         else:  # ImportFrom
             first_import_name = first_import_node.module or ""
 
-        assert first_import_name == "hermes_bootstrap", (
+        assert first_import_name in {"hermes_bootstrap", "hermes_runtime.hermes_bootstrap"}, (
             f"{path}: first top-level import is {first_import_name!r}, "
-            f"but it must be 'hermes_bootstrap' so UTF-8 stdio is "
+            f"but it must be the Hermes bootstrap module so UTF-8 stdio is "
             f"configured before anything else initializes.  Move the "
             f"'import hermes_bootstrap' line to be the first import."
         )

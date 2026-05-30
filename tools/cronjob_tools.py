@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from hermes_constants import display_hermes_home
+from hermes_runtime.hermes_constants import display_hermes_home
 
 logger = logging.getLogger(__name__)
 
@@ -350,7 +350,7 @@ def _validate_cron_script_path(script: Optional[str]) -> Optional[str]:
     if not script or not script.strip():
         return None  # empty/None = clearing the field, always OK
 
-    from hermes_constants import get_hermes_home
+    from hermes_runtime.hermes_constants import get_hermes_home
 
     raw = script.strip()
 
@@ -817,7 +817,7 @@ def check_cronjob_requirements() -> bool:
     leave the tool disabled. Uses the shared ``env_var_enabled`` helper so
     every consumer of these flags agrees on the truthy set.
     """
-    from utils import env_var_enabled
+    from hermes_runtime.utils import env_var_enabled
 
     return (
         env_var_enabled("HERMES_INTERACTIVE")

@@ -11,7 +11,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
-from hermes_constants import get_hermes_home
+from hermes_runtime.hermes_constants import get_hermes_home
 from typing import Dict, List, Optional
 
 from rich.console import Console
@@ -493,9 +493,9 @@ def build_welcome_banner(console: Console, model: str, cwd: str,
         get_toolset_for_tool: Callable to map tool name -> toolset name.
         context_length: Model's context window size in tokens.
     """
-    from model_tools import check_tool_availability, TOOLSET_REQUIREMENTS
+    from hermes_runtime.model_tools import check_tool_availability, TOOLSET_REQUIREMENTS
     if get_toolset_for_tool is None:
-        from model_tools import get_toolset_for_tool
+        from hermes_runtime.model_tools import get_toolset_for_tool
 
     tools = tools or []
     enabled_toolsets = enabled_toolsets or []

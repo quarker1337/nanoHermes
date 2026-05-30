@@ -2,7 +2,7 @@
 from unittest.mock import patch, MagicMock
 
 
-from toolsets import resolve_toolset, get_toolset, validate_toolset
+from hermes_runtime.toolsets import resolve_toolset, get_toolset, validate_toolset
 
 
 class TestHermesApiServerToolset:
@@ -76,7 +76,7 @@ class TestApiServerAdapterToolset:
         with patch("gateway.run._resolve_runtime_agent_kwargs") as mock_kwargs, \
              patch("gateway.run._resolve_gateway_model") as mock_model, \
              patch("gateway.run._load_gateway_config") as mock_config, \
-             patch("run_agent.AIAgent") as mock_agent_cls:
+             patch("hermes_runtime.run_agent.AIAgent") as mock_agent_cls:
 
             mock_kwargs.return_value = {"api_key": "test-key", "base_url": None,
                                         "provider": None, "api_mode": None,
@@ -106,7 +106,7 @@ class TestApiServerAdapterToolset:
         with patch("gateway.run._resolve_runtime_agent_kwargs") as mock_kwargs, \
              patch("gateway.run._resolve_gateway_model") as mock_model, \
              patch("gateway.run._load_gateway_config") as mock_config, \
-             patch("run_agent.AIAgent") as mock_agent_cls:
+             patch("hermes_runtime.run_agent.AIAgent") as mock_agent_cls:
 
             mock_kwargs.return_value = {"api_key": "test-key", "base_url": None,
                                         "provider": None, "api_mode": None,

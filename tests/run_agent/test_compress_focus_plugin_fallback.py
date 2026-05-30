@@ -10,7 +10,7 @@ on older plugins.
 from unittest.mock import MagicMock
 
 
-from run_agent import AIAgent
+from hermes_runtime.run_agent import AIAgent
 
 
 def _make_agent_with_engine(engine):

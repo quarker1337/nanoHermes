@@ -206,7 +206,7 @@ Memory provider 插件可以注册自己的 CLI 子命令树（例如 `hermes my
 
 ### 工作原理
 
-1. 在插件目录中添加 `cli.py` 文件
+1. 在插件目录中添加 `runtime/hermes_runtime/cli.py` 文件
 2. 定义 `register_cli(subparser)` 函数来构建 argparse 树
 3. memory 插件系统在启动时通过 `discover_plugin_cli_commands()` 自动发现
 4. 你的命令以 `hermes <provider-name> <subcommand>` 的形式出现
@@ -216,7 +216,7 @@ Memory provider 插件可以注册自己的 CLI 子命令树（例如 `hermes my
 ### 示例
 
 ```python
-# plugins/memory/my-provider/cli.py
+# plugins/memory/my-provider/runtime/hermes_runtime/cli.py
 
 def my_command(args):
     """由 argparse 分发的处理函数。"""
@@ -241,7 +241,7 @@ def register_cli(subparser) -> None:
 
 ### 参考实现
 
-完整示例请参见 `plugins/memory/honcho/cli.py`，包含 13 个子命令、跨 profile 管理（`--target-profile`）以及配置读写。
+完整示例请参见 `plugins/memory/honcho/runtime/hermes_runtime/cli.py`，包含 13 个子命令、跨 profile 管理（`--target-profile`）以及配置读写。
 
 ### 含 CLI 的目录结构
 
@@ -249,7 +249,7 @@ def register_cli(subparser) -> None:
 plugins/memory/my-provider/
 ├── __init__.py      # MemoryProvider 实现 + register()
 ├── plugin.yaml      # 元数据
-├── cli.py           # register_cli(subparser) — CLI 命令
+├── runtime/hermes_runtime/cli.py           # register_cli(subparser) — CLI 命令
 └── README.md        # 配置说明
 ```
 

@@ -10,13 +10,13 @@ Usage:
     python -m gateway.run
     
     # Or from CLI
-    python cli.py --gateway
+    python -m hermes_runtime.cli --gateway
 """
 
 # IMPORTANT: hermes_bootstrap must be the very first import — UTF-8 stdio
-# on Windows.  No-op on POSIX.  See hermes_bootstrap.py for full rationale.
+# on Windows.  No-op on POSIX.  See runtime/hermes_runtime/hermes_bootstrap.py for full rationale.
 try:
-    import hermes_bootstrap  # noqa: F401
+    import hermes_runtime.hermes_bootstrap as hermes_bootstrap  # noqa: F401
 except ModuleNotFoundError:
     # Graceful fallback when hermes_bootstrap isn't registered in the venv
     # yet — happens during partial ``hermes update`` where git-reset landed
@@ -735,7 +735,7 @@ def _restart_notification_pending() -> bool:
     return (_hermes_home / ".restart_notify.json").exists()
 
 
-# Mark this process as a gateway so cli.py's module-level load_cli_config()
+# Mark this process as a gateway so runtime/hermes_runtime/cli.py's module-level load_cli_config()
 # knows not to clobber TERMINAL_CWD if lazily imported.
 os.environ["_HERMES_GATEWAY"] = "1"
 
@@ -745,8 +745,8 @@ _ensure_ssl_certs()
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 # Resolve Hermes home directory (respects HERMES_HOME override)
-from hermes_constants import get_hermes_home
-from utils import atomic_json_write, atomic_yaml_write, base_url_host_matches, is_truthy_value
+from hermes_runtime.hermes_constants import get_hermes_home
+from hermes_runtime.utils import atomic_json_write, atomic_yaml_write, base_url_host_matches, is_truthy_value
 _hermes_home = get_hermes_home()
 
 # Load environment variables from ~/.hermes/.env first.
@@ -853,7 +853,7 @@ if _config_path.exists():
                         os.environ[_env_var] = json.dumps(_val)
                     else:
                         os.environ[_env_var] = str(_val)
-        # Compression config is read directly from config.yaml by run_agent.py
+        # Compression config is read directly from config.yaml by runtime/hermes_runtime/run_agent.py
         # and auxiliary_client.py — no env var bridging needed.
         # Auxiliary model/direct-endpoint overrides (vision, web_extract,
         # approval, plus any plugin-registered auxiliary tasks).
@@ -981,7 +981,7 @@ if _config_path.exists():
 
 # Apply IPv4 preference if configured (before any HTTP clients are created).
 try:
-    from hermes_constants import apply_ipv4_preference
+    from hermes_runtime.hermes_constants import apply_ipv4_preference
     _network_cfg = (_cfg if '_cfg' in dir() else {}).get("network", {})
     if isinstance(_network_cfg, dict) and _network_cfg.get("force_ipv4"):
         apply_ipv4_preference(force=True)
@@ -1372,7 +1372,7 @@ def _check_unavailable_skill(command_name: str) -> str | None:
                     )
 
         # Check optional skills (shipped with repo but not installed)
-        from hermes_constants import get_optional_skills_dir
+        from hermes_runtime.hermes_constants import get_optional_skills_dir
         repo_root = Path(__file__).resolve().parents[2]
         optional_dir = get_optional_skills_dir(repo_root / "resources" / "optional-skills")
         if optional_dir.exists():
@@ -1811,11 +1811,11 @@ class GatewayRunner:
         # Initialize session database for session_search tool support
         self._session_db = None
         try:
-            from hermes_state import SessionDB
+            from hermes_runtime.hermes_state import SessionDB
             self._session_db = SessionDB()
         except Exception as e:
             # WARNING (not DEBUG) so the failure appears in errors.log — matches
-            # cli.py's handling of the same init path.  Users hitting NFS-mounted
+            # runtime/hermes_runtime/cli.py's handling of the same init path.  Users hitting NFS-mounted
             # HERMES_HOME silently lost /resume, /title, /history, /branch, and
             # session search without this.  The underlying cause (usually
             # "locking protocol" from NFS) is now also captured by
@@ -2867,7 +2867,7 @@ class GatewayRunner:
         "minimal", "low", "medium", "high", "xhigh". Returns None to use
         default (medium).
         """
-        from hermes_constants import parse_reasoning_effort
+        from hermes_runtime.hermes_constants import parse_reasoning_effort
         cfg = _load_gateway_runtime_config()
         effort = str(cfg_get(cfg, "agent", "reasoning_effort", default="") or "").strip()
         result = parse_reasoning_effort(effort)
@@ -3578,7 +3578,7 @@ class GatewayRunner:
                 # Pass the agent's own conversation transcript so memory
                 # providers' ``on_session_end`` hooks see the real messages
                 # instead of the empty default (#15165). ``_session_messages``
-                # is set on ``AIAgent`` (run_agent.py:1518) and refreshed at
+                # is set on ``AIAgent`` (runtime/hermes_runtime/run_agent.py:1518) and refreshed at
                 # the end of every ``run_conversation`` turn via
                 # ``_persist_session``; on an agent built through
                 # ``object.__new__`` (test stubs) the attribute may be
@@ -4077,7 +4077,7 @@ class GatewayRunner:
         # decisions take precedence in tie cases.  The CLI startup path
         # does this via an explicit call in hermes_cli/main.py; the
         # gateway lazily imports run_agent inside per-request handlers,
-        # so the discover_plugins() side-effect in model_tools.py is NOT
+        # so the discover_plugins() side-effect in runtime/hermes_runtime/model_tools.py is NOT
         # guaranteed to have run by the time we reach this point.
         try:
             from hermes_cli.plugins import discover_plugins
@@ -8546,7 +8546,7 @@ class GatewayRunner:
                     elif isinstance(_model_cfg, dict):
                         _hyg_model = _model_cfg.get("default") or _model_cfg.get("model") or _hyg_model
                         # Read explicit context_length override from model config
-                        # (same as run_agent.py lines 995-1005)
+                        # (same as runtime/hermes_runtime/run_agent.py lines 995-1005)
                         _raw_ctx = _model_cfg.get("context_length")
                         if _raw_ctx is not None:
                             try:
@@ -8587,7 +8587,7 @@ class GatewayRunner:
                     pass
 
                 # Check custom_providers per-model context_length
-                # (same fallback as run_agent.py lines 1171-1189).
+                # (same fallback as runtime/hermes_runtime/run_agent.py lines 1171-1189).
                 # Must run after runtime resolution so _hyg_base_url is set.
                 if _hyg_config_context_length is None and _hyg_base_url:
                     try:
@@ -8676,7 +8676,7 @@ class GatewayRunner:
                     _hyg_meta = self._thread_metadata_for_source(source, self._reply_anchor_for_event(event))
 
                     try:
-                        from run_agent import AIAgent
+                        from hermes_runtime.run_agent import AIAgent
 
                         _hyg_model, _hyg_runtime = self._resolve_session_agent_runtime(
                             source=source,
@@ -9102,7 +9102,7 @@ class GatewayRunner:
             _err_str_for_classify = str(agent_result.get("error", "")).lower()
             # Use specific multi-word phrases (not bare "exceed" or "token")
             # to avoid false positives on transient errors like "rate limit
-            # exceeded" or "invalid auth token". Matches run_agent.py's
+            # exceeded" or "invalid auth token". Matches runtime/hermes_runtime/run_agent.py's
             # own context-length classifier.
             is_context_overflow_failure = agent_failed_early and (
                 bool(agent_result.get("compression_exhausted"))
@@ -9565,7 +9565,7 @@ class GatewayRunner:
         _title_arg = event.get_command_args().strip()
         _title_note = ""
         if _title_arg and self._session_db and new_entry:
-            from hermes_state import SessionDB
+            from hermes_runtime.hermes_state import SessionDB
             try:
                 sanitized = SessionDB.sanitize_title(_title_arg)
             except ValueError as e:
@@ -9617,7 +9617,7 @@ class GatewayRunner:
 
     async def _handle_profile_command(self, event: MessageEvent) -> str:
         """Handle /profile — show active profile name and home directory."""
-        from hermes_constants import display_hermes_home
+        from hermes_runtime.hermes_constants import display_hermes_home
         from hermes_cli.profiles import get_active_profile_name
 
         display = display_hermes_home()
@@ -9842,7 +9842,7 @@ class GatewayRunner:
         title = None
         # Pull token totals from the SQLite session DB rather than the
         # in-memory SessionStore.  The agent's per-turn token deltas are
-        # persisted into sessions_db (run_agent.py), not into SessionEntry,
+        # persisted into sessions_db (runtime/hermes_runtime/run_agent.py), not into SessionEntry,
         # so session_entry.total_tokens is always 0.  SessionDB is the
         # single source of truth; reading it here keeps /status accurate
         # without duplicating token writes into two stores.
@@ -10724,7 +10724,7 @@ class GatewayRunner:
     async def _handle_codex_runtime_command(self, event: MessageEvent) -> str:
         """Handle /codex-runtime command in the gateway.
 
-        Same surface as the CLI handler in cli.py:
+        Same surface as the CLI handler in runtime/hermes_runtime/cli.py:
             /codex-runtime                  — show current state
             /codex-runtime auto             — Hermes default runtime
             /codex-runtime codex_app_server — codex subprocess runtime
@@ -10768,7 +10768,7 @@ class GatewayRunner:
 
     async def _handle_personality_command(self, event: MessageEvent) -> str:
         """Handle /personality command - list or set a personality."""
-        from hermes_constants import display_hermes_home
+        from hermes_runtime.hermes_constants import display_hermes_home
 
         args = event.get_command_args().strip().lower()
         config_path = _hermes_home / 'config.yaml'
@@ -11864,7 +11864,7 @@ class GatewayRunner:
         media_types: Optional[List[str]] = None,
     ) -> None:
         """Execute a background agent task and deliver the result to the chat."""
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         media_urls = media_urls or []
         media_types = media_types or []
@@ -12379,7 +12379,7 @@ class GatewayRunner:
         focus_topic = (event.get_command_args() or "").strip() or None
 
         try:
-            from run_agent import AIAgent
+            from hermes_runtime.run_agent import AIAgent
             from agent.manual_compression_feedback import summarize_manual_compression
             from agent.model_metadata import estimate_request_tokens_rough
 
@@ -12789,7 +12789,7 @@ class GatewayRunner:
     def _disable_telegram_topic_mode_for_chat(self, source: SessionSource) -> str:
         """Cleanly disable topic mode for a chat via /topic off."""
         if not self._session_db:
-            from hermes_state import format_session_db_unavailable
+            from hermes_runtime.hermes_state import format_session_db_unavailable
             return format_session_db_unavailable(prefix=t("gateway.shared.session_db_unavailable_prefix"))
         chat_id = str(source.chat_id or "")
         if not chat_id:
@@ -12828,7 +12828,7 @@ class GatewayRunner:
         if source.platform != Platform.TELEGRAM or source.chat_type != "dm":
             return t("gateway.topic.not_telegram_dm")
         if not self._session_db:
-            from hermes_state import format_session_db_unavailable
+            from hermes_runtime.hermes_state import format_session_db_unavailable
             return format_session_db_unavailable(prefix=t("gateway.shared.session_db_unavailable_prefix"))
 
         # Authorization: /topic activates multi-session mode and mutates
@@ -13018,7 +13018,7 @@ class GatewayRunner:
         session_id = session_entry.session_id
 
         if not self._session_db:
-            from hermes_state import format_session_db_unavailable
+            from hermes_runtime.hermes_state import format_session_db_unavailable
             return format_session_db_unavailable(prefix=t("gateway.shared.session_db_unavailable_prefix"))
 
         # Ensure session exists in SQLite DB (it may only exist in session_store
@@ -13063,7 +13063,7 @@ class GatewayRunner:
     async def _handle_resume_command(self, event: MessageEvent) -> str:
         """Handle /resume command — list or switch to a previous session."""
         if not self._session_db:
-            from hermes_state import format_session_db_unavailable
+            from hermes_runtime.hermes_state import format_session_db_unavailable
             return format_session_db_unavailable(prefix=t("gateway.shared.session_db_unavailable_prefix"))
 
         source = event.source
@@ -13176,7 +13176,7 @@ class GatewayRunner:
         import uuid as _uuid
 
         if not self._session_db:
-            from hermes_state import format_session_db_unavailable
+            from hermes_runtime.hermes_state import format_session_db_unavailable
             return format_session_db_unavailable(prefix=t("gateway.shared.session_db_unavailable_prefix"))
 
         source = event.source
@@ -13426,7 +13426,7 @@ class GatewayRunner:
                     i += 1
 
         try:
-            from hermes_state import SessionDB
+            from hermes_runtime.hermes_state import SessionDB
             from agent.insights import InsightsEngine
 
             loop = asyncio.get_running_loop()
@@ -13484,7 +13484,7 @@ class GatewayRunner:
             if choice == "always":
                 # Persist the opt-out and run the reload.
                 try:
-                    from cli import save_config_value
+                    from hermes_runtime.cli import save_config_value
                     save_config_value("approvals.mcp_reload_confirm", False)
                     logger.info(
                         "User opted out of /reload-mcp confirmation (session=%s)",
@@ -13556,7 +13556,7 @@ class GatewayRunner:
             # consented to the prompt-cache invalidation via the slash-confirm
             # gate in _handle_reload_mcp_command before we reach this point.
             try:
-                from model_tools import get_tool_definitions
+                from hermes_runtime.model_tools import get_tool_definitions
                 _cache = getattr(self, "_agent_cache", None)
                 _cache_lock = getattr(self, "_agent_cache_lock", None)
                 if _cache_lock is not None and _cache:
@@ -13809,7 +13809,7 @@ class GatewayRunner:
                 return f"🟡 /{command} cancelled. Conversation unchanged."
             if choice == "always":
                 try:
-                    from cli import save_config_value
+                    from hermes_runtime.cli import save_config_value
                     save_config_value("approvals.destructive_slash_confirm", False)
                     logger.info(
                         "User opted out of destructive slash confirm (session=%s)",
@@ -16049,7 +16049,7 @@ class GatewayRunner:
                 event_message_id=event_message_id,
             )
 
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
         import queue
 
         def _run_still_current() -> bool:
@@ -18616,7 +18616,7 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
     # Centralized logging — agent.log (INFO+), errors.log (WARNING+),
     # and gateway.log (INFO+, gateway-component records only).
     # Idempotent, so repeated calls from AIAgent.__init__ won't duplicate.
-    from hermes_logging import setup_logging
+    from hermes_runtime.hermes_logging import setup_logging
     setup_logging(hermes_home=_hermes_home, mode="gateway")
 
     # Periodic process memory usage logging (gateway only) — emits a

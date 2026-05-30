@@ -15,7 +15,7 @@ def _import_cli():
             "validated": False,
         }
 
-    import cli as cli_mod
+    import hermes_runtime.cli as cli_mod
 
     return cli_mod
 

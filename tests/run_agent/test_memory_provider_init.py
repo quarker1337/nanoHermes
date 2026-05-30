@@ -39,11 +39,11 @@ def test_blank_memory_provider_does_not_auto_enable_honcho():
         ) as from_global_config,
         patch("plugins.memory.load_memory_provider") as load_memory_provider,
         patch("agent.model_metadata.get_model_context_length", return_value=204_800),
-        patch("run_agent.get_tool_definitions", return_value=[]),
-        patch("run_agent.check_toolset_requirements", return_value={}),
-        patch("run_agent.OpenAI"),
+        patch("hermes_runtime.run_agent.get_tool_definitions", return_value=[]),
+        patch("hermes_runtime.run_agent.check_toolset_requirements", return_value={}),
+        patch("hermes_runtime.run_agent.OpenAI"),
     ):
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         agent = AIAgent(
             api_key="test-key-1234567890",
@@ -67,11 +67,11 @@ def test_aiagent_forwards_user_id_alt_to_memory_provider():
         patch("hermes_cli.config.load_config", return_value=cfg),
         patch("plugins.memory.load_memory_provider", return_value=provider),
         patch("agent.model_metadata.get_model_context_length", return_value=204_800),
-        patch("run_agent.get_tool_definitions", return_value=[]),
-        patch("run_agent.check_toolset_requirements", return_value={}),
-        patch("run_agent.OpenAI"),
+        patch("hermes_runtime.run_agent.get_tool_definitions", return_value=[]),
+        patch("hermes_runtime.run_agent.check_toolset_requirements", return_value={}),
+        patch("hermes_runtime.run_agent.OpenAI"),
     ):
-        from run_agent import AIAgent
+        from hermes_runtime.run_agent import AIAgent
 
         agent = AIAgent(
             api_key="test-key-1234567890",

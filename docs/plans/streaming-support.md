@@ -88,7 +88,7 @@ HERMES_STREAMING_ENABLED=true    # Master switch via env
 
 ### Phase 1: Core streaming infrastructure in AIAgent
 
-**File: run_agent.py**
+**File: runtime/hermes_runtime/run_agent.py**
 
 #### 1a. Add stream_callback parameter to __init__ (~5 lines)
 
@@ -414,7 +414,7 @@ they don't support message editing.
 
 ### Phase 3: CLI streaming
 
-**File: cli.py**
+**File: runtime/hermes_runtime/cli.py**
 
 #### 3a. Set up callback in the CLI chat loop (~20 lines)
 
@@ -650,10 +650,10 @@ The 1.5s edit interval is conservative enough for all platforms. If we get
 
 | File | Phase | Changes |
 |------|-------|---------|
-| `run_agent.py` | 1 | +stream_callback param, +_run_streaming_chat_completion(), modify _run_codex_stream(), modify _interruptible_api_call() |
+| `runtime/hermes_runtime/run_agent.py` | 1 | +stream_callback param, +_run_streaming_chat_completion(), modify _run_codex_stream(), modify _interruptible_api_call() |
 | `gateway/run.py` | 2 | +streaming config reader, +queue/callback setup, +stream_preview task, +skip-final-send logic |
 | `gateway/platforms/base.py` | 2 | +check for _streamed_msg_id in response handler |
-| `cli.py` | 3 | +streaming setup, +token display, +response box integration |
+| `runtime/hermes_runtime/cli.py` | 3 | +streaming setup, +token display, +response box integration |
 | `gateway/platforms/api_server.py` | 4 | +real SSE writer, +streaming callback wiring |
 | `hermes_cli/config.py` | 1 | +streaming config defaults |
 | `cli-config.yaml.example` | 1 | +streaming section |

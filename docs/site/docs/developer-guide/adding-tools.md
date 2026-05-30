@@ -17,7 +17,7 @@ modifying Hermes core, use the plugin route instead:
 - [Build a Hermes Plugin](/guides/build-a-hermes-plugin)
 
 Default to plugins for most custom tool creation. Only follow this page when
-you explicitly want to ship a new built-in tool in `tools/` and `toolsets.py`.
+you explicitly want to ship a new built-in tool in `tools/` and `runtime/hermes_runtime/toolsets.py`.
 :::
 
 Make it a **Skill** when the capability can be expressed as instructions + shell commands + existing tools (arXiv search, git workflows, Docker management, PDF processing).
@@ -29,7 +29,7 @@ Make it a **Tool** when it requires end-to-end integration with API keys, custom
 Adding a tool touches **2 files**:
 
 1. **`tools/your_tool.py`** — handler, schema, check function, `registry.register()` call
-2. **`toolsets.py`** — add tool name to `_HERMES_CORE_TOOLS` (or a specific toolset)
+2. **`runtime/hermes_runtime/toolsets.py`** — add tool name to `_HERMES_CORE_TOOLS` (or a specific toolset)
 
 Any `tools/*.py` file with a top-level `registry.register()` call is auto-discovered at startup — no manual import list required.
 
@@ -120,7 +120,7 @@ registry.register(
 
 ## Step 2: Add the Built-in Tool to a Toolset
 
-In `toolsets.py`, add the tool name:
+In `runtime/hermes_runtime/toolsets.py`, add the tool name:
 
 ```python
 # If it should be available on all platforms (CLI + messaging):
@@ -181,7 +181,7 @@ registry.register(
 
 ## Agent-Loop Intercepted Tools
 
-Some tools (`todo`, `memory`, `session_search`, `delegate_task`) need access to per-session agent state. These are intercepted by `run_agent.py` before reaching the registry. The registry still holds their schemas, but `dispatch()` returns a fallback error if the intercept is bypassed.
+Some tools (`todo`, `memory`, `session_search`, `delegate_task`) need access to per-session agent state. These are intercepted by `runtime/hermes_runtime/run_agent.py` before reaching the registry. The registry still holds their schemas, but `dispatch()` returns a fallback error if the intercept is bypassed.
 
 ## Optional: Setup Wizard Integration
 
@@ -203,7 +203,7 @@ OPTIONAL_ENV_VARS = {
 ## Checklist
 
 - [ ] Tool file created with handler, schema, check function, and registration
-- [ ] Added to appropriate toolset in `toolsets.py`
+- [ ] Added to appropriate toolset in `runtime/hermes_runtime/toolsets.py`
 - [ ] Confirmed this really should be a built-in/core tool and not a plugin
 - [ ] Handler returns JSON strings, errors returned as `{"error": "..."}`
 - [ ] Optional: API key added to `OPTIONAL_ENV_VARS` in `hermes_cli/config.py`

@@ -24,7 +24,7 @@ from hermes_cli.config import (
     get_hermes_home,  # noqa: F401 — used by test mocks
 )
 from hermes_cli.colors import Colors, color
-from hermes_constants import display_hermes_home
+from hermes_runtime.hermes_constants import display_hermes_home
 from tools.mcp_tool import _ENV_VAR_PATTERN
 
 logger = logging.getLogger(__name__)
@@ -745,7 +745,7 @@ def mcp_command(args):
     action = getattr(args, "mcp_action", None)
 
     if action == "serve":
-        from mcp_serve import run_mcp_server
+        from hermes_runtime.mcp_serve import run_mcp_server
         run_mcp_server(verbose=getattr(args, "verbose", False))
         return
 

@@ -407,7 +407,7 @@ def my_callback(tool_name: str, args: dict, task_id: str, **kwargs):
 | `args` | `dict` | The arguments the model passed to the tool |
 | `task_id` | `str` | Session/task identifier. Empty string if not set. |
 
-**Fires:** In `model_tools.py`, inside `handle_function_call()`, before the tool's handler runs. Fires once per tool call — if the model calls 3 tools in parallel, this fires 3 times.
+**Fires:** In `runtime/hermes_runtime/model_tools.py`, inside `handle_function_call()`, before the tool's handler runs. Fires once per tool call — if the model calls 3 tools in parallel, this fires 3 times.
 
 **Return value — veto the call:**
 
@@ -469,7 +469,7 @@ def my_callback(tool_name: str, args: dict, result: str, task_id: str,
 | `task_id` | `str` | Session/task identifier. Empty string if not set. |
 | `duration_ms` | `int` | How long the tool's dispatch took, in milliseconds (measured with `time.monotonic()` around `registry.dispatch()`). |
 
-**Fires:** In `model_tools.py`, inside `handle_function_call()`, after the tool's handler returns. Fires once per tool call. Does **not** fire if the tool raised an unhandled exception (the error is caught and returned as an error JSON string instead, and `post_tool_call` fires with that error string as `result`).
+**Fires:** In `runtime/hermes_runtime/model_tools.py`, inside `handle_function_call()`, after the tool's handler returns. Fires once per tool call. Does **not** fire if the tool raised an unhandled exception (the error is caught and returned as an error JSON string instead, and `post_tool_call` fires with that error string as `result`).
 
 **Return value:** Ignored.
 
@@ -521,7 +521,7 @@ def my_callback(session_id: str, user_message: str, conversation_history: list,
 | `model` | `str` | The model identifier (e.g. `"anthropic/claude-sonnet-4.6"`) |
 | `platform` | `str` | Where the session is running: `"cli"`, `"telegram"`, `"discord"`, etc. |
 
-**Fires:** In `run_agent.py`, inside `run_conversation()`, after context compression but before the main `while` loop. Fires once per `run_conversation()` call (i.e. once per user turn), not once per API call within the tool loop.
+**Fires:** In `runtime/hermes_runtime/run_agent.py`, inside `run_conversation()`, after context compression but before the main `while` loop. Fires once per `run_conversation()` call (i.e. once per user turn), not once per API call within the tool loop.
 
 **Return value:** If the callback returns a dict with a `"context"` key, or a plain non-empty string, the text is appended to the current turn's user message. Return `None` for no injection.
 
@@ -603,7 +603,7 @@ def my_callback(session_id: str, user_message: str, assistant_response: str,
 | `model` | `str` | The model identifier |
 | `platform` | `str` | Where the session is running |
 
-**Fires:** In `run_agent.py`, inside `run_conversation()`, after the tool loop exits with a final response. Guarded by `if final_response and not interrupted` — so it does **not** fire when the user interrupts mid-turn or the agent hits the iteration limit without producing a response.
+**Fires:** In `runtime/hermes_runtime/run_agent.py`, inside `run_conversation()`, after the tool loop exits with a final response. Guarded by `if final_response and not interrupted` — so it does **not** fire when the user interrupts mid-turn or the agent hits the iteration limit without producing a response.
 
 **Return value:** Ignored.
 
@@ -662,7 +662,7 @@ def my_callback(session_id: str, model: str, platform: str, **kwargs):
 | `model` | `str` | The model identifier |
 | `platform` | `str` | Where the session is running |
 
-**Fires:** In `run_agent.py`, inside `run_conversation()`, during the first turn of a new session — specifically after the system prompt is built but before the tool loop starts. The check is `if not conversation_history` (no prior messages = new session).
+**Fires:** In `runtime/hermes_runtime/run_agent.py`, inside `run_conversation()`, during the first turn of a new session — specifically after the system prompt is built but before the tool loop starts. The check is `if not conversation_history` (no prior messages = new session).
 
 **Return value:** Ignored.
 
@@ -707,8 +707,8 @@ def my_callback(session_id: str, completed: bool, interrupted: bool,
 | `platform` | `str` | Where the session is running |
 
 **Fires:** In two places:
-1. **`run_agent.py`** — at the end of every `run_conversation()` call, after all cleanup. Always fires, even if the turn errored.
-2. **`cli.py`** — in the CLI's atexit handler, but **only** if the agent was mid-turn (`_agent_running=True`) when the exit occurred. This catches Ctrl+C and `/exit` during processing. In this case, `completed=False` and `interrupted=True`.
+1. **`runtime/hermes_runtime/run_agent.py`** — at the end of every `run_conversation()` call, after all cleanup. Always fires, even if the turn errored.
+2. **`runtime/hermes_runtime/cli.py`** — in the CLI's atexit handler, but **only** if the agent was mid-turn (`_agent_running=True`) when the exit occurred. This catches Ctrl+C and `/exit` during processing. In this case, `completed=False` and `interrupted=True`.
 
 **Return value:** Ignored.
 
@@ -770,7 +770,7 @@ def my_callback(session_id: str | None, platform: str, **kwargs):
 | `session_id` | `str` or `None` | The outgoing session ID. May be `None` if no active session existed. |
 | `platform` | `str` | `"cli"` or the messaging platform name (`"telegram"`, `"discord"`, etc.). |
 
-**Fires:** In `cli.py` (on `/new` / CLI exit) and `gateway/run.py` (when a session is reset or GC'd). Always paired with `on_session_reset` on the gateway side.
+**Fires:** In `runtime/hermes_runtime/cli.py` (on `/new` / CLI exit) and `gateway/run.py` (when a session is reset or GC'd). Always paired with `on_session_reset` on the gateway side.
 
 **Return value:** Ignored.
 

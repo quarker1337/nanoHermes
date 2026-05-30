@@ -1859,7 +1859,7 @@ def resolve_fast_mode_overrides(model_id: Optional[str]) -> dict[str, Any] | Non
     - Anthropic models: ``{"speed": "fast"}`` (Anthropic Fast Mode beta)
 
     The overrides are injected into the API request kwargs by
-    ``_build_api_kwargs`` in run_agent.py — each API path handles its own
+    ``_build_api_kwargs`` in runtime/hermes_runtime/run_agent.py — each API path handles its own
     keys (service_tier for OpenAI/Codex, speed for Anthropic Messages).
     """
     if not model_supports_fast_mode(model_id):
@@ -2181,7 +2181,7 @@ _PROVIDER_MODELS_CACHE_TTL = 3600  # 1h
 
 
 def _provider_models_cache_path() -> Path:
-    from hermes_constants import get_hermes_home
+    from hermes_runtime.hermes_constants import get_hermes_home
     return get_hermes_home() / "provider_models_cache.json"
 
 
@@ -2218,7 +2218,7 @@ def _credential_fingerprint(provider: str) -> str:
 
     # OAuth / external-file mtimes that change on re-auth
     try:
-        from hermes_constants import get_hermes_home
+        from hermes_runtime.hermes_constants import get_hermes_home
         for rel in ("auth.json", "credentials.json"):
             p = get_hermes_home() / rel
             try:
@@ -2272,7 +2272,7 @@ def _load_provider_models_cache() -> dict:
 def _save_provider_models_cache(data: dict) -> None:
     """Persist the cache dict. Best-effort — silent on any error."""
     try:
-        from utils import atomic_json_write
+        from hermes_runtime.utils import atomic_json_write
         path = _provider_models_cache_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         atomic_json_write(path, data, indent=None)
@@ -3221,7 +3221,7 @@ def _strip_ollama_cloud_suffix(model_id: str) -> str:
 
 def _ollama_cloud_cache_path() -> Path:
     """Return the path for the Ollama Cloud model cache."""
-    from hermes_constants import get_hermes_home
+    from hermes_runtime.hermes_constants import get_hermes_home
     return get_hermes_home() / "ollama_cloud_models_cache.json"
 
 
@@ -3255,7 +3255,7 @@ def _load_ollama_cloud_cache(*, ignore_ttl: bool = False) -> Optional[dict]:
 def _save_ollama_cloud_cache(models: list[str]) -> None:
     """Persist the merged Ollama Cloud model list to disk."""
     try:
-        from utils import atomic_json_write
+        from hermes_runtime.utils import atomic_json_write
         cache_path = _ollama_cloud_cache_path()
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         atomic_json_write(cache_path, {"models": models, "cached_at": time.time()}, indent=None)

@@ -6,7 +6,7 @@ confirmation prompt — "Always Approve" flips the key to False so future
 destructive commands run silently.
 
 See gateway/run.py::_maybe_confirm_destructive_slash and
-cli.py::_confirm_destructive_slash for the runtime gate.
+runtime/hermes_runtime/cli.py::_confirm_destructive_slash for the runtime gate.
 """
 
 from __future__ import annotations

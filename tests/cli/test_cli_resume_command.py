@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from cli import HermesCLI
+from hermes_runtime.cli import HermesCLI
 
 
 def _make_cli():
@@ -53,7 +53,7 @@ class TestCliResumeCommand:
 
         with (
             patch("hermes_cli.main._resolve_session_by_name_or_id", return_value=None),
-            patch("cli._cprint") as mock_cprint,
+            patch("hermes_runtime.cli._cprint") as mock_cprint,
         ):
             cli_obj._handle_resume_command("/resume 2")
 
@@ -68,7 +68,7 @@ class TestCliResumeCommand:
             {"id": "sess_002", "title": "Coding"},
         ])
 
-        with patch("cli._cprint") as mock_cprint:
+        with patch("hermes_runtime.cli._cprint") as mock_cprint:
             cli_obj._handle_resume_command("/resume 9")
 
         printed = " ".join(str(call) for call in mock_cprint.call_args_list)
@@ -91,7 +91,7 @@ class TestCliResumeCommand:
             cli_obj.session_id = "current_session"
             with (
                 patch("hermes_cli.main._resolve_session_by_name_or_id", return_value="sess_alpha"),
-                patch("cli._cprint"),
+                patch("hermes_runtime.cli._cprint"),
             ):
                 cli_obj._handle_resume_command(f"/resume {raw}")
             assert cli_obj.session_id == "sess_alpha", (
@@ -110,7 +110,7 @@ class TestCliResumeCommand:
 
         with (
             patch("hermes_cli.main._resolve_session_by_name_or_id", return_value=None),
-            patch("cli._cprint") as mock_cprint,
+            patch("hermes_runtime.cli._cprint") as mock_cprint,
         ):
             cli_obj._handle_resume_command("/resume <half")
 

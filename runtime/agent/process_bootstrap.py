@@ -5,7 +5,7 @@ Three concerns, all tied to ``AIAgent`` boot-time / runtime IO setup:
 1. **Lazy OpenAI SDK import** — ``_load_openai_cls`` + ``_OpenAIProxy``
    defer the 240ms-ish ``from openai import OpenAI`` cost until first use,
    while preserving ``isinstance(client, OpenAI)`` checks and
-   ``patch("run_agent.OpenAI", ...)`` test patterns.
+   ``patch("hermes_runtime.run_agent.OpenAI", ...)`` test patterns.
 
 2. **Crash-resistant stdio** — ``_SafeWriter`` wraps stdout/stderr so
    ``OSError: Input/output error`` from broken pipes (systemd, Docker,
@@ -28,7 +28,7 @@ import sys
 import urllib.request
 from typing import Optional
 
-from utils import base_url_hostname, normalize_proxy_url
+from hermes_runtime.utils import base_url_hostname, normalize_proxy_url
 
 
 # Cached at module level so we only pay the OpenAI SDK import cost once

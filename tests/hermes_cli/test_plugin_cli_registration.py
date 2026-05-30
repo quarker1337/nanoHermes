@@ -130,7 +130,7 @@ class TestMemoryPluginCliDiscovery:
         assert len(cmds) == 0
 
     def test_skips_plugin_without_register_cli(self, tmp_path, monkeypatch):
-        """An active plugin with cli.py but no register_cli returns nothing."""
+        """An active plugin with runtime/hermes_runtime/cli.py but no register_cli returns nothing."""
         plugin_dir = tmp_path / "noplugin"
         plugin_dir.mkdir()
         (plugin_dir / "__init__.py").write_text("pass\n")
@@ -149,7 +149,7 @@ class TestMemoryPluginCliDiscovery:
         assert len(cmds) == 0
 
     def test_skips_plugin_without_cli_py(self, tmp_path, monkeypatch):
-        """An active provider without cli.py returns nothing."""
+        """An active provider without runtime/hermes_runtime/cli.py returns nothing."""
         plugin_dir = tmp_path / "nocli"
         plugin_dir.mkdir()
         (plugin_dir / "__init__.py").write_text("pass\n")

@@ -1,6 +1,6 @@
 """Per-agent iteration budget — thread-safe consume/refund counter.
 
-Extracted from ``run_agent.py``.  Each ``AIAgent`` instance (parent or
+Extracted from ``runtime/hermes_runtime/run_agent.py``.  Each ``AIAgent`` instance (parent or
 subagent) holds an :class:`IterationBudget`; the parent's cap comes from
 ``max_iterations`` (default 90), each subagent's cap comes from
 ``delegation.max_iterations`` (default 50).

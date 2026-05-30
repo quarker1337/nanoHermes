@@ -1,4 +1,4 @@
-"""Assorted AIAgent runtime helpers — moved out of run_agent.py for clarity.
+"""Assorted AIAgent runtime helpers — moved out of runtime/hermes_runtime/run_agent.py for clarity.
 
 Each function takes the parent ``AIAgent`` as its first argument
 (``agent``) except for the static helpers (``sanitize_tool_call_arguments``,
@@ -36,14 +36,14 @@ from agent.tool_dispatch_helpers import _trajectory_normalize_msg, make_tool_res
 from agent.trajectory import convert_scratchpad_to_think
 from agent.credential_pool import STATUS_EXHAUSTED
 from agent.error_classifier import FailoverReason
-from utils import base_url_host_matches, base_url_hostname, env_var_enabled, atomic_json_write
+from hermes_runtime.utils import base_url_host_matches, base_url_hostname, env_var_enabled, atomic_json_write
 
 logger = logging.getLogger(__name__)
 
 
 def _ra():
     """Lazy ``run_agent`` reference for test-patch routing."""
-    import run_agent
+    import hermes_runtime.run_agent as run_agent
     return run_agent
 
 
@@ -1377,7 +1377,7 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
     # failure, etc.) we restore these atomically so the agent isn't left with a
     # new model/provider name paired with the OLD client — that mismatch causes
     # HTTP 400s like "claude-sonnet-4-6 is not supported on openai-codex" on the
-    # next turn.  Callers in cli.py / gateway/run.py / tui_gateway/server.py
+    # next turn.  Callers in runtime/hermes_runtime/cli.py / gateway/run.py / tui_gateway/server.py
     # catch the re-raised exception and show the user a warning; without this
     # rollback the warning is misleading because the swap partially succeeded.
     # Use a sentinel so we can distinguish "attribute was unset" from
@@ -1484,7 +1484,7 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
         # Rollback every mutated field to the pre-swap snapshot so the agent
         # is left consistent (old model + old provider + old client) and the
         # caller's exception handler can surface a meaningful warning.  The
-        # exception is re-raised; cli.py / gateway/run.py / tui_gateway catch
+        # exception is re-raised; runtime/hermes_runtime/cli.py / gateway/run.py / tui_gateway catch
         # it and print "Agent swap failed; change applied to next session".
         for _name, _value in _snapshot.items():
             if _value is _MISSING:
@@ -1635,7 +1635,7 @@ def invoke_tool(agent, function_name: str, function_args: dict, effective_task_i
     elif function_name == "session_search":
         session_db = agent._get_session_db_for_recall()
         if not session_db:
-            from hermes_state import format_session_db_unavailable
+            from hermes_runtime.hermes_state import format_session_db_unavailable
             return json.dumps({"success": False, "error": format_session_db_unavailable()})
         from tools.session_search_tool import session_search as _session_search
         return _session_search(

@@ -19,7 +19,7 @@ import unicodedata
 from typing import Optional
 from hermes_cli.config import cfg_get
 
-from utils import env_var_enabled, is_truthy_value
+from hermes_runtime.utils import env_var_enabled, is_truthy_value
 
 logger = logging.getLogger(__name__)
 
@@ -742,7 +742,7 @@ def prompt_dangerous_approval(command: str, description: str,
     # Deny fast and log loudly instead so the caller can surface a real
     # error to the agent. Any thread that needs interactive approval must
     # install a callback via tools.terminal_tool.set_approval_callback()
-    # before reaching this point (see delegate_tool.py, run_agent.py
+    # before reaching this point (see delegate_tool.py, runtime/hermes_runtime/run_agent.py
     # _execute_tool_calls_concurrent / _spawn_background_review for the
     # established pattern).
     try:

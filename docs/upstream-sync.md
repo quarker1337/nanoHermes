@@ -34,10 +34,10 @@ Expect conflicts most often in:
 - `pyproject.toml`
 - `uv.lock`
 - `scripts/install.sh`
-- `toolsets.py`
+- `runtime/hermes_runtime/toolsets.py`
 - `hermes_cli/main.py`
 - `hermes_cli/setup.py`
-- `cli.py`
+- `runtime/hermes_runtime/cli.py`
 - `tui_gateway/server.py`
 - `tui_gateway/slash_worker.py`
 - README/docs branding
@@ -49,7 +49,7 @@ Focused gate:
 ```bash
 bash -n scripts/install.sh
 python3 -m py_compile hermes_cli/main.py scripts/sync_upstream.py scripts/upstream_sync_report.py
-uv run --with pytest python -m pytest tests/package_manager/test_package_manager_cli.py -q -o 'addopts='
+uv run --with pytest python -m pytest tests/package_manager/test_package_manager_runtime/hermes_runtime/cli.py -q -o 'addopts='
 ```
 
 Broad gate before release:

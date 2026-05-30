@@ -1196,7 +1196,7 @@ def test_persist_nous_credentials_writes_both_pool_and_providers(tmp_path, monke
 
     Regression guard: before this helper existed, `hermes auth add nous`
     wrote only the pool. After the Nous agent_key's 24h TTL expired, the
-    401-recovery path in run_agent.py called resolve_nous_runtime_credentials
+    401-recovery path in runtime/hermes_runtime/run_agent.py called resolve_nous_runtime_credentials
     which reads providers.nous, found it empty, raised AuthError, and the
     agent failed with "Non-retryable client error". Both stores must stay
     in sync at write time.
@@ -1238,7 +1238,7 @@ def test_persist_nous_credentials_allows_recovery_from_401(tmp_path, monkeypatch
     """End-to-end: after persisting via the helper, resolve_nous_runtime_credentials
     must succeed (not raise "Hermes is not logged into Nous Portal").
 
-    This is the exact path that run_agent.py's `_try_refresh_nous_client_credentials`
+    This is the exact path that runtime/hermes_runtime/run_agent.py's `_try_refresh_nous_client_credentials`
     calls after a Nous 401 — before the fix it would raise AuthError because
     providers.nous was empty.
     """

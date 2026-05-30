@@ -95,8 +95,8 @@ class GatewayStreamConsumer:
     _MAX_FLOOD_STRIKES = 3
 
     # Reasoning/thinking tags that models emit inline in content.
-    # Must stay in sync with cli.py _OPEN_TAGS/_CLOSE_TAGS and
-    # run_agent.py _strip_think_blocks() tag variants.
+    # Must stay in sync with runtime/hermes_runtime/cli.py _OPEN_TAGS/_CLOSE_TAGS and
+    # runtime/hermes_runtime/run_agent.py _strip_think_blocks() tag variants.
     _OPEN_THINK_TAGS = (
         "<REASONING_SCRATCHPAD>", "<think>", "<reasoning>",
         "<THINKING>", "<thinking>", "<thought>",
@@ -292,7 +292,7 @@ class GatewayStreamConsumer:
     # content.  The CLI's _stream_delta suppresses these via a state
     # machine; we do the same here so gateway users never see raw
     # reasoning tags.  The agent also strips them from the final
-    # response (run_agent.py _strip_think_blocks), but the stream
+    # response (runtime/hermes_runtime/run_agent.py _strip_think_blocks), but the stream
     # consumer sends intermediate edits before that stripping happens.
 
     def _filter_and_accumulate(self, text: str) -> None:
@@ -340,7 +340,7 @@ class GatewayStreamConsumer:
                         idx = buf.find(tag, search_start)
                         if idx == -1:
                             break
-                        # Block-boundary check (mirrors cli.py logic)
+                        # Block-boundary check (mirrors runtime/hermes_runtime/cli.py logic)
                         if idx == 0:
                             is_boundary = (
                                 not self._accumulated

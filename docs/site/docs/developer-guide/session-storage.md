@@ -4,7 +4,7 @@ Hermes Agent uses a SQLite database (`~/.hermes/state.db`) to persist session
 metadata, full message history, and model configuration across CLI and gateway
 sessions. This replaces the earlier per-session JSONL file approach.
 
-Source file: `hermes_state.py`
+Source file: `runtime/hermes_runtime/hermes_state.py`
 
 
 ## Architecture Overview

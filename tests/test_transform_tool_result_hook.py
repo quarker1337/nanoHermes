@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 
 import hermes_cli.plugins as plugins_mod
-import model_tools
+import hermes_runtime.model_tools as model_tools
 
 
 _UNSET = object()

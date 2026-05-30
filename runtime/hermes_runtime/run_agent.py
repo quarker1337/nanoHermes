@@ -14,16 +14,16 @@ Features:
 - Support for multiple model providers
 
 Usage:
-    from run_agent import AIAgent
+    from hermes_runtime.run_agent import AIAgent
     
     agent = AIAgent(base_url="http://localhost:30000/v1", model="claude-opus-4-20250514")
     response = agent.run_conversation("Tell me about the latest Python updates")
 """
 
 # IMPORTANT: hermes_bootstrap must be the very first import — UTF-8 stdio
-# on Windows.  No-op on POSIX.  See hermes_bootstrap.py for full rationale.
+# on Windows.  No-op on POSIX.  See runtime/hermes_runtime/hermes_bootstrap.py for full rationale.
 try:
-    import hermes_bootstrap  # noqa: F401
+    import hermes_runtime.hermes_bootstrap as hermes_bootstrap  # noqa: F401
 except ModuleNotFoundError:
     # Graceful fallback when hermes_bootstrap isn't registered in the venv
     # yet — happens during partial ``hermes update`` where git-reset landed
@@ -51,26 +51,26 @@ from typing import List, Dict, Any, Optional
 # that imports the SDK on first call/isinstance check. This preserves:
 #   (a) the single in-module `OpenAI(**client_kwargs)` call site at
 #       _create_openai_client, and
-#   (b) `patch("run_agent.OpenAI", ...)` test patterns used by ~28 test files.
+#   (b) `patch("hermes_runtime.run_agent.OpenAI", ...)` test patterns used by ~28 test files.
 #
 # NOTE: `fire` is ONLY used in the `__main__` block below (for running
-# run_agent.py directly as a CLI) — it is NOT needed for library usage.
+# runtime/hermes_runtime/run_agent.py directly as a CLI) — it is NOT needed for library usage.
 # It is imported there, not here, so that importing run_agent from a
 # daemon thread (e.g. curator's forked review agent) never fails with
 # ModuleNotFoundError on broken/partial installs where `fire` isn't present.
 from datetime import datetime
 from pathlib import Path
 
-from hermes_constants import get_hermes_home
+from hermes_runtime.hermes_constants import get_hermes_home
 
 # OpenAI lazy proxy + safe stdio + proxy URL helpers — see agent/process_bootstrap.py.
-# `OpenAI` is re-exported here so `patch("run_agent.OpenAI", ...)` in tests works.
+# `OpenAI` is re-exported here so `patch("hermes_runtime.run_agent.OpenAI", ...)` in tests works.
 # The other `# noqa: F401` re-exports below cover names accessed via
-# `mock.patch("run_agent.<X>")`, `from run_agent import <X>` in production
+# `mock.patch("hermes_runtime.run_agent.<X>")`, `from run_agent import <X>` in production
 # siblings, or the `_ra().<X>` indirection in agent/system_prompt.py — none
 # of which ruff's in-module usage scan can see.
 from agent.process_bootstrap import (
-    OpenAI,  # noqa: F401  # re-exported for tests that mock.patch("run_agent.OpenAI")
+    OpenAI,  # noqa: F401  # re-exported for tests that mock.patch("hermes_runtime.run_agent.OpenAI")
     _SafeWriter,  # noqa: F401  # re-exported for tests that `from run_agent import _SafeWriter`
     _get_proxy_for_base_url,
 )
@@ -94,11 +94,11 @@ else:
 
 
 # Import our tool system
-from model_tools import (
-    get_tool_definitions,  # noqa: F401  # re-exported for tests that mock.patch("run_agent.get_tool_definitions")
+from hermes_runtime.model_tools import (
+    get_tool_definitions,  # noqa: F401  # re-exported for tests that mock.patch("hermes_runtime.run_agent.get_tool_definitions")
     get_toolset_for_tool,
-    handle_function_call,  # noqa: F401  # re-exported for tests that mock.patch("run_agent.handle_function_call")
-    check_toolset_requirements,  # noqa: F401  # re-exported for tests that mock.patch("run_agent.check_toolset_requirements")
+    handle_function_call,  # noqa: F401  # re-exported for tests that mock.patch("hermes_runtime.run_agent.handle_function_call")
+    check_toolset_requirements,  # noqa: F401  # re-exported for tests that mock.patch("hermes_runtime.run_agent.check_toolset_requirements")
 )
 from tools.terminal_tool import cleanup_vm
 from tools.interrupt import set_interrupt as _set_interrupt
@@ -110,14 +110,14 @@ from agent.memory_manager import sanitize_context
 from agent.error_classifier import FailoverReason
 from agent.redact import redact_sensitive_text
 from agent.model_metadata import (
-    estimate_request_tokens_rough,  # noqa: F401  # re-exported for tests that mock.patch("run_agent.estimate_request_tokens_rough")
+    estimate_request_tokens_rough,  # noqa: F401  # re-exported for tests that mock.patch("hermes_runtime.run_agent.estimate_request_tokens_rough")
     is_local_endpoint,
 )
 from agent.usage_pricing import normalize_usage
 # Re-exported for tests that monkeypatch these symbols on run_agent.
 from agent.context_compressor import ContextCompressor  # noqa: F401
 from agent.retry_utils import jittered_backoff  # noqa: F401
-from agent.prompt_builder import (  # noqa: F401  # re-exported via _ra() / mock.patch("run_agent.<name>") / from run_agent import <name>
+from agent.prompt_builder import (  # noqa: F401  # re-exported via _ra() / mock.patch("hermes_runtime.run_agent.<name>") / from run_agent import <name>
     DEFAULT_AGENT_IDENTITY,
     build_skills_system_prompt,
     build_context_files_prompt,
@@ -170,7 +170,7 @@ from agent.tool_dispatch_helpers import (
     _extract_error_preview,
     _trajectory_normalize_msg,  # noqa: F401  # re-exported for tests that `from run_agent import _trajectory_normalize_msg`
 )
-from utils import atomic_json_write, base_url_host_matches, base_url_hostname
+from hermes_runtime.utils import atomic_json_write, base_url_host_matches, base_url_hostname
 
 
 
@@ -464,7 +464,7 @@ class AIAgent:
         if self._session_db is not None:
             return self._session_db
         try:
-            from hermes_state import SessionDB
+            from hermes_runtime.hermes_state import SessionDB
 
             self._session_db = SessionDB()
             return self._session_db
@@ -4422,8 +4422,8 @@ def main(
     
     # Handle tool listing
     if list_tools:
-        from model_tools import get_all_tool_names, get_available_toolsets
-        from toolsets import get_all_toolsets, get_toolset_info
+        from hermes_runtime.model_tools import get_all_tool_names, get_available_toolsets
+        from hermes_runtime.toolsets import get_all_toolsets, get_toolset_info
         
         print("📋 Available Tools & Toolsets:")
         print("-" * 50)
@@ -4489,18 +4489,18 @@ def main(
         
         print("\n💡 Usage Examples:")
         print("  # Use predefined toolsets")
-        print("  python run_agent.py --enabled_toolsets=research --query='search for Python news'")
-        print("  python run_agent.py --enabled_toolsets=development --query='debug this code'")
-        print("  python run_agent.py --enabled_toolsets=safe --query='analyze without terminal'")
+        print("  python -m hermes_runtime.run_agent --enabled_toolsets=research --query='search for Python news'")
+        print("  python -m hermes_runtime.run_agent --enabled_toolsets=development --query='debug this code'")
+        print("  python -m hermes_runtime.run_agent --enabled_toolsets=safe --query='analyze without terminal'")
         print("  ")
         print("  # Combine multiple toolsets")
-        print("  python run_agent.py --enabled_toolsets=web,vision --query='analyze website'")
+        print("  python -m hermes_runtime.run_agent --enabled_toolsets=web,vision --query='analyze website'")
         print("  ")
         print("  # Disable toolsets")
-        print("  python run_agent.py --disabled_toolsets=terminal --query='no command execution'")
+        print("  python -m hermes_runtime.run_agent --disabled_toolsets=terminal --query='no command execution'")
         print("  ")
         print("  # Run with trajectory saving enabled")
-        print("  python run_agent.py --save_trajectories --query='your question here'")
+        print("  python -m hermes_runtime.run_agent --save_trajectories --query='your question here'")
         return
     
     # Parse toolset selection arguments
