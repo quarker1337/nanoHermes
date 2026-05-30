@@ -6,7 +6,7 @@ from pathlib import Path
 from setuptools import setup
 
 
-REPO_ROOT = Path(__file__).parent.resolve()
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _data_file_tree(root_name: str) -> list[tuple[str, list[str]]]:
@@ -22,6 +22,8 @@ def _data_file_tree(root_name: str) -> list[tuple[str, list[str]]]:
 
 setup(
     data_files=[
+        ("config", ["config/cli-config.yaml.example", "config/env.example"]),
+        ("constraints", ["constraints/termux.txt"]),
         *_data_file_tree("resources/skills"),
         *_data_file_tree("resources/locales"),
         # Optional skill packs are installed through NanoHermes packages instead

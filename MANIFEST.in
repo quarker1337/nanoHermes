@@ -1,3 +1,5 @@
+include infra/packaging/build_backend.py
+include infra/packaging/setup.py
 graft config
 graft constraints
 graft resources/skills

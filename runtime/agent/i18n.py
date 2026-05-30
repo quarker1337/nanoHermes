@@ -37,6 +37,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from hermes_runtime.hermes_constants import get_bundled_locales_dir
+
 logger = logging.getLogger(__name__)
 
 SUPPORTED_LANGUAGES: tuple[str, ...] = (
@@ -87,11 +89,12 @@ _catalog_lock = threading.Lock()
 def _locales_dir() -> Path:
     """Return the directory containing locale YAML files.
 
-    Lives next to the repo root so both the bundled install and editable
-    checkouts find it without PYTHONPATH gymnastics.
+    Source checkouts load ``resources/locales`` from the repository root;
+    wheel installs load the same tree from setuptools data-files.
     """
     # runtime/agent/i18n.py -> runtime/agent/ -> runtime/ -> repo root
-    return Path(__file__).resolve().parents[2] / "resources" / "locales"
+    source_locales = Path(__file__).resolve().parents[2] / "resources" / "locales"
+    return get_bundled_locales_dir(default=source_locales)
 
 
 def _normalize_lang(value: Any) -> str:

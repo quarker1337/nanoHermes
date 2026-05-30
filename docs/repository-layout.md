@@ -36,7 +36,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 | Path | Why it stays at root |
 |---|---|
 | `LICENSE` | Legal entrypoint. |
-| `pyproject.toml`, `setup.py`, `MANIFEST.in`, `uv.lock` | Python build/install contract. |
+| `pyproject.toml`, `MANIFEST.in`, `uv.lock` | Python build/install contract. |
 | `.gitattributes`, `.gitignore` | Root-level Git ignore and attribute contracts. |
 | `.envrc` | Root direnv entrypoint; delegates to `use flake "path:.?dir=infra/nix"`. |
 
@@ -49,6 +49,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 | `infra/nix/flake.nix`, `infra/nix/flake.lock` | Nix flake entrypoint and lockfile are infra; root `.envrc` points direnv at them. |
 | `infra/docker/Dockerfile.dockerignore` | Dockerfile-specific build-context ignore file; Docker documents this as taking precedence over root `.dockerignore`, so the root file is not needed. |
 | `scripts/hermes` | Source-checkout CLI launcher; installed `hermes`/`nanohermes` entrypoints still come from `pyproject.toml`. |
+| `infra/packaging/build_backend.py`, `infra/packaging/setup.py` | PEP 517 backend and moved setup hook preserve nested wheel data files without a root `setup.py`. |
 
 ## Fast audit entry points
 
@@ -76,7 +77,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 
 - `pyproject.toml`
 - `uv.lock`
-- `setup.py`
+- `infra/packaging/setup.py`
 - `MANIFEST.in`
 - `resources/locales/`
 - `resources/skills/`

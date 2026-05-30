@@ -214,6 +214,19 @@ def get_bundled_skills_dir(default: Path | None = None) -> Path:
     return get_hermes_home() / "skills"
 
 
+def get_bundled_locales_dir(default: Path | None = None) -> Path:
+    """Return the bundled locale catalog directory for source and wheel installs."""
+    override = os.getenv("HERMES_BUNDLED_LOCALES", "").strip()
+    if override:
+        return Path(override)
+    packaged = _get_packaged_data_dir("resources/locales") or _get_packaged_data_dir("locales")
+    if packaged is not None:
+        return packaged
+    if default is not None:
+        return default
+    return get_hermes_home() / "locales"
+
+
 def get_hermes_dir(new_subpath: str, old_name: str) -> Path:
     """Resolve a Hermes subdirectory with backward compatibility.
 

@@ -4,10 +4,14 @@ from pathlib import Path
 import tomllib
 
 
-def _load_project_metadata():
+def _load_pyproject():
     pyproject_path = Path(__file__).resolve().parents[1] / "pyproject.toml"
     with pyproject_path.open("rb") as handle:
-        return tomllib.load(handle)["project"]
+        return tomllib.load(handle)
+
+
+def _load_project_metadata():
+    return _load_pyproject()["project"]
 
 
 def _load_dependencies():
@@ -23,16 +27,22 @@ def _load_manifest_lines():
     return manifest_path.read_text(encoding="utf-8").splitlines()
 
 
-def _load_setup_py_text():
-    setup_path = Path(__file__).resolve().parents[1] / "setup.py"
+def _load_packaging_setup_text():
+    setup_path = Path(__file__).resolve().parents[1] / "infra" / "packaging" / "setup.py"
     return setup_path.read_text(encoding="utf-8")
 
 
 def _load_package_data():
-    pyproject_path = Path(__file__).resolve().parents[1] / "pyproject.toml"
-    with pyproject_path.open("rb") as handle:
-        tool = tomllib.load(handle)["tool"]
-    return tool["setuptools"]["package-data"]
+    return _load_pyproject()["tool"]["setuptools"]["package-data"]
+
+
+def test_build_backend_lives_under_infra_packaging():
+    pyproject = _load_pyproject()
+    build_system = pyproject["build-system"]
+
+    assert build_system["build-backend"] == "infra.packaging.build_backend"
+    assert build_system["backend-path"] == ["."]
+    assert not (Path(__file__).resolve().parents[1] / "setup.py").exists()
 
 
 def test_matrix_extra_not_in_all():
@@ -147,11 +157,15 @@ def test_optional_skills_not_grafted_into_base_sdist():
     base wheel/sdist payload.
     """
     manifest_lines = _load_manifest_lines()
-    setup_py = _load_setup_py_text()
+    setup_py = _load_packaging_setup_text()
 
+    assert "include infra/packaging/build_backend.py" in manifest_lines
+    assert "include infra/packaging/setup.py" in manifest_lines
     assert "graft resources/skills" in manifest_lines
     assert "graft resources/locales" in manifest_lines
     assert "graft resources/optional-skills" not in manifest_lines
+    assert '("config", ["config/cli-config.yaml.example", "config/env.example"])' in setup_py
+    assert '("constraints", ["constraints/termux.txt"])' in setup_py
     assert '*_data_file_tree("resources/skills")' in setup_py
     assert '*_data_file_tree("resources/locales")' in setup_py
     assert '*_data_file_tree("resources/optional-skills")' not in setup_py

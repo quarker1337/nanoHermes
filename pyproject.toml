@@ -1,6 +1,7 @@
 [build-system]
 requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+build-backend = "infra.packaging.build_backend"
+backend-path = ["."]
 
 [project]
 name = "hermes-agent"
@@ -221,10 +222,6 @@ hermes-agent = "hermes_runtime.run_agent:main"
 hermes-acp = "acp_adapter.entry:main"
 
 [tool.setuptools]
-
-[tool.setuptools.data-files]
-"config" = ["config/cli-config.yaml.example", "config/env.example"]
-"constraints" = ["constraints/termux.txt"]
 
 [tool.setuptools.package-data]
 hermes_cli = ["web_dist/**/*", "tui_dist/**/*", "scripts/install.sh", "scripts/install.ps1"]
