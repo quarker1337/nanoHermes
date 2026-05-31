@@ -1,3 +1,4 @@
+import ast
 from pathlib import Path
 import tomllib
 
@@ -58,6 +59,36 @@ def test_optional_tool_modules_are_filtered_from_base_wheel():
     ]:
         assert f'"{optional_module}"' in setup_py
     assert '"tools.computer_use"' in setup_py
+
+
+def test_optional_tool_modules_are_not_eagerly_imported_by_agent_runtime():
+    """Base-wheel startup must not import optional tool modules at module import time."""
+    optional_modules = {
+        "tools.browser_tool",
+        "tools.web_tools",
+        "tools.vision_tools",
+        "tools.image_generation_tool",
+        "tools.tts_tool",
+        "tools.discord_tool",
+    }
+    runtime_entrypoints = [
+        REPO_ROOT / "runtime/hermes_runtime/run_agent.py",
+        REPO_ROOT / "runtime/hermes_runtime/cli.py",
+        REPO_ROOT / "runtime/hermes_runtime/model_tools.py",
+    ]
+
+    top_level_optional_imports = []
+    for path in runtime_entrypoints:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in tree.body:
+            if isinstance(node, ast.ImportFrom) and node.module in optional_modules:
+                top_level_optional_imports.append((path.name, node.lineno, node.module))
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name in optional_modules:
+                        top_level_optional_imports.append((path.name, node.lineno, alias.name))
+
+    assert top_level_optional_imports == []
 
 
 def test_dashboard_kanban_cli_modules_are_filtered_from_base_wheel():

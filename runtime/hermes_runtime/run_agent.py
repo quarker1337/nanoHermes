@@ -102,7 +102,22 @@ from hermes_runtime.model_tools import (
 )
 from tools.terminal_tool import cleanup_vm
 from tools.interrupt import set_interrupt as _set_interrupt
-from tools.browser_tool import cleanup_browser
+
+
+def cleanup_browser(*args, **kwargs):
+    """Clean browser sessions when the optional browser tool is installed.
+
+    NanoHermes base wheels package-gate ``tools.browser_tool``. The agent
+    runtime still needs to import cleanly without the browser package; cleanup is
+    a no-op until the browser package restores that module.
+    """
+    try:
+        from tools.browser_tool import cleanup_browser as _cleanup_browser
+    except ModuleNotFoundError as exc:
+        if exc.name == "tools.browser_tool":
+            return None
+        raise
+    return _cleanup_browser(*args, **kwargs)
 
 
 # Agent internals extracted to agent/ package for modularity
