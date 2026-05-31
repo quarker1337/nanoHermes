@@ -10,7 +10,7 @@ zero migration needed.
 
 Usage::
 
-    hermes profile create coder          # fresh profile + bundled skills
+    hermes profile create coder          # fresh profile; NanoHermes base installs zero skills
     hermes profile create coder --clone  # also copy config, .env, SOUL.md, skills
     hermes profile create coder --clone-all  # full copy of source profile
     coder chat                           # use via wrapper alias

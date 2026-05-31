@@ -39,6 +39,20 @@ def _format_package_line(package: dict) -> str:
     return f"{package['name']} {package.get('version', '')} - {package.get('description', '')}"
 
 
+def _included_skills(package: dict) -> list[str]:
+    contents = package.get("contents", {}) if isinstance(package.get("contents", {}), dict) else {}
+    return sorted(str(skill) for skill in contents.get("skills", []) if str(skill).strip())
+
+
+def _print_included_skills(package: dict) -> None:
+    skills = _included_skills(package)
+    if not skills:
+        return
+    print("Included skills:")
+    for skill in skills:
+        print(f"  - {skill}")
+
+
 def _print_install_plan(packages: list[dict]) -> None:
     print("Install plan")
     for package in packages:
@@ -59,6 +73,9 @@ def _print_install_plan(packages: list[dict]) -> None:
                 print(f"    Optional assets: {', '.join(destinations)}")
             else:
                 print(f"    Optional assets: {len(assets)}")
+        included = _included_skills(package)
+        if included:
+            print(f"    Included skills: {len(included)}")
         if tools.get("toolsets"):
             print(f"    Toolsets: {', '.join(tools['toolsets'])}")
         if tools.get("tools"):
@@ -370,6 +387,7 @@ def cmd_show(args: argparse.Namespace) -> int:
         print(f"Python extras: {', '.join(install['python_extras'])}")
     if tools.get("toolsets"):
         print(f"Toolsets: {', '.join(tools['toolsets'])}")
+    _print_included_skills(package)
     permissions = _truthy_permission_names(package)
     if permissions:
         print(f"Permissions: {', '.join(permissions)}")
@@ -489,7 +507,7 @@ def _populate_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="hermes pkg", description="NanoHermes package manager")
+    parser = argparse.ArgumentParser(prog="hermes pkg", description="NanoHermes package manager for optional tools, plugins, and skill packs")
     return _populate_parser(parser)
 
 
@@ -497,7 +515,7 @@ def register_parser(subparsers, name: str = "pkg", *, help_text: str | None = No
     parser = subparsers.add_parser(
         name,
         help=help_text or "Manage NanoHermes packages",
-        description="Update, search, inspect, install, and remove NanoHermes packages.",
+        description="Update, search, inspect, install, and remove NanoHermes packages, including optional skill packs.",
     )
     return _populate_parser(parser)
 

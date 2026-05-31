@@ -180,10 +180,18 @@ class PackageRegistry:
         q = query.lower()
         matches: list[dict] = []
         for package in self.packages.values():
+            contents = package.get("contents", {}) if isinstance(package.get("contents", {}), dict) else {}
+            content_text = " ".join(
+                str(item)
+                for values in contents.values()
+                if isinstance(values, list)
+                for item in values
+            )
             haystack = " ".join(
                 str(package.get(key, ""))
                 for key in ("name", "display_name", "description", "channel", "type")
-            ).lower()
+            )
+            haystack = f"{haystack} {content_text}".lower()
             if q in haystack:
                 matches.append(package)
         return sorted(matches, key=lambda p: p.get("name", ""))

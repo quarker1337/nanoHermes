@@ -249,6 +249,34 @@ def _write_registry_with_skill_asset(
     return path
 
 
+def _write_registry_with_skill_contents(tmp_path: Path) -> Path:
+    path = _write_registry(tmp_path)
+    registry = json.loads(path.read_text(encoding="utf-8"))
+    package = registry["packages"].pop("web-search")
+    package.update({
+        "name": "skills-dev-core",
+        "display_name": "Developer Core Skills",
+        "type": "skill",
+        "channel": "skills",
+        "description": "Developer workflow skills.",
+        "contents": {
+            "skills": [
+                "software-development/writing-plans",
+                "software-development/test-driven-development",
+                "github/github-pr-workflow",
+            ]
+        },
+        "manifest_path": "packages/skills/skills-dev-core/package.toml",
+    })
+    package["install"]["python_extras"] = []
+    package["permissions"]["network"] = False
+    package["permissions"]["filesystem"] = True
+    package["tools"] = {"toolsets": [], "tools": []}
+    registry["packages"]["skills-dev-core"] = package
+    path.write_text(json.dumps(registry), encoding="utf-8")
+    return path
+
+
 def test_registry_update_search_and_show_use_local_source(tmp_path):
     source = _write_registry(tmp_path)
     home = tmp_path / "home"
@@ -574,6 +602,34 @@ def test_show_accepts_unhyphenated_package_name(tmp_path, capsys):
     assert rc == 0
     assert "web-search 0.1.0" in captured.out
     assert "Traceback" not in captured.err
+
+
+def test_show_prints_included_skills(tmp_path, capsys):
+    source = _write_registry_with_skill_contents(tmp_path)
+    home = tmp_path / "home"
+    assert pkg_cli.main(["--home", str(home), "--source", str(source), "update"]) == 0
+    capsys.readouterr()
+
+    rc = pkg_cli.main(["--home", str(home), "show", "skills-dev-core"])
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "Included skills:" in captured.out
+    assert "software-development/writing-plans" in captured.out
+    assert "github/github-pr-workflow" in captured.out
+
+
+def test_search_matches_included_skill_names(tmp_path, capsys):
+    source = _write_registry_with_skill_contents(tmp_path)
+    home = tmp_path / "home"
+    assert pkg_cli.main(["--home", str(home), "--source", str(source), "update"]) == 0
+    capsys.readouterr()
+
+    rc = pkg_cli.main(["--home", str(home), "search", "github-pr-workflow"])
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "skills-dev-core 0.1.0" in captured.out
 
 
 def test_show_unknown_package_is_user_friendly(tmp_path, capsys):
