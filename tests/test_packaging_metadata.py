@@ -33,6 +33,28 @@ def test_dashboard_extra_is_public_alias_for_web_dashboard_dependencies():
     assert "uvicorn[standard]==0.41.0" in optional["web"]
 
 
+def _frozenset_string_values(setup_py: str, variable_name: str) -> set[str]:
+    """Return string literals assigned via `NAME = frozenset({...})`."""
+    tree = ast.parse(setup_py)
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(isinstance(target, ast.Name) and target.id == variable_name for target in node.targets):
+            continue
+        if not isinstance(node.value, ast.Call):
+            continue
+        if not isinstance(node.value.func, ast.Name) or node.value.func.id != "frozenset":
+            continue
+        if not node.value.args or not isinstance(node.value.args[0], ast.Set):
+            continue
+        return {
+            element.value
+            for element in node.value.args[0].elts
+            if isinstance(element, ast.Constant) and isinstance(element.value, str)
+        }
+    raise AssertionError(f"Could not parse {variable_name} from packaging setup.py")
+
+
 def test_optional_tool_modules_are_filtered_from_base_wheel():
     """NanoHermes base wheels should not install optional tool code.
 
@@ -59,6 +81,25 @@ def test_optional_tool_modules_are_filtered_from_base_wheel():
     ]:
         assert f'"{optional_module}"' in setup_py
     assert '"tools.computer_use"' in setup_py
+
+
+def test_skills_hub_import_dependencies_remain_in_base_wheel():
+    """Internal Skills Hub must work in a plain NanoHermes base wheel.
+
+    ``tools.skills_hub`` is intentionally shipped in the base wheel for
+    ``hermes skills`` and `/skills`. Its direct helper imports must therefore
+    not be filtered out as optional tool payloads.
+    """
+    setup_py = (REPO_ROOT / "infra/packaging/setup.py").read_text(encoding="utf-8")
+    optional_tool_modules = _frozenset_string_values(setup_py, "OPTIONAL_TOOL_MODULES")
+
+    for load_bearing_module in [
+        "skills_hub",
+        "skills_guard",
+        "url_safety",
+        "website_policy",
+    ]:
+        assert load_bearing_module not in optional_tool_modules
 
 
 def test_optional_tool_modules_are_not_eagerly_imported_by_agent_runtime():
