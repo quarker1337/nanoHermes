@@ -1,4 +1,5 @@
 import base64
+import builtins
 import hashlib
 import json
 import sys
@@ -663,6 +664,51 @@ def test_pkg_and_plug_are_builtin_cli_commands():
 
     assert "pkg" in _BUILTIN_SUBCOMMANDS
     assert "plug" in _BUILTIN_SUBCOMMANDS
+
+
+def _hide_kanban_module(monkeypatch):
+    monkeypatch.delitem(sys.modules, "hermes_cli.kanban", raising=False)
+    real_import = builtins.__import__
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "hermes_cli.kanban":
+            raise ModuleNotFoundError(
+                "No module named 'hermes_cli.kanban'",
+                name="hermes_cli.kanban",
+            )
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+
+def test_top_level_hermes_help_tolerates_missing_package_managed_kanban(monkeypatch, capsys):
+    from hermes_cli import main as hermes_main
+
+    _hide_kanban_module(monkeypatch)
+    monkeypatch.setattr(sys, "argv", ["hermes", "setup", "--help"])
+
+    with pytest.raises(SystemExit) as excinfo:
+        hermes_main.main()
+
+    assert excinfo.value.code == 0
+    captured = capsys.readouterr()
+    assert "usage: hermes setup" in captured.out
+    assert "ModuleNotFoundError" not in captured.err
+
+
+def test_top_level_hermes_kanban_without_package_prints_install_hint(monkeypatch, capsys):
+    from hermes_cli import main as hermes_main
+
+    _hide_kanban_module(monkeypatch)
+    monkeypatch.setattr(sys, "argv", ["hermes", "kanban", "list"])
+
+    rc = hermes_main.main()
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "Kanban is not installed in this NanoHermes base install" in captured.err
+    assert "hermes pkg install dashboard --yes" in captured.err
+    assert "ModuleNotFoundError" not in captured.err
 
 
 def test_top_level_hermes_pkg_returns_subcommand_exit_code(tmp_path, monkeypatch, capsys):

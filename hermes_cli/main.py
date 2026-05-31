@@ -6200,9 +6200,25 @@ def cmd_slack(args):
     return 1
 
 
+def _is_missing_kanban_module(exc: ModuleNotFoundError) -> bool:
+    return getattr(exc, "name", None) == "hermes_cli.kanban"
+
+
+def _print_kanban_package_hint() -> None:
+    print("Kanban is not installed in this NanoHermes base install.", file=sys.stderr)
+    print("Install it with: hermes pkg install dashboard --yes", file=sys.stderr)
+    print("Compatibility alias: hermes pkg install kanban --yes", file=sys.stderr)
+
+
 def cmd_kanban(args):
     """Multi-profile collaboration board."""
-    from hermes_cli.kanban import kanban_command
+    try:
+        from hermes_cli.kanban import kanban_command  # type: ignore[import-not-found]
+    except ModuleNotFoundError as exc:
+        if _is_missing_kanban_module(exc):
+            _print_kanban_package_hint()
+            return 1
+        raise
 
     return kanban_command(args)
 
@@ -12265,9 +12281,22 @@ def main():
     # =========================================================================
     # kanban command — multi-profile collaboration board
     # =========================================================================
-    from hermes_cli.kanban import build_parser as _build_kanban_parser
-
-    kanban_parser = _build_kanban_parser(subparsers)
+    try:
+        from hermes_cli.kanban import build_parser as _build_kanban_parser  # type: ignore[import-not-found]
+    except ModuleNotFoundError as exc:
+        if not _is_missing_kanban_module(exc):
+            raise
+        kanban_parser = subparsers.add_parser(
+            "kanban",
+            help="Multi-profile collaboration board (install dashboard package)",
+            description=(
+                "Kanban is package-managed in NanoHermes. Install it with: "
+                "hermes pkg install dashboard --yes"
+            ),
+        )
+        kanban_parser.add_argument("kanban_args", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
+    else:
+        kanban_parser = _build_kanban_parser(subparsers)
     kanban_parser.set_defaults(func=cmd_kanban)
 
     # =========================================================================
