@@ -23,6 +23,15 @@ def test_manifest_includes_bundled_skills():
     assert "graft resources/optional-skills" not in manifest
 
 
+def test_dashboard_extra_is_public_alias_for_web_dashboard_dependencies():
+    data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    optional = data["project"]["optional-dependencies"]
+
+    assert optional["dashboard"] == ["hermes-agent[web]"]
+    assert "fastapi==0.136.3" in optional["web"]
+    assert "uvicorn[standard]==0.41.0" in optional["web"]
+
+
 def test_optional_tool_modules_are_filtered_from_base_wheel():
     """NanoHermes base wheels should not install optional tool code.
 
@@ -49,3 +58,33 @@ def test_optional_tool_modules_are_filtered_from_base_wheel():
     ]:
         assert f'"{optional_module}"' in setup_py
     assert '"tools.computer_use"' in setup_py
+
+
+def test_dashboard_kanban_cli_modules_are_filtered_from_base_wheel():
+    """Dashboard/Kanban Python code is package-managed, not base-wheel code."""
+    setup_py = (REPO_ROOT / "infra/packaging/setup.py").read_text(encoding="utf-8")
+
+    assert "OPTIONAL_HERMES_CLI_MODULES = frozenset({" in setup_py
+    assert "OPTIONAL_HERMES_CLI_PACKAGES = frozenset({" in setup_py
+    assert "OPTIONAL_HERMES_CLI_DATA_DIRS = frozenset({" in setup_py
+    assert "OPTIONAL_PLUGIN_PACKAGES = frozenset({" in setup_py
+
+    optional_modules_block = setup_py.split("OPTIONAL_HERMES_CLI_MODULES = frozenset({", 1)[1].split("})", 1)[0]
+
+    for core_module in ["main", "config", "package_manager"]:
+        assert f'"{core_module}"' not in optional_modules_block
+
+    for optional_module in [
+        "kanban",
+        "kanban_db",
+        "kanban_decompose",
+        "kanban_diagnostics",
+        "kanban_specify",
+        "kanban_swarm",
+        "web_server",
+    ]:
+        assert f'"{optional_module}"' in setup_py
+
+    assert '"hermes_cli.dashboard_auth"' in setup_py
+    assert '"plugins.kanban"' in setup_py
+    assert '"web_dist"' in setup_py

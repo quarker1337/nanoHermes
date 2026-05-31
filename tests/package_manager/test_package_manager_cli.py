@@ -101,6 +101,81 @@ def _write_registry_with_browser_dependency(tmp_path: Path) -> Path:
     return path
 
 
+def _write_registry_with_python_asset(
+    tmp_path: Path,
+    *,
+    destination: str = "python-site-packages/hermes_cli",
+    sha256: str | None = None,
+    members: dict[str, str] | None = None,
+) -> Path:
+    repo = tmp_path / "repo"
+    asset_dir = repo / "assets" / "python"
+    payload_dir = tmp_path / "payload"
+    registry_dir = repo / "registry"
+    asset_dir.mkdir(parents=True)
+    payload_dir.mkdir(parents=True)
+    archive_members = members or {"kanban.py": "PACKAGED_KANBAN = True\n"}
+    for member_name, content in archive_members.items():
+        member_path = payload_dir / member_name
+        member_path.parent.mkdir(parents=True, exist_ok=True)
+        member_path.write_text(content, encoding="utf-8")
+    archive_path = asset_dir / "dashboard-hermes-cli.tar.gz"
+    with tarfile.open(archive_path, "w:gz") as archive:
+        for member_name in sorted(archive_members):
+            archive.add(payload_dir / member_name, arcname=member_name)
+    actual_sha = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+
+    registry = {
+        "schema_version": 1,
+        "generated_at": "2026-05-29T00:00:00Z",
+        "package_count": 1,
+        "packages": {
+            "dashboard": {
+                "name": "dashboard",
+                "display_name": "Dashboard",
+                "version": "0.1.0",
+                "type": "toolset",
+                "channel": "official",
+                "description": "Dashboard and Kanban package.",
+                "dependencies": [],
+                "install": {
+                    "python_extras": ["dashboard"],
+                    "python_packages": [],
+                    "system_packages": [],
+                    "npm_packages": ["dashboard-frontend"],
+                    "optional_assets": [
+                        {
+                            "type": "python_module_pack",
+                            "source": "assets/python/dashboard-hermes-cli.tar.gz",
+                            "format": "tar.gz",
+                            "sha256": sha256 if sha256 is not None else actual_sha,
+                            "destination": destination,
+                        }
+                    ],
+                },
+                "tools": {"toolsets": ["kanban"], "tools": []},
+                "permissions": {
+                    "network": True,
+                    "filesystem": True,
+                    "shell": True,
+                    "browser": False,
+                    "audio": False,
+                    "microphone": False,
+                    "secrets": [],
+                },
+                "env": {"required": [], "optional": []},
+                "security": {"post_install_scripts": False, "signed": False, "checksum": actual_sha},
+                "manifest_path": "packages/official/dashboard/package.toml",
+                "manifest_sha256": "3" * 64,
+            }
+        },
+    }
+    registry_dir.mkdir(parents=True)
+    path = registry_dir / "index.json"
+    path.write_text(json.dumps(registry), encoding="utf-8")
+    return path
+
+
 def _write_registry_with_skill_asset(
     tmp_path: Path,
     *,
@@ -277,6 +352,112 @@ def test_install_yes_no_pip_records_package_state(tmp_path, capsys):
     assert installed["web-search"]["status"] == "installed"
     assert installed["web-search"]["install_reason"] == "manual"
     assert installed["web-search"]["requested"] is True
+
+
+def test_install_optional_python_asset_extracts_into_site_packages(tmp_path, monkeypatch, capsys):
+    source = _write_registry_with_python_asset(tmp_path)
+    home = tmp_path / "home"
+    site_packages = tmp_path / "venv" / "lib" / "python3.11" / "site-packages"
+    site_packages.mkdir(parents=True)
+
+    class FakeSysConfig:
+        @staticmethod
+        def get_paths():
+            return {"purelib": str(site_packages)}
+
+    monkeypatch.setattr(pkg_cli, "sysconfig", FakeSysConfig, raising=False)
+
+    rc = pkg_cli.main([
+        "--home",
+        str(home),
+        "--source",
+        str(source),
+        "install",
+        "dashboard",
+        "--yes",
+        "--no-pip",
+    ])
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "Optional assets: python-site-packages/hermes_cli" in captured.out
+    assert "Installed asset for dashboard -> python-site-packages/hermes_cli" in captured.out
+    assert (site_packages / "hermes_cli" / "kanban.py").read_text(encoding="utf-8") == "PACKAGED_KANBAN = True\n"
+    installed = PackageState(home=home).installed
+    assert installed["dashboard"]["toolsets"] == ["kanban"]
+    assert installed["dashboard"]["optional_assets"][0]["destination"] == "python-site-packages/hermes_cli"
+
+
+def test_install_optional_python_asset_keeps_existing_site_package_files_by_default(tmp_path, monkeypatch, capsys):
+    source = _write_registry_with_python_asset(
+        tmp_path,
+        members={
+            "main.py": "MALICIOUS_REPLACEMENT = True\n",
+            "dashboard_auth/new_file.py": "PACKAGED_DASHBOARD_AUTH=True\n",
+        },
+    )
+    home = tmp_path / "home"
+    site_packages = tmp_path / "venv" / "lib" / "python3.11" / "site-packages"
+    hermes_cli_dir = site_packages / "hermes_cli"
+    hermes_cli_dir.mkdir(parents=True)
+    existing_main = hermes_cli_dir / "main.py"
+    existing_main.write_text("CORE_MAIN = True\n", encoding="utf-8")
+
+    class FakeSysConfig:
+        @staticmethod
+        def get_paths():
+            return {"purelib": str(site_packages)}
+
+    monkeypatch.setattr(pkg_cli, "sysconfig", FakeSysConfig, raising=False)
+
+    rc = pkg_cli.main([
+        "--home",
+        str(home),
+        "--source",
+        str(source),
+        "install",
+        "dashboard",
+        "--yes",
+        "--no-pip",
+    ])
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "1 files copied, 1 existing kept" in captured.out
+    assert existing_main.read_text(encoding="utf-8") == "CORE_MAIN = True\n"
+    assert (
+        site_packages / "hermes_cli" / "dashboard_auth" / "new_file.py"
+    ).read_text(encoding="utf-8") == "PACKAGED_DASHBOARD_AUTH=True\n"
+
+
+def test_install_optional_python_asset_requires_site_package_subdir(tmp_path, monkeypatch, capsys):
+    source = _write_registry_with_python_asset(tmp_path, destination="python-site-packages")
+    home = tmp_path / "home"
+    site_packages = tmp_path / "site-packages"
+    site_packages.mkdir()
+
+    class FakeSysConfig:
+        @staticmethod
+        def get_paths():
+            return {"purelib": str(site_packages)}
+
+    monkeypatch.setattr(pkg_cli, "sysconfig", FakeSysConfig, raising=False)
+
+    rc = pkg_cli.main([
+        "--home",
+        str(home),
+        "--source",
+        str(source),
+        "install",
+        "dashboard",
+        "--yes",
+        "--no-pip",
+    ])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "python-site-packages asset destination must include a package subdirectory" in captured.err
+    assert not PackageState(home=home).installed
 
 
 def test_install_optional_skill_asset_extracts_into_hermes_home(tmp_path, capsys):

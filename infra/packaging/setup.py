@@ -67,6 +67,32 @@ OPTIONAL_TOOL_PACKAGES = frozenset({
     "tools.computer_use",
 })
 
+# Dashboard/Kanban is distributed as one package-managed slice for now.  The
+# command registry and lightweight dispatch stubs remain in the base CLI, but
+# the actual dashboard server/auth bundle and Kanban implementation are omitted
+# from base wheels and restored by the dashboard package asset.
+OPTIONAL_HERMES_CLI_MODULES = frozenset({
+    "kanban",
+    "kanban_db",
+    "kanban_decompose",
+    "kanban_diagnostics",
+    "kanban_specify",
+    "kanban_swarm",
+    "web_server",
+})
+
+OPTIONAL_HERMES_CLI_PACKAGES = frozenset({
+    "hermes_cli.dashboard_auth",
+})
+
+OPTIONAL_HERMES_CLI_DATA_DIRS = frozenset({
+    "web_dist",
+})
+
+OPTIONAL_PLUGIN_PACKAGES = frozenset({
+    "plugins.kanban",
+})
+
 
 class NanoHermesBuildPy(_build_py):
     """Build a lean base wheel by omitting package-managed tool modules."""
@@ -74,6 +100,8 @@ class NanoHermesBuildPy(_build_py):
     def run(self):
         super().run()
         self._remove_excluded_tool_outputs()
+        self._remove_excluded_hermes_cli_outputs()
+        self._remove_excluded_plugin_outputs()
 
     def _remove_excluded_tool_outputs(self) -> None:
         # bdist_wheel can reuse an existing build/lib tree. Delete filtered
@@ -86,22 +114,52 @@ class NanoHermesBuildPy(_build_py):
         for package in OPTIONAL_TOOL_PACKAGES:
             shutil.rmtree(build_lib.joinpath(*package.split(".")), ignore_errors=True)
 
+    def _remove_excluded_hermes_cli_outputs(self) -> None:
+        build_lib = Path(self.build_lib)
+        hermes_cli_build_dir = build_lib / "hermes_cli"
+        for module in OPTIONAL_HERMES_CLI_MODULES:
+            (hermes_cli_build_dir / f"{module}.py").unlink(missing_ok=True)
+        for package in OPTIONAL_HERMES_CLI_PACKAGES:
+            shutil.rmtree(build_lib.joinpath(*package.split(".")), ignore_errors=True)
+        for data_dir in OPTIONAL_HERMES_CLI_DATA_DIRS:
+            shutil.rmtree(hermes_cli_build_dir / data_dir, ignore_errors=True)
+
+    def _remove_excluded_plugin_outputs(self) -> None:
+        build_lib = Path(self.build_lib)
+        for package in OPTIONAL_PLUGIN_PACKAGES:
+            shutil.rmtree(build_lib.joinpath(*package.split(".")), ignore_errors=True)
+
     def find_package_modules(self, package, package_dir):
         if package in OPTIONAL_TOOL_PACKAGES or any(
             package.startswith(f"{optional_package}.")
             for optional_package in OPTIONAL_TOOL_PACKAGES
         ):
             return []
+        if package in OPTIONAL_HERMES_CLI_PACKAGES or any(
+            package.startswith(f"{optional_package}.")
+            for optional_package in OPTIONAL_HERMES_CLI_PACKAGES
+        ):
+            return []
+        if package in OPTIONAL_PLUGIN_PACKAGES or any(
+            package.startswith(f"{optional_package}.")
+            for optional_package in OPTIONAL_PLUGIN_PACKAGES
+        ):
+            return []
 
         modules = super().find_package_modules(package, package_dir)
-        if package != "tools":
-            return modules
-
-        return [
-            module_entry
-            for module_entry in modules
-            if module_entry[1] not in OPTIONAL_TOOL_MODULES
-        ]
+        if package == "tools":
+            return [
+                module_entry
+                for module_entry in modules
+                if module_entry[1] not in OPTIONAL_TOOL_MODULES
+            ]
+        if package == "hermes_cli":
+            return [
+                module_entry
+                for module_entry in modules
+                if module_entry[1] not in OPTIONAL_HERMES_CLI_MODULES
+            ]
+        return modules
 
 
 def _data_file_tree(root_name: str, *, exclude_top_level: frozenset[str] = frozenset()) -> list[tuple[str, list[str]]]:

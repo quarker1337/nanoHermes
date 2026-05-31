@@ -6,6 +6,7 @@ import io
 import shutil
 import subprocess
 import sys
+import sysconfig
 import tarfile
 import tempfile
 import zipfile
@@ -74,7 +75,9 @@ def _install_python_extras(extras: list[str]) -> None:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", extras_arg], cwd=project_root)
 
 
-_ALLOWED_ASSET_ROOTS = {"skills", "optional-skills", "optional-mcps"}
+_HOME_ASSET_ROOTS = {"skills", "optional-skills", "optional-mcps"}
+_PYTHON_SITE_PACKAGES_ROOT = "python-site-packages"
+_ALLOWED_ASSET_ROOTS = _HOME_ASSET_ROOTS | {_PYTHON_SITE_PACKAGES_ROOT}
 
 
 def _safe_relative_parts(path: str, *, label: str) -> tuple[str, ...]:
@@ -85,19 +88,37 @@ def _safe_relative_parts(path: str, *, label: str) -> tuple[str, ...]:
     return parts
 
 
+def _python_site_packages_root() -> Path:
+    purelib = sysconfig.get_paths().get("purelib")
+    if not purelib:
+        raise PackageRegistryError("Could not resolve Python site-packages directory")
+    return Path(purelib).expanduser().resolve()
+
+
 def _safe_asset_destination(home: str | Path | None, destination: str) -> Path:
     parts = _safe_relative_parts(destination, label="destination")
-    if parts[0] not in _ALLOWED_ASSET_ROOTS:
+    root_name = parts[0]
+    if root_name in _HOME_ASSET_ROOTS:
+        root = Path(home).expanduser().resolve() if home is not None else PackageState().home.resolve()
+        relative_parts = parts
+    elif root_name == _PYTHON_SITE_PACKAGES_ROOT:
+        if len(parts) < 2:
+            raise PackageRegistryError(
+                "python-site-packages asset destination must include a package subdirectory"
+            )
+        root = _python_site_packages_root()
+        relative_parts = parts[1:]
+    else:
         allowed = ", ".join(sorted(_ALLOWED_ASSET_ROOTS))
         raise PackageRegistryError(
             f"Package asset destination must start with one of: {allowed}; got {destination!r}"
         )
-    root = Path(home).expanduser().resolve() if home is not None else PackageState().home.resolve()
-    target = root.joinpath(*parts).resolve()
+
+    target = root.joinpath(*relative_parts).resolve()
     try:
         target.relative_to(root)
     except ValueError as exc:
-        raise PackageRegistryError(f"Package asset destination escapes Hermes home: {destination}") from exc
+        raise PackageRegistryError(f"Package asset destination escapes install root: {destination}") from exc
     return target
 
 
