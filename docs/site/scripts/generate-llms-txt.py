@@ -151,7 +151,7 @@ SECTIONS: list[tuple[str, list[tuple[str, str, str | None]]]] = [
         ("reference/toolsets-reference", "Toolsets Reference", None),
         ("reference/mcp-config-reference", "MCP Config Reference", None),
         ("reference/model-catalog", "Model Catalog", None),
-        ("reference/skills-catalog", "Bundled Skills Catalog", "Table of all ~90 skills bundled with Hermes"),
+        ("reference/skills-catalog", "Source Skills Catalog", "Reference table of source skill definitions; NanoHermes activates skills through packages"),
         ("reference/optional-skills-catalog", "Optional Skills Catalog", "Table of ~60 additional installable skills"),
         ("reference/faq", "FAQ & Troubleshooting", None),
     ]),

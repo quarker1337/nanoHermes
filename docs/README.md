@@ -99,18 +99,27 @@ NanoHermes base intentionally starts with **zero installed skills**. Install the
 
 ```bash
 # Coding agent basics: planning, debugging, tests, code review, GitHub workflows
+hermes pkg install profile-developer --yes
+
+# Maintainer agent: Hermes/NanoHermes internals, dashboard, MCP, and agent CLI workflows
+hermes pkg install profile-maintainer --yes
+
+# Research agent basics: research/productivity skills plus web/browser tools
+hermes pkg install profile-research --yes
+
+# MLOps agent: dev core plus split MLOps skill packs
+hermes pkg install profile-mlops --yes
+```
+
+The primitive packages remain available when you want finer control:
+
+```bash
 hermes pkg install skills-dev-core --yes
-
-# Maintainer agent: Hermes/NanoHermes internals and skill authoring
 hermes pkg install skills-hermes-maintainer --yes
-
-# Agent CLI delegation: Claude Code, Codex, OpenCode, OpenHands, etc.
 hermes pkg install skills-agent-clis --yes
-
-# Research agent basics
 hermes pkg install skills-research --yes
 
-# MLOps agent, split by workload
+# Split MLOps primitives
 hermes pkg install skills-mlops-training --yes
 hermes pkg install skills-mlops-inference --yes
 hermes pkg install skills-mlops-vector-db --yes

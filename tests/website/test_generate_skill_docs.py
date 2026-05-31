@@ -108,9 +108,10 @@ def test_box_drawing_detection_covers_common_chars(gen_module):
         assert ch in gen_module._BOX_DRAWING_CHARS, f"missing: {ch!r}"
 
 
-def test_bundled_catalog_explains_missing_local_skills(gen_module):
-    """The bundled catalog should explain how to restore a listed skill that
-    was removed from the local profile's skills tree."""
+def test_source_catalog_explains_package_managed_activation(gen_module):
+    """NanoHermes' source catalog must not imply skills are installed by default."""
     result = gen_module.build_catalog_md_bundled([])
-    assert "respects local deletions and user edits" in result
-    assert "hermes skills reset <name> --restore" in result
+    assert "NanoHermes base installs zero skills by default" in result
+    assert "capability profiles or skill packages" in result
+    assert "hermes pkg show <package>" in result
+    assert "bundled skills" not in result.lower()

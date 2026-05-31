@@ -28,7 +28,7 @@ my-research-agent/
 ├── distribution.yaml    # manifest: name, version, env-var requirements
 ├── SOUL.md              # the agent's personality / system prompt
 ├── config.yaml          # model, temperature, reasoning, tool defaults
-├── skills/              # bundled skills that come with the agent
+├── skills/              # skills intentionally shipped with this distribution
 ├── cron/                # scheduled tasks the agent runs
 └── mcp.json             # MCP servers the agent connects to
 ```

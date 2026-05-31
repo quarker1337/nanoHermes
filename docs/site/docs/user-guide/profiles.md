@@ -34,7 +34,7 @@ Quickest setup: run `hermes setup --portal` inside the new profile to wire up mo
 hermes profile create mybot
 ```
 
-Creates a fresh profile with bundled skills seeded. Run `mybot setup` to configure API keys, model, and gateway tokens.
+Creates a fresh profile with zero installed skills. Run `mybot setup` to configure API keys, model, and gateway tokens, then install an explicit capability package such as `profile-developer` when you need one.
 
 If you plan to use this profile as a kanban worker (or want the kanban orchestrator to route work to it), pass `--description "<role>"` at create time so the orchestrator knows what it's good at:
 
@@ -201,15 +201,15 @@ coder config set terminal.cwd /absolute/path/to/project
 
 ## Updating
 
-`hermes update` pulls code once (shared) and syncs new bundled skills to **all** profiles automatically:
+`hermes update` pulls code once (shared) and preserves each profile's package-managed skills. It does not install profile or skill packages automatically:
 
 ```bash
 hermes update
 # → Code updated (12 commits)
-# → Skills synced: default (up to date), coder (+2 new), assistant (+2 new)
+# → Skills preserved: default (package-managed), coder (package-managed), assistant (package-managed)
 ```
 
-User-modified skills are never overwritten.
+User-modified and package-installed skills are never overwritten by the code update path.
 
 ## Managing profiles
 

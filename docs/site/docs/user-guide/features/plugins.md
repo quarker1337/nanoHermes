@@ -133,7 +133,7 @@ Within each source, Hermes also recognizes sub-category directories that route p
 
 | Sub-directory | What it holds | Discovery system |
 |---|---|---|
-| `plugins/` (root) | General plugins — tools, hooks, slash commands, CLI commands, bundled skills | `PluginManager` (kind: `standalone` or `backend`) |
+| `plugins/` (root) | General plugins — tools, hooks, slash commands, CLI commands, packaged skills | `PluginManager` (kind: `standalone` or `backend`) |
 | `plugins/platforms/<name>/` | Gateway channel adapters (`ctx.register_platform()`) | `PluginManager` (kind: `platform`, one level deeper) |
 | `plugins/image_gen/<name>/` | Image-generation backends (`ctx.register_image_gen_provider()`) | `PluginManager` (kind: `backend`, one level deeper) |
 | `plugins/memory/<name>/` | Memory providers (subclass `MemoryProvider`) | **Own loader** in `plugins/memory/__init__.py` (kind: `exclusive` — one active at a time) |

@@ -249,6 +249,45 @@ def _write_registry_with_skill_asset(
     return path
 
 
+def _write_registry_with_profile_bundle(tmp_path: Path) -> Path:
+    path = _write_registry_with_browser_dependency(tmp_path)
+    registry = json.loads(path.read_text(encoding="utf-8"))
+    registry["package_count"] = 3
+    registry["packages"]["profile-developer"] = {
+        "name": "profile-developer",
+        "display_name": "Developer Profile",
+        "version": "0.1.0",
+        "type": "bundle",
+        "channel": "community",
+        "description": "Coding agent profile.",
+        "dependencies": ["web-search", "browser"],
+        "install": {
+            "python_extras": [],
+            "python_packages": [],
+            "system_packages": [],
+            "npm_packages": [],
+            "optional_assets": [],
+        },
+        "tools": {"toolsets": [], "tools": []},
+        "permissions": {
+            "network": True,
+            "filesystem": True,
+            "shell": False,
+            "browser": True,
+            "audio": False,
+            "microphone": False,
+            "secrets": [],
+        },
+        "env": {"required": [], "optional": []},
+        "security": {"post_install_scripts": False, "signed": False, "checksum": ""},
+        "manifest_path": "packages/community/profile-developer/package.toml",
+        "manifest_sha256": "4" * 64,
+    }
+    path.write_text(json.dumps(registry), encoding="utf-8")
+    return path
+
+
+# Package contents metadata helpers.
 def _write_registry_with_skill_contents(tmp_path: Path) -> Path:
     path = _write_registry(tmp_path)
     registry = json.loads(path.read_text(encoding="utf-8"))
@@ -617,6 +656,21 @@ def test_show_prints_included_skills(tmp_path, capsys):
     assert "Included skills:" in captured.out
     assert "software-development/writing-plans" in captured.out
     assert "github/github-pr-workflow" in captured.out
+
+
+def test_show_prints_package_dependencies_for_profile_bundles(tmp_path, capsys):
+    source = _write_registry_with_profile_bundle(tmp_path)
+    home = tmp_path / "home"
+    assert pkg_cli.main(["--home", str(home), "--source", str(source), "update"]) == 0
+    capsys.readouterr()
+
+    rc = pkg_cli.main(["--home", str(home), "show", "profile-developer"])
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "Dependencies:" in captured.out
+    assert "web-search" in captured.out
+    assert "browser" in captured.out
 
 
 def test_search_matches_included_skill_names(tmp_path, capsys):

@@ -381,6 +381,9 @@ def cmd_show(args: argparse.Namespace) -> int:
     print(_format_package_line(package))
     print(f"Channel: {package.get('channel')}")
     print(f"Type: {package.get('type')}")
+    dependencies = [str(dep) for dep in package.get("dependencies", []) if str(dep).strip()]
+    if dependencies:
+        print(f"Dependencies: {', '.join(dependencies)}")
     install = package.get("install", {})
     tools = package.get("tools", {})
     if install.get("python_extras"):

@@ -8,13 +8,13 @@ description: "On-demand knowledge documents — progressive disclosure, agent-ma
 
 Skills are on-demand knowledge documents the agent can load when needed. They follow a **progressive disclosure** pattern to minimize token usage and are compatible with the [agentskills.io](https://agentskills.io/specification) open standard.
 
-All skills live in **`~/.hermes/skills/`** — the primary directory and source of truth. On fresh install, bundled skills are copied from the repo. Hub-installed and agent-created skills also go here. The agent can modify or delete any skill.
+All active skills live in **`~/.hermes/skills/`** — the primary directory and source of truth. NanoHermes starts with zero installed skills; package-installed, hub-installed, and agent-created skills go here. The agent can modify or delete any skill.
 
 You can also point Hermes at **external skill directories** — additional folders scanned alongside the local one. See [External Skill Directories](#external-skill-directories) below.
 
 See also:
 
-- [Bundled Skills Catalog](/reference/skills-catalog)
+- [Source Skills Catalog](/reference/skills-catalog)
 - [Official Optional Skills Catalog](/reference/optional-skills-catalog)
 
 ## Using Skills
@@ -32,7 +32,7 @@ Every installed skill is automatically available as a slash command:
 /excalidraw
 ```
 
-The bundled `plan` skill is a good example. Running `/plan [request]` loads the skill's instructions, telling Hermes to inspect context if needed, write a markdown implementation plan instead of executing the task, and save the result under `.hermes/plans/` relative to the active workspace/backend working directory.
+The `plan` skill is a good example once installed. Running `/plan [request]` loads the skill's instructions, telling Hermes to inspect context if needed, write a markdown implementation plan instead of executing the task, and save the result under `.hermes/plans/` relative to the active workspace/backend working directory.
 
 You can also interact with skills through natural conversation:
 
@@ -215,7 +215,7 @@ See [Skill Settings](/user-guide/configuration#skill-settings) and [Creating Ski
 │   ├── lock.json
 │   ├── quarantine/
 │   └── audit.log
-└── .bundled_manifest              # Tracks seeded bundled skills
+└── .bundled_manifest              # Tracks repo-seeded skill origin hashes
 ```
 
 ## External Skill Directories
@@ -709,16 +709,16 @@ Inside a running session:
 
 Taps are stored in `~/.hermes/.hub/taps.json` (created on demand).
 
-## Bundled skill updates (`hermes skills reset`)
+## Repo-provided skill updates (`hermes skills reset`)
 
-Hermes ships with a set of bundled skills in `skills/` inside the repo. On install and on every `hermes update`, a sync pass copies those into `~/.hermes/skills/` and records a manifest at `~/.hermes/skills/.bundled_manifest` mapping each skill name to the content hash at the time it was synced (the **origin hash**).
+Some Hermes distributions can seed repo-provided skills into `~/.hermes/skills/`. NanoHermes keeps the base profile empty by default, but the reset machinery still understands the manifest at `~/.hermes/skills/.bundled_manifest`, which maps each seeded skill name to the content hash at the time it was synced (the **origin hash**).
 
 On each sync, Hermes recomputes the hash of your local copy and compares it to the origin hash:
 
-- **Unchanged** → safe to pull upstream changes, copy the new bundled version in, record the new origin hash.
+- **Unchanged** → safe to pull upstream changes, copy the new repo-provided version in, record the new origin hash.
 - **Changed** → treated as **user-modified** and skipped forever, so your edits never get stomped.
 
-The protection is good, but it has one sharp edge. If you edit a bundled skill and then later want to abandon your changes and go back to the bundled version by just copy-pasting from `~/.hermes/hermes-agent/skills/`, the manifest still holds the *old* origin hash from whenever the last successful sync ran. Your fresh copy-paste contents (current bundled hash) won't match that stale origin hash, so sync keeps flagging it as user-modified.
+The protection is good, but it has one sharp edge. If you edit a repo-provided skill and then later want to abandon your changes and go back to the source version by just copy-pasting from the repo, the manifest still holds the *old* origin hash from whenever the last successful sync ran. Your fresh copy-paste contents (current source hash) won't match that stale origin hash, so sync keeps flagging it as user-modified.
 
 `hermes skills reset` is the escape hatch:
 
@@ -727,8 +727,8 @@ The protection is good, but it has one sharp edge. If you edit a bundled skill a
 # but the next sync re-baselines against it so future updates work normally.
 hermes skills reset google-workspace
 
-# Full restore: also deletes your local copy and re-copies the current bundled
-# version. Use this when you want the pristine upstream skill back.
+# Full restore: also deletes your local copy and re-copies the current source
+# version. Use this when you want the pristine repo-provided skill back.
 hermes skills reset google-workspace --restore
 
 # Non-interactive (e.g. in scripts or TUI mode) — skip the --restore confirmation.

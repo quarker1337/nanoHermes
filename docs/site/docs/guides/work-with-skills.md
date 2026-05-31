@@ -14,9 +14,12 @@ For the full technical reference, see [Skills System](/user-guide/features/skill
 
 ## Finding Skills
 
-Every Hermes installation ships with bundled skills. See what's available:
+NanoHermes starts with zero installed skills. Install a profile or skill package from the registry, then list what is active:
 
 ```bash
+# Install a starter profile when you need one
+hermes pkg install profile-developer --yes
+
 # In any chat session:
 /skills
 
@@ -24,7 +27,7 @@ Every Hermes installation ships with bundled skills. See what's available:
 hermes skills list
 ```
 
-This shows a compact list with names and descriptions:
+After installing packages, this shows a compact list with names and descriptions:
 
 ```
 ascii-art         Generate ASCII art using pyfiglet, cowsay, boxes...
@@ -44,7 +47,7 @@ excalidraw        Create hand-drawn style diagrams using Excalidraw...
 
 ### The Skills Hub
 
-Official optional skills (heavier or niche skills not active by default) are available via the Hub:
+Additional skills that are not active by default are available via package profiles, skill packs, or the Hub:
 
 ```bash
 # Browse official optional skills
@@ -86,7 +89,7 @@ This means skills don't cost tokens until they're actually used.
 
 ## Installing from the Hub
 
-Official optional skills ship with Hermes but aren't active by default. Install them explicitly:
+Additional skills are not active by default. Install them explicitly:
 
 ```bash
 # Install an official optional skill
