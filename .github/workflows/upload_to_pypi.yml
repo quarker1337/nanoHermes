@@ -5,15 +5,13 @@ name: Publish to PyPI
 on:
   push:
     tags:
-      - 'v20*'  # CalVer tags: v2026.5.15, v2026.5.15.2, etc.
+      - 'v20*'
   workflow_dispatch:
     inputs:
       confirm_tag:
         description: 'Tag to publish (e.g. v2026.5.15). Must already exist.'
         required: true
         type: string
-
-# Restrict default token to read-only; each job escalates as needed.
 permissions:
   contents: read
 

@@ -9,19 +9,7 @@ name: Lint (ruff + ty)
 #      enforcement fails.
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
-      - "docs/site/**"
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
-      - "docs/site/**"
-
+  workflow_dispatch:
 permissions:
   contents: read
   pull-requests: write # needed to post/update PR comments

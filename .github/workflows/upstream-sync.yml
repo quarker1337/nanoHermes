@@ -1,10 +1,7 @@
 name: Sync upstream Hermes
 
 on:
-  schedule:
-    - cron: "0 9 * * 1"
   workflow_dispatch:
-
 jobs:
   dry-run-sync:
     runs-on: ubuntu-latest

@@ -3,15 +3,7 @@ name: Deploy Site
 on:
   release:
     types: [published]
-  push:
-    branches: [main]
-    paths:
-      - 'docs/site/**'
-      - 'resources/skills/**'
-      - 'resources/optional-skills/**'
-      - '.github/workflows/deploy-site.yml'
   workflow_dispatch:
-
 permissions:
   pages: write
   id-token: write

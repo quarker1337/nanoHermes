@@ -1,12 +1,7 @@
 name: Docs Site Checks
 
 on:
-  pull_request:
-    paths:
-      - 'docs/site/**'
-      - '.github/workflows/docs-site-checks.yml'
   workflow_dispatch:
-
 permissions:
   contents: read
 

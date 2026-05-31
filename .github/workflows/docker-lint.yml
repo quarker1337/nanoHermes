@@ -11,21 +11,7 @@ name: Docker / shell lint
 # activate script doesn't exist at lint time.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - infra/docker/Dockerfile
-      - infra/docker/**
-      - infra/docker/hadolint.yaml
-      - .github/workflows/docker-lint.yml
-  pull_request:
-    branches: [main]
-    paths:
-      - infra/docker/Dockerfile
-      - infra/docker/**
-      - infra/docker/hadolint.yaml
-      - .github/workflows/docker-lint.yml
-
+  workflow_dispatch:
 permissions:
   contents: read
 

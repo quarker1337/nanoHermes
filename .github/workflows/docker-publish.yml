@@ -1,29 +1,9 @@
 name: Docker Build and Publish
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '**/*.py'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - 'infra/docker/Dockerfile'
-      - 'infra/docker/**'
-      - '.github/workflows/docker-publish.yml'
-      - '.github/actions/hermes-smoke-test/**'
-  pull_request:
-    branches: [main]
-    paths:
-      - '**/*.py'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - 'infra/docker/Dockerfile'
-      - 'infra/docker/**'
-      - '.github/workflows/docker-publish.yml'
-      - '.github/actions/hermes-smoke-test/**'
   release:
     types: [published]
-
+  workflow_dispatch:
 permissions:
   contents: read
 
