@@ -172,6 +172,7 @@ def test_optional_skills_not_grafted_into_base_sdist():
     """
     manifest_lines = _load_manifest_lines()
     setup_py = _load_packaging_setup_text()
+    repo_root = Path(__file__).resolve().parents[1]
 
     assert "include infra/packaging/build_backend.py" in manifest_lines
     assert "include infra/packaging/setup.py" in manifest_lines
@@ -182,6 +183,8 @@ def test_optional_skills_not_grafted_into_base_sdist():
     assert "prune resources/skills/research" in manifest_lines
     assert "graft resources/locales" in manifest_lines
     assert "graft resources/optional-skills" not in manifest_lines
+    assert not (repo_root / "resources" / "skills" / "yuanbao").exists()
+    assert (repo_root / "resources" / "optional-skills" / "yuanbao" / "SKILL.md").is_file()
     assert '("config", ["config/cli-config.yaml.example", "config/env.example"])' in setup_py
     assert '("constraints", ["constraints/termux.txt"])' in setup_py
     assert 'OPTIONAL_SKILL_PACKAGE_CATEGORIES = frozenset({' in setup_py
