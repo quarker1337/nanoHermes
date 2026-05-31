@@ -138,3 +138,28 @@ def test_provider_and_regional_platform_plugins_are_filtered_from_base_wheel():
         "plugins/model-providers/zai",
     ]:
         assert f'"{provider_path}"' in plugin_path_block
+
+def test_optional_platform_and_memory_plugins_are_filtered_from_base_wheel():
+    """Heavy optional platform/memory plugins are package-managed payloads."""
+    setup_py = (REPO_ROOT / "infra/packaging/setup.py").read_text(encoding="utf-8")
+    plugin_path_block = setup_py.split("OPTIONAL_RUNTIME_PLUGIN_PATHS = frozenset({", 1)[1].split("})", 1)[0]
+
+    for plugin_path in [
+        "plugins/platforms/discord",
+        "plugins/platforms/google_chat",
+        "plugins/platforms/irc",
+        "plugins/platforms/line",
+        "plugins/platforms/mattermost",
+        "plugins/platforms/ntfy",
+        "plugins/platforms/simplex",
+        "plugins/platforms/teams",
+        "plugins/memory/byterover",
+        "plugins/memory/hindsight",
+        "plugins/memory/holographic",
+        "plugins/memory/honcho",
+        "plugins/memory/mem0",
+        "plugins/memory/openviking",
+        "plugins/memory/retaindb",
+        "plugins/memory/supermemory",
+    ]:
+        assert f'"{plugin_path}"' in plugin_path_block

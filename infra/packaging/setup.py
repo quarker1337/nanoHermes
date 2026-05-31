@@ -128,6 +128,22 @@ OPTIONAL_RUNTIME_PLUGIN_PATHS = frozenset({
     "plugins/model-providers/stepfun",
     "plugins/model-providers/xiaomi",
     "plugins/model-providers/zai",
+    "plugins/platforms/discord",
+    "plugins/platforms/google_chat",
+    "plugins/platforms/irc",
+    "plugins/platforms/line",
+    "plugins/platforms/mattermost",
+    "plugins/platforms/ntfy",
+    "plugins/platforms/simplex",
+    "plugins/platforms/teams",
+    "plugins/memory/byterover",
+    "plugins/memory/hindsight",
+    "plugins/memory/holographic",
+    "plugins/memory/honcho",
+    "plugins/memory/mem0",
+    "plugins/memory/openviking",
+    "plugins/memory/retaindb",
+    "plugins/memory/supermemory",
 })
 
 
