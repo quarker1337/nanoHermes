@@ -10,16 +10,6 @@ from setuptools.command.build_py import build_py as _build_py
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# Large/niche first-party skill packs are installed through Hermes Packages
-# instead of being copied into every base wheel environment. Keep source
-# checkout paths intact; this filter only affects wheel/sdist payloads.
-OPTIONAL_SKILL_PACKAGE_CATEGORIES = frozenset({
-    "creative",
-    "mlops",
-    "productivity",
-    "research",
-})
-
 # Optional first-party tool modules are distributed through Hermes Packages, not
 # copied into every NanoHermes base wheel. Keep load-bearing runtime helpers and
 # the bundled-core toolsets in the base package; filter niche/network/provider
@@ -264,9 +254,8 @@ setup(
     data_files=[
         ("config", ["config/cli-config.yaml.example", "config/env.example"]),
         ("constraints", ["constraints/termux.txt"]),
-        *_data_file_tree("resources/skills", exclude_top_level=OPTIONAL_SKILL_PACKAGE_CATEGORIES),
         *_data_file_tree("resources/locales"),
-        # Optional skill packs are installed through NanoHermes packages instead
-        # of being copied into every base environment.
+        # Skill packs are installed through NanoHermes packages or the Skills Hub
+        # instead of being copied into every base environment.
     ]
 )

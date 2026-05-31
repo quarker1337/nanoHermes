@@ -16,7 +16,9 @@ Update logic:
         update from bundled if bundled changed. New origin hash recorded.
       * If user copy differs from origin hash: user customized it → SKIP.
   - DELETED by user (in manifest, absent from user dir): respected, not re-added.
-  - REMOVED from bundled (in manifest, gone from repo): cleaned from manifest.
+  - REMOVED from bundled (in manifest, gone from repo): unmodified copies are
+    removed from disk and manifest; user-modified copies are preserved and
+    untracked.
 
 The manifest lives at ~/.hermes/skills/.bundled_manifest.
 """
@@ -39,6 +41,7 @@ logger = logging.getLogger(__name__)
 HERMES_HOME = get_hermes_home()
 SKILLS_DIR = HERMES_HOME / "skills"
 MANIFEST_FILE = SKILLS_DIR / ".bundled_manifest"
+NO_BUNDLED_SYNC_MARKER = ".no-bundled-sync"
 
 
 def _get_bundled_dir() -> Path:
@@ -151,6 +154,84 @@ def _is_excluded_under_root(path: Path, root: Path) -> bool:
     except ValueError:
         rel = path
     return is_excluded_skill_path(rel)
+
+
+def _bundled_sync_disabled(bundled_dir: Path) -> bool:
+    """Return True when a resource root intentionally disables skill seeding."""
+    return (bundled_dir / NO_BUNDLED_SYNC_MARKER).exists()
+
+
+def _find_installed_skill_dir(skill_name: str) -> Path | None:
+    """Find an installed skill directory by frontmatter name or folder name."""
+    if not SKILLS_DIR.exists():
+        return None
+    for skill_md in sorted(SKILLS_DIR.rglob("SKILL.md")):
+        if _is_excluded_under_root(skill_md, SKILLS_DIR):
+            continue
+        skill_dir = skill_md.parent
+        if skill_dir.name == skill_name:
+            return skill_dir
+        if _read_skill_name(skill_md, skill_dir.name) == skill_name:
+            return skill_dir
+    return None
+
+
+def _retire_manifested_bundled_skills(
+    manifest: Dict[str, str],
+    quiet: bool = False,
+) -> Tuple[List[str], List[str]]:
+    """Remove unmodified previously-bundled skills and clear their manifest rows.
+
+    This is used when the product intentionally ships no bundled skill corpus
+    anymore.  Hash-matching entries are safe to delete because the user copy is
+    byte-identical to the last bundled version we seeded.  Modified or legacy
+    hashless entries are preserved on disk but stop being tracked as bundled.
+    """
+    removed: List[str] = []
+    preserved: List[str] = []
+    for name, origin_hash in sorted(list(manifest.items())):
+        skill_dir = _find_installed_skill_dir(name)
+        if skill_dir is None:
+            del manifest[name]
+            continue
+
+        if origin_hash and _dir_hash(skill_dir) == origin_hash:
+            try:
+                shutil.rmtree(skill_dir)
+                removed.append(name)
+                if not quiet:
+                    print(f"  - {name} (removed retired bundled skill)")
+            except (OSError, IOError) as e:
+                preserved.append(name)
+                if not quiet:
+                    print(f"  ! Failed to remove retired bundled skill {name}: {e}")
+                continue
+        else:
+            preserved.append(name)
+            if not quiet:
+                print(f"  ~ {name} (local changes preserved)")
+
+        del manifest[name]
+    return removed, preserved
+
+
+def _empty_sync_result(
+    *,
+    user_modified: List[str] | None = None,
+    cleaned: List[str] | None = None,
+    removed: List[str] | None = None,
+    optional_provenance_backfilled: List[str] | None = None,
+) -> dict:
+    return {
+        "copied": [],
+        "updated": [],
+        "skipped": 0,
+        "user_modified": user_modified or [],
+        "cleaned": cleaned or [],
+        "removed": removed or [],
+        "total_bundled": 0,
+        "optional_provenance_backfilled": optional_provenance_backfilled or [],
+    }
 
 
 def _discover_bundled_skills(bundled_dir: Path) -> List[Tuple[str, Path]]:
@@ -438,19 +519,40 @@ def sync_skills(quiet: bool = False) -> dict:
 
     Returns:
         dict with keys: copied (list), updated (list), skipped (int),
-                        user_modified (list), cleaned (list), total_bundled (int)
+                        user_modified (list), cleaned (list), removed (list),
+                        total_bundled (int)
     """
     bundled_dir = _get_bundled_dir()
-    if not bundled_dir.exists():
-        return {
-            "copied": [], "updated": [], "skipped": 0,
-            "user_modified": [], "cleaned": [], "total_bundled": 0,
-            "optional_provenance_backfilled": [],
-        }
-
     SKILLS_DIR.mkdir(parents=True, exist_ok=True)
     manifest = _read_manifest()
+
+    if not bundled_dir.exists() or _bundled_sync_disabled(bundled_dir):
+        cleaned = sorted(manifest.keys())
+        removed, user_modified = _retire_manifested_bundled_skills(manifest, quiet=quiet)
+        if cleaned:
+            _write_manifest(manifest)
+        optional_provenance_backfilled = _backfill_optional_provenance(quiet=quiet)
+        return _empty_sync_result(
+            user_modified=user_modified,
+            cleaned=cleaned,
+            removed=removed,
+            optional_provenance_backfilled=optional_provenance_backfilled,
+        )
+
     bundled_skills = _discover_bundled_skills(bundled_dir)
+    if not bundled_skills:
+        cleaned = sorted(manifest.keys())
+        removed, user_modified = _retire_manifested_bundled_skills(manifest, quiet=quiet)
+        if cleaned:
+            _write_manifest(manifest)
+        optional_provenance_backfilled = _backfill_optional_provenance(quiet=quiet)
+        return _empty_sync_result(
+            user_modified=user_modified,
+            cleaned=cleaned,
+            removed=removed,
+            optional_provenance_backfilled=optional_provenance_backfilled,
+        )
+
     bundled_names = {name for name, _ in bundled_skills}
 
     copied = []
@@ -574,6 +676,7 @@ def sync_skills(quiet: bool = False) -> dict:
         "skipped": skipped,
         "user_modified": user_modified,
         "cleaned": cleaned,
+        "removed": [],
         "total_bundled": len(bundled_skills),
         "optional_provenance_backfilled": optional_provenance_backfilled,
     }
@@ -692,6 +795,8 @@ if __name__ == "__main__":
         if len(names) > MAX_SHOW:
             shown += f", +{len(names) - MAX_SHOW} more"
         parts.append(f"{len(names)} user-modified (kept): {shown}")
+    if result.get("removed"):
+        parts.append(f"{len(result['removed'])} retired bundled skills removed")
     if result["cleaned"]:
         parts.append(f"{len(result['cleaned'])} cleaned from manifest")
     if result.get("optional_provenance_backfilled"):

@@ -1,0 +1,3 @@
+# NanoHermes base intentionally ships without default bundled skills.
+# tools.skills_sync treats this marker as a no-seed resource root while still
+# preserving the full source tree for docs/package generation and on-demand installs.

@@ -408,8 +408,12 @@ echo "Syncing bundled skills to ~/.hermes/skills/ ..."
 if "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/tools/skills_sync.py" 2>/dev/null; then
     echo -e "${GREEN}✓${NC} Skills synced"
 else
-    # Fallback: copy if sync script fails (missing deps, etc.)
-    if [ -d "$SCRIPT_DIR/resources/skills" ]; then
+    # Fallback: copy only when a legacy checkout really has bundled skills.
+    # NanoHermes carries .no-bundled-sync to keep fresh installs skill-empty
+    # even when the Python sync path is unavailable.
+    if [ -d "$SCRIPT_DIR/resources/skills" ] \
+        && [ ! -f "$SCRIPT_DIR/resources/skills/.no-bundled-sync" ] \
+        && [ -n "$(find "$SCRIPT_DIR/resources/skills" -name SKILL.md -print -quit 2>/dev/null)" ]; then
         cp -rn "$SCRIPT_DIR/resources/skills/"* "$HERMES_SKILLS_DIR/" 2>/dev/null || true
         echo -e "${GREEN}✓${NC} Skills copied"
     fi

@@ -1495,10 +1495,17 @@ Delete the contents (or this file) to use the default personality.
             & $pythonExe "$InstallDir\tools\skills_sync.py" 2>$null
             Write-Success "Skills synced to ~/.hermes/skills/"
         } catch {
-            # Fallback: simple directory copy
+            # Fallback: simple directory copy for legacy checkouts that really
+            # ship bundled skills. NanoHermes carries .no-bundled-sync and must
+            # not seed default skills when the Python sync path is unavailable.
             $bundledSkills = "$InstallDir\resources\skills"
             $userSkills = "$HermesHome\skills"
-            if ((Test-Path $bundledSkills) -and -not (Get-ChildItem $userSkills -Exclude '.bundled_manifest' -ErrorAction SilentlyContinue)) {
+            $noBundledSync = Join-Path $bundledSkills ".no-bundled-sync"
+            $bundledSkillFiles = @()
+            if ((Test-Path $bundledSkills) -and -not (Test-Path $noBundledSync)) {
+                $bundledSkillFiles = @(Get-ChildItem $bundledSkills -Filter "SKILL.md" -Recurse -File -ErrorAction SilentlyContinue)
+            }
+            if (($bundledSkillFiles.Count -gt 0) -and -not (Get-ChildItem $userSkills -Exclude '.bundled_manifest' -ErrorAction SilentlyContinue)) {
                 Copy-Item -Path "$bundledSkills\*" -Destination $userSkills -Recurse -Force -ErrorAction SilentlyContinue
                 Write-Success "Skills copied to ~/.hermes/skills/"
             }

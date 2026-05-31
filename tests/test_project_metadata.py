@@ -166,9 +166,9 @@ def test_github_app_jwt_crypto_is_optional():
     assert "PyJWT[crypto]==2.12.1" in optional_dependencies["github-app"]
 
 
-def test_optional_skills_not_grafted_into_base_sdist():
-    """NanoHermes installs optional skill packs through packages, not the
-    base wheel/sdist payload.
+def test_default_skills_not_grafted_into_base_sdist():
+    """NanoHermes installs first-party skills through packages or the Skills Hub,
+    not the base wheel/sdist payload.
     """
     manifest_lines = _load_manifest_lines()
     setup_py = _load_packaging_setup_text()
@@ -176,21 +176,41 @@ def test_optional_skills_not_grafted_into_base_sdist():
 
     assert "include infra/packaging/build_backend.py" in manifest_lines
     assert "include infra/packaging/setup.py" in manifest_lines
-    assert "graft resources/skills" in manifest_lines
-    assert "prune resources/skills/creative" in manifest_lines
-    assert "prune resources/skills/mlops" in manifest_lines
-    assert "prune resources/skills/productivity" in manifest_lines
-    assert "prune resources/skills/research" in manifest_lines
+    assert "graft resources/skills" not in manifest_lines
+    assert not any(line.startswith("prune resources/skills/") for line in manifest_lines)
     assert "graft resources/locales" in manifest_lines
     assert "graft resources/optional-skills" not in manifest_lines
+    assert (repo_root / "resources" / "skills" / ".no-bundled-sync").is_file()
     assert not (repo_root / "resources" / "skills" / "yuanbao").exists()
     assert (repo_root / "resources" / "optional-skills" / "yuanbao" / "SKILL.md").is_file()
     assert '("config", ["config/cli-config.yaml.example", "config/env.example"])' in setup_py
     assert '("constraints", ["constraints/termux.txt"])' in setup_py
-    assert 'OPTIONAL_SKILL_PACKAGE_CATEGORIES = frozenset({' in setup_py
-    assert '*_data_file_tree("resources/skills", exclude_top_level=OPTIONAL_SKILL_PACKAGE_CATEGORIES)' in setup_py
+    assert '*_data_file_tree("resources/skills"' not in setup_py
     assert '*_data_file_tree("resources/locales")' in setup_py
     assert '*_data_file_tree("resources/optional-skills")' not in setup_py
+
+
+def test_non_wheel_install_paths_do_not_seed_default_skills():
+    """Nix and installer fallbacks must follow the zero-default-skills base policy."""
+    repo_root = Path(__file__).resolve().parents[1]
+    nix_pkg = (repo_root / "infra" / "nix" / "hermes-agent.nix").read_text(encoding="utf-8")
+    nix_checks = (repo_root / "infra" / "nix" / "checks.nix").read_text(encoding="utf-8")
+    install_sh = (repo_root / "scripts" / "install.sh").read_text(encoding="utf-8")
+    setup_sh = (repo_root / "scripts" / "setup-hermes.sh").read_text(encoding="utf-8")
+    install_ps1 = (repo_root / "scripts" / "install.ps1").read_text(encoding="utf-8")
+
+    assert "src = ../../resources/skills" not in nix_pkg
+    assert "cp -r ${bundledSkills}" not in nix_pkg
+    assert "$out/share/hermes-agent/skills/.no-bundled-sync" in nix_pkg
+    assert 'test "$SKILL_COUNT" -eq 0' in nix_checks
+    assert "no-bundled-sync marker present" in nix_checks
+
+    for script_text in (install_sh, setup_sh):
+        assert ".no-bundled-sync" in script_text
+        assert "-name SKILL.md -print -quit" in script_text
+
+    assert ".no-bundled-sync" in install_ps1
+    assert 'Get-ChildItem $bundledSkills -Filter "SKILL.md" -Recurse -File' in install_ps1
 
 
 def test_dashboard_plugin_manifests_and_assets_are_packaged():

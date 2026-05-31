@@ -53,10 +53,10 @@ let
     inherit hermesNpmLib;
   };
 
-  bundledSkills = lib.cleanSourceWith {
-    src = ../../resources/skills;
-    filter = path: _type: !(lib.hasInfix "/index-cache/" path);
-  };
+  # NanoHermes base packages intentionally do not ship the default Hermes
+  # bundled skill corpus.  The install phase creates an empty marker root so
+  # skills_sync retires old manifest-tracked bundled skills without seeding new
+  # defaults; optional/package-managed skill packs can still install on demand.
 
   # Import bundled plugins (memory, context_engine, platforms/*).  Keeping
   # them out of the Python site-packages keeps import semantics identical
@@ -147,8 +147,9 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/share/hermes-agent $out/bin
-    cp -r ${bundledSkills} $out/share/hermes-agent/skills
+    mkdir -p $out/share/hermes-agent/skills $out/bin
+    echo "NanoHermes base intentionally ships without default bundled skills." > \
+      $out/share/hermes-agent/skills/.no-bundled-sync
     cp -r ${bundledPlugins} $out/share/hermes-agent/plugins
     cp -r ${hermesWeb} $out/share/hermes-agent/web_dist
 

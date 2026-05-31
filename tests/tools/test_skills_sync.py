@@ -409,6 +409,85 @@ class TestSyncSkills:
             manifest = _read_manifest()
         assert "removed-skill" not in manifest
 
+    def test_disabled_bundled_sync_prunes_unmodified_manifested_skills(self, tmp_path):
+        """NanoHermes can intentionally ship zero bundled skills.
+
+        When the bundled skill root contains the no-sync marker, previously
+        synced-but-unmodified bundled skills are removed so upgraded base
+        installs do not keep advertising the Hermes Agent default corpus.
+        """
+        bundled = self._setup_bundled(tmp_path)
+        (bundled / ".no-bundled-sync").write_text("\n")
+        skills_dir = tmp_path / "user_skills"
+        manifest_file = skills_dir / ".bundled_manifest"
+
+        user_skill = skills_dir / "old-skill"
+        user_skill.mkdir(parents=True)
+        (user_skill / "SKILL.md").write_text("# Old")
+        origin_hash = _dir_hash(user_skill)
+        manifest_file.write_text(f"old-skill:{origin_hash}\n")
+
+        with self._patches(bundled, skills_dir, manifest_file):
+            result = sync_skills(quiet=True)
+
+        assert result["total_bundled"] == 0
+        assert result["removed"] == ["old-skill"]
+        assert not user_skill.exists()
+        assert not (skills_dir / "category" / "new-skill").exists()
+        with patch("tools.skills_sync.MANIFEST_FILE", manifest_file):
+            assert _read_manifest() == {}
+
+    def test_empty_bundled_root_prunes_unmodified_manifested_skills(self, tmp_path):
+        """An existing-but-empty bundled root must still retire old bundled skills.
+
+        Some installed wheels or stale data-file roots can leave an empty
+        resources/skills directory without the no-sync marker. Treat that like
+        the intentional zero-bundled-skills baseline instead of merely cleaning
+        the manifest and leaving old default skills installed.
+        """
+        bundled = tmp_path / "bundled_skills"
+        bundled.mkdir()
+        skills_dir = tmp_path / "user_skills"
+        manifest_file = skills_dir / ".bundled_manifest"
+
+        user_skill = skills_dir / "old-skill"
+        user_skill.mkdir(parents=True)
+        (user_skill / "SKILL.md").write_text("# Old")
+        origin_hash = _dir_hash(user_skill)
+        manifest_file.write_text(f"old-skill:{origin_hash}\n")
+
+        with self._patches(bundled, skills_dir, manifest_file):
+            result = sync_skills(quiet=True)
+
+        assert result["total_bundled"] == 0
+        assert result["removed"] == ["old-skill"]
+        assert not user_skill.exists()
+        with patch("tools.skills_sync.MANIFEST_FILE", manifest_file):
+            assert _read_manifest() == {}
+
+    def test_disabled_bundled_sync_preserves_modified_manifested_skills(self, tmp_path):
+        """The no-sync migration must not delete user-edited bundled skills."""
+        bundled = self._setup_bundled(tmp_path)
+        (bundled / ".no-bundled-sync").write_text("\n")
+        skills_dir = tmp_path / "user_skills"
+        manifest_file = skills_dir / ".bundled_manifest"
+
+        user_skill = skills_dir / "old-skill"
+        user_skill.mkdir(parents=True)
+        (user_skill / "SKILL.md").write_text("# Old")
+        origin_hash = _dir_hash(user_skill)
+        (user_skill / "SKILL.md").write_text("# My modified skill")
+        manifest_file.write_text(f"old-skill:{origin_hash}\n")
+
+        with self._patches(bundled, skills_dir, manifest_file):
+            result = sync_skills(quiet=True)
+
+        assert result["removed"] == []
+        assert result["user_modified"] == ["old-skill"]
+        assert (user_skill / "SKILL.md").read_text() == "# My modified skill"
+        with patch("tools.skills_sync.MANIFEST_FILE", manifest_file):
+            assert _read_manifest() == {}
+
     def test_does_not_overwrite_existing_unmanifested_skill(self, tmp_path):
         """New skill whose name collides with user-created skill = skipped."""
         bundled = self._setup_bundled(tmp_path)
@@ -615,13 +694,37 @@ class TestSyncSkills:
         assert not (skills_dir / ".hub" / "lock.json").exists()
 
     def test_nonexistent_bundled_dir(self, tmp_path):
+        skills_dir = tmp_path / "user_skills"
+        manifest_file = skills_dir / ".bundled_manifest"
         with patch("tools.skills_sync._get_bundled_dir", return_value=tmp_path / "nope"):
-            result = sync_skills(quiet=True)
+            with patch("tools.skills_sync.SKILLS_DIR", skills_dir):
+                with patch("tools.skills_sync.MANIFEST_FILE", manifest_file):
+                    result = sync_skills(quiet=True)
         assert result == {
             "copied": [], "updated": [], "skipped": 0,
-            "user_modified": [], "cleaned": [], "total_bundled": 0,
+            "user_modified": [], "cleaned": [], "removed": [], "total_bundled": 0,
             "optional_provenance_backfilled": [],
         }
+
+    def test_nonexistent_bundled_dir_prunes_unmodified_manifested_skills(self, tmp_path):
+        """Wheel upgrades with no packaged skill root retire old default skills."""
+        skills_dir = tmp_path / "user_skills"
+        manifest_file = skills_dir / ".bundled_manifest"
+        user_skill = skills_dir / "old-skill"
+        user_skill.mkdir(parents=True)
+        (user_skill / "SKILL.md").write_text("# Old")
+        origin_hash = _dir_hash(user_skill)
+        manifest_file.write_text(f"old-skill:{origin_hash}\n")
+
+        with patch("tools.skills_sync._get_bundled_dir", return_value=tmp_path / "nope"):
+            with patch("tools.skills_sync.SKILLS_DIR", skills_dir):
+                with patch("tools.skills_sync.MANIFEST_FILE", manifest_file):
+                    result = sync_skills(quiet=True)
+
+        assert result["removed"] == ["old-skill"]
+        assert result["cleaned"] == ["old-skill"]
+        assert not user_skill.exists()
+        assert not manifest_file.exists() or manifest_file.read_text().strip() == ""
 
     def test_failed_copy_does_not_poison_manifest(self, tmp_path):
         """If copytree fails, the skill must NOT be added to the manifest.

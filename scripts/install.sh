@@ -1626,12 +1626,17 @@ SOUL_EOF
     elif [ "$USE_VENV" = true ] && [ -f "$INSTALL_DIR/tools/skills_sync.py" ] && "$INSTALL_DIR/venv/bin/python" "$INSTALL_DIR/tools/skills_sync.py" 2>/dev/null; then
         log_success "Skills synced to ~/.hermes/skills/"
     else
-        # Fallback: simple directory copy if Python sync fails
+        # Fallback: simple directory copy if Python sync fails, but only for
+        # legacy checkouts that actually ship bundled skills. NanoHermes base
+        # roots carry .no-bundled-sync and must remain skill-empty.
         local bundled_skills_dir="$INSTALL_DIR/resources/skills"
         if [ ! -d "$bundled_skills_dir" ] && [ -n "$PACKAGED_DATA_DIR" ] && [ -d "$PACKAGED_DATA_DIR/resources/skills" ]; then
             bundled_skills_dir="$PACKAGED_DATA_DIR/resources/skills"
         fi
-        if [ -d "$bundled_skills_dir" ] && [ ! "$(ls -A "$HERMES_HOME/skills/" 2>/dev/null | grep -v '.bundled_manifest')" ]; then
+        if [ -d "$bundled_skills_dir" ] \
+            && [ ! -f "$bundled_skills_dir/.no-bundled-sync" ] \
+            && [ -n "$(find "$bundled_skills_dir" -name SKILL.md -print -quit 2>/dev/null)" ] \
+            && [ ! "$(find "$HERMES_HOME/skills" -mindepth 1 ! -name '.bundled_manifest' -print -quit 2>/dev/null)" ]; then
             cp -r "$bundled_skills_dir/"* "$HERMES_HOME/skills/" 2>/dev/null || true
             log_success "Skills copied to ~/.hermes/skills/"
         fi

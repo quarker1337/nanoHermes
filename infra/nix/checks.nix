@@ -104,22 +104,26 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
           echo "ok" > $out/result
         '';
 
-        # Verify bundled skills are present in the package
-        bundled-skills = pkgs.runCommand "hermes-bundled-skills" { } ''
+        # Verify the NanoHermes base package does not ship default skills.
+        bundled-skills = pkgs.runCommand "hermes-no-bundled-skills" { } ''
           set -e
-          echo "=== Checking bundled skills ==="
+          echo "=== Checking NanoHermes bundled skills baseline ==="
           test -d ${hermes-agent}/share/hermes-agent/skills || (echo "FAIL: skills directory missing"; exit 1)
           echo "PASS: skills directory exists"
 
           SKILL_COUNT=$(find ${hermes-agent}/share/hermes-agent/skills -name "SKILL.md" | wc -l)
-          test "$SKILL_COUNT" -gt 0 || (echo "FAIL: no SKILL.md files found in skills directory"; exit 1)
-          echo "PASS: $SKILL_COUNT bundled skills found"
+          test "$SKILL_COUNT" -eq 0 || (echo "FAIL: expected zero bundled skills, found $SKILL_COUNT"; exit 1)
+          echo "PASS: no default bundled skills found"
+
+          test -f ${hermes-agent}/share/hermes-agent/skills/.no-bundled-sync || \
+            (echo "FAIL: no-bundled-sync marker missing"; exit 1)
+          echo "PASS: no-bundled-sync marker present"
 
           grep -q "HERMES_BUNDLED_SKILLS" ${hermes-agent}/bin/hermes || \
             (echo "FAIL: HERMES_BUNDLED_SKILLS not in wrapper"; exit 1)
-          echo "PASS: HERMES_BUNDLED_SKILLS set in wrapper"
+          echo "PASS: HERMES_BUNDLED_SKILLS points at marker root"
 
-          echo "=== All bundled skills checks passed ==="
+          echo "=== NanoHermes no-bundled-skills checks passed ==="
           mkdir -p $out
           echo "ok" > $out/result
         '';

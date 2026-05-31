@@ -16,10 +16,18 @@ def test_faster_whisper_is_not_a_base_dependency():
     assert any(dep.startswith("faster-whisper") for dep in voice_extra)
 
 
-def test_manifest_includes_bundled_skills():
-    manifest = (REPO_ROOT / "MANIFEST.in").read_text(encoding="utf-8")
+def test_base_distribution_does_not_package_bundled_skills():
+    """NanoHermes base installs should start with zero default skills.
 
-    assert "graft resources/skills" in manifest
+    The skills hub stays in the base wheel, but the Hermes Agent default
+    bundled skill corpus is package-managed / installed on demand instead of
+    being copied into every fresh HERMES_HOME at startup.
+    """
+    manifest = (REPO_ROOT / "MANIFEST.in").read_text(encoding="utf-8")
+    setup_py = (REPO_ROOT / "infra/packaging/setup.py").read_text(encoding="utf-8")
+
+    assert "graft resources/skills" not in manifest
+    assert '*_data_file_tree("resources/skills"' not in setup_py
     assert "graft resources/locales" in manifest
     assert "graft resources/optional-skills" not in manifest
 
