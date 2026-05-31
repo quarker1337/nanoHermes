@@ -93,6 +93,43 @@ OPTIONAL_PLUGIN_PACKAGES = frozenset({
     "plugins.kanban",
 })
 
+# Regional/high-touch gateway platform adapters are package-managed. The base
+# wheel keeps generic gateway helpers and common low-friction platforms, but
+# trims provider-specific China platform code until a package installs it.
+OPTIONAL_GATEWAY_PLATFORM_MODULES = frozenset({
+    "dingtalk",
+    "feishu",
+    "feishu_comment",
+    "feishu_comment_rules",
+    "wecom",
+    "wecom_callback",
+    "wecom_crypto",
+    "weixin",
+    "yuanbao",
+    "yuanbao_media",
+    "yuanbao_proto",
+    "yuanbao_sticker",
+})
+
+OPTIONAL_GATEWAY_PLATFORM_PACKAGES = frozenset({
+    "gateway.platforms.qqbot",
+})
+
+# Runtime plugin directories use file-system plugin names, including hyphenated
+# directories that are not normal import package identifiers. Match by build/lib
+# path so stale output cannot leak optional providers back into the base wheel.
+OPTIONAL_RUNTIME_PLUGIN_PATHS = frozenset({
+    "plugins/model-providers/alibaba",
+    "plugins/model-providers/alibaba-coding-plan",
+    "plugins/model-providers/deepseek",
+    "plugins/model-providers/kimi-coding",
+    "plugins/model-providers/minimax",
+    "plugins/model-providers/qwen-oauth",
+    "plugins/model-providers/stepfun",
+    "plugins/model-providers/xiaomi",
+    "plugins/model-providers/zai",
+})
+
 
 class NanoHermesBuildPy(_build_py):
     """Build a lean base wheel by omitting package-managed tool modules."""
@@ -102,6 +139,7 @@ class NanoHermesBuildPy(_build_py):
         self._remove_excluded_tool_outputs()
         self._remove_excluded_hermes_cli_outputs()
         self._remove_excluded_plugin_outputs()
+        self._remove_excluded_gateway_platform_outputs()
 
     def _remove_excluded_tool_outputs(self) -> None:
         # bdist_wheel can reuse an existing build/lib tree. Delete filtered
@@ -128,8 +166,19 @@ class NanoHermesBuildPy(_build_py):
         build_lib = Path(self.build_lib)
         for package in OPTIONAL_PLUGIN_PACKAGES:
             shutil.rmtree(build_lib.joinpath(*package.split(".")), ignore_errors=True)
+        for rel_path in OPTIONAL_RUNTIME_PLUGIN_PATHS:
+            shutil.rmtree(build_lib / rel_path, ignore_errors=True)
+
+    def _remove_excluded_gateway_platform_outputs(self) -> None:
+        build_lib = Path(self.build_lib)
+        gateway_platforms_build_dir = build_lib / "gateway" / "platforms"
+        for module in OPTIONAL_GATEWAY_PLATFORM_MODULES:
+            (gateway_platforms_build_dir / f"{module}.py").unlink(missing_ok=True)
+        for package in OPTIONAL_GATEWAY_PLATFORM_PACKAGES:
+            shutil.rmtree(build_lib.joinpath(*package.split(".")), ignore_errors=True)
 
     def find_package_modules(self, package, package_dir):
+        package_path = package.replace(".", "/")
         if package in OPTIONAL_TOOL_PACKAGES or any(
             package.startswith(f"{optional_package}.")
             for optional_package in OPTIONAL_TOOL_PACKAGES
@@ -145,6 +194,16 @@ class NanoHermesBuildPy(_build_py):
             for optional_package in OPTIONAL_PLUGIN_PACKAGES
         ):
             return []
+        if package in OPTIONAL_GATEWAY_PLATFORM_PACKAGES or any(
+            package.startswith(f"{optional_package}.")
+            for optional_package in OPTIONAL_GATEWAY_PLATFORM_PACKAGES
+        ):
+            return []
+        if package_path in OPTIONAL_RUNTIME_PLUGIN_PATHS or any(
+            package_path.startswith(f"{optional_path}/")
+            for optional_path in OPTIONAL_RUNTIME_PLUGIN_PATHS
+        ):
+            return []
 
         modules = super().find_package_modules(package, package_dir)
         if package == "tools":
@@ -158,6 +217,12 @@ class NanoHermesBuildPy(_build_py):
                 module_entry
                 for module_entry in modules
                 if module_entry[1] not in OPTIONAL_HERMES_CLI_MODULES
+            ]
+        if package == "gateway.platforms":
+            return [
+                module_entry
+                for module_entry in modules
+                if module_entry[1] not in OPTIONAL_GATEWAY_PLATFORM_MODULES
             ]
         return modules
 
