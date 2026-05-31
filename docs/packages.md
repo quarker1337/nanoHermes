@@ -42,6 +42,35 @@ hermes pkg install skills-agent-clis --yes
 hermes pkg install dashboard --yes
 ```
 
+Broader capability packs are split so users can install only what they need:
+
+```bash
+# Apple/macOS workflows
+hermes pkg install skills-apple-macos --yes
+
+# Media workflows
+hermes pkg install skills-media --yes
+
+# Finance workflows
+hermes pkg install skills-finance --yes
+
+# DevOps/container/tunnel/watchers
+hermes pkg install skills-devops --yes
+
+# Security and OSINT workflows
+hermes pkg install skills-security-osint --yes
+
+# MLOps split packs
+hermes pkg install skills-mlops-training --yes
+hermes pkg install skills-mlops-inference --yes
+hermes pkg install skills-mlops-vector-db --yes
+hermes pkg install skills-mlops-cloud --yes
+hermes pkg install skills-mlops-models --yes
+hermes pkg install skills-mlops-eval-curation --yes
+```
+
+Integration packages can also install matching skills automatically. For example, `spotify` includes `media/spotify`, `homeassistant` includes `smart-home/openhue`, `web-search` includes lightweight web-search skills, and `mcp` includes native MCP / FastMCP / mcporter skills.
+
 `hermes pkg show <package>` lists included skills when the registry manifest advertises them, and `hermes pkg search <skill-name>` can discover packages by included skill path, for example:
 
 ```bash

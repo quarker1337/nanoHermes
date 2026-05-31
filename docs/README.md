@@ -93,10 +93,39 @@ hermes pkg install web-search --dry-run
 hermes pkg doctor
 ```
 
-For local registry testing, point at a checked-out registry index:
+### Tiny base, package-managed capabilities
+
+NanoHermes base intentionally starts with **zero installed skills**. Install the capability profile you need from the registry:
 
 ```bash
-hermes pkg update --source ../Hermes-Packages/registry/index.json
+# Coding agent basics: planning, debugging, tests, code review, GitHub workflows
+hermes pkg install skills-dev-core --yes
+
+# Maintainer agent: Hermes/NanoHermes internals and skill authoring
+hermes pkg install skills-hermes-maintainer --yes
+
+# Agent CLI delegation: Claude Code, Codex, OpenCode, OpenHands, etc.
+hermes pkg install skills-agent-clis --yes
+
+# Research agent basics
+hermes pkg install skills-research --yes
+
+# MLOps agent, split by workload
+hermes pkg install skills-mlops-training --yes
+hermes pkg install skills-mlops-inference --yes
+hermes pkg install skills-mlops-vector-db --yes
+hermes pkg install skills-mlops-cloud --yes
+hermes pkg install skills-mlops-models --yes
+hermes pkg install skills-mlops-eval-curation --yes
+```
+
+Tool packages can carry matching workflow skills too. For example, `spotify` installs the Spotify media skill, `homeassistant` installs the OpenHue smart-home skill, `web-search` installs lightweight web-search skills, `dashboard` installs Kanban skills, and `mcp` installs native MCP / FastMCP / mcporter skills.
+
+For local registry testing, pass `--source` before the subcommand for each command that should read the checked-out index:
+
+```bash
+hermes pkg --source ../Hermes-Packages/registry/index.json update
+hermes pkg --source ../Hermes-Packages/registry/index.json install skills-dev-core --yes --no-pip
 ```
 
 ---

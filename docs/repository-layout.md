@@ -25,7 +25,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 | `infra/nanohermes/` | Downstream metadata such as `upstream-base.txt`. |
 | `resources/acp/registry/` | ACP registry metadata (`agent.json`, icon). Formerly root `acp_registry/`. |
 | `resources/locales/` | Runtime translation catalogs. Formerly root `locales/`. |
-| `resources/skills/` | Bundled base skill corpus installed with the base distribution. |
+| `resources/skills/` | Source-tree first-party skill corpus used to build package-managed skill archives; the NanoHermes base install starts with zero installed skills. |
 | `resources/optional-skills/`, `resources/optional-mcps/` | Optional payloads for package-managed install, not base-wheel payloads. |
 | `scripts/` | Maintainer scripts, installer scripts, sync scripts, and operational helpers. |
 | `tests/` | Test suite. Focused package-manager tests live under `tests/package_manager/`. |
