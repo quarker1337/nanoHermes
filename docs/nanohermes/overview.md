@@ -56,7 +56,10 @@ Alias:
 hermes plug search web
 ```
 
-The package registry lives in `quarker1337/Hermes-Packages`.
+The default package registry lives in `quarker1337/Hermes-Packages`.
+Use [`../packages.md`](../packages.md) for the full user flow: first skill
+packs, alternate `--source` registries, sources.list-style personal registry
+forks, package manifests, skill-pack assets, and personal tool packages.
 
 ## Upstream sync
 

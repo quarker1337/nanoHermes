@@ -167,7 +167,9 @@ Start here when auditing the repo:
   audit entry points, and rules for future file placement;
 - [`nanohermes/overview.md`](nanohermes/overview.md) — downstream
   fork purpose, remotes, package-manager basics, and upstream-sync policy;
-- [`packages.md`](packages.md) — package-manager user/developer notes;
+- [`packages.md`](packages.md) — package-manager user/developer notes,
+  custom registry sources, personal package repos, skill-pack assets, and
+  personal tool package patterns;
 - [`upstream-sync.md`](upstream-sync.md) — slim fork sync workflow.
 
 ---
