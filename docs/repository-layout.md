@@ -75,6 +75,7 @@ The guiding rule is: keep the root readable. Root-level directories should be br
 
 ### Base install size and package contents
 
+- `scripts/footprint_report.py` separates Git history, tracked source payload, ignored/generated local artifacts, and virtualenv/site-packages weight.
 - `pyproject.toml`
 - `uv.lock`
 - `infra/packaging/setup.py`
