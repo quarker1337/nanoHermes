@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.metadata as importlib_metadata
 import io
+import json
 import shutil
 import subprocess
 import sys
@@ -84,12 +86,80 @@ def _print_install_plan(packages: list[dict]) -> None:
             print(f"    Permissions: {', '.join(permissions)}")
 
 
+_DISTRIBUTION_NAME = "hermes-agent"
+
+
+def _extras_suffix(extras: list[str]) -> str:
+    names = sorted({str(extra).strip() for extra in extras if str(extra).strip()})
+    return "[{}]".format(",".join(names)) if names else ""
+
+
+def _editable_project_root() -> Path | None:
+    """Return the checkout root when this code is running from source.
+
+    Installed wheels/archives put ``hermes_cli`` under site-packages, where
+    ``parents[2]`` is not a project checkout.  Only use an editable local target
+    when a pyproject is really present; package installs from remote archives
+    need to reinstall the current distribution source instead.
+    """
+    project_root = Path(__file__).resolve().parents[2]
+    return project_root if (project_root / "pyproject.toml").is_file() else None
+
+
+def _direct_url_distribution_target(extras: list[str], distribution_name: str = _DISTRIBUTION_NAME) -> str | None:
+    """Return ``name[extras] @ url`` for remote archive/VCS installs.
+
+    Minimal NanoHermes installs are commonly installed by uv from the GitHub
+    branch tarball.  PEP 610 metadata records that URL; preserving it prevents
+    optional package installs from accidentally switching the tester back to the
+    upstream PyPI ``hermes-agent`` package.
+    """
+    try:
+        dist = importlib_metadata.distribution(distribution_name)
+        raw = dist.read_text("direct_url.json")
+        if not raw:
+            return None
+        data = json.loads(raw)
+        url = str(data.get("url") or "").strip()
+        if not url:
+            return None
+        if data.get("archive_info") is None and data.get("vcs_info") is None:
+            return None
+        if not url.startswith(("http://", "https://", "git+http://", "git+https://", "ssh://", "git+ssh://")):
+            return None
+        return f"{distribution_name}{_extras_suffix(extras)} @ {url}"
+    except Exception:
+        return None
+
+
+def _python_extras_install_target(extras: list[str]) -> tuple[str, Path | None, bool]:
+    project_root = _editable_project_root()
+    if project_root is not None:
+        return f".{_extras_suffix(extras)}", project_root, True
+    direct_target = _direct_url_distribution_target(extras)
+    if direct_target:
+        return direct_target, None, False
+    return f"{_DISTRIBUTION_NAME}{_extras_suffix(extras)}", None, False
+
+
 def _install_python_extras(extras: list[str]) -> None:
     if not extras:
         return
-    project_root = Path(__file__).resolve().parents[2]
-    extras_arg = ".[{}]".format(",".join(sorted(set(extras))))
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", extras_arg], cwd=project_root)
+    target, cwd, editable = _python_extras_install_target(extras)
+    uv = shutil.which("uv")
+    if uv:
+        cmd = [uv, "pip", "install", "--python", sys.executable, "--upgrade"]
+        if editable:
+            cmd.extend(["-e", target])
+        else:
+            cmd.append(target)
+    else:
+        cmd = [sys.executable, "-m", "pip", "install", "--upgrade"]
+        if editable:
+            cmd.extend(["-e", target])
+        else:
+            cmd.append(target)
+    subprocess.check_call(cmd, cwd=cwd)
 
 
 _HOME_ASSET_ROOTS = {"skills", "optional-skills", "optional-mcps"}

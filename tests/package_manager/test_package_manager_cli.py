@@ -422,6 +422,66 @@ def test_install_yes_no_pip_records_package_state(tmp_path, capsys):
     assert installed["web-search"]["requested"] is True
 
 
+def test_install_yes_uses_uv_for_python_extras_in_pipless_venv(tmp_path, monkeypatch, capsys):
+    source = _write_registry(tmp_path)
+    home = tmp_path / "home"
+    calls = []
+
+    monkeypatch.setattr(pkg_cli.shutil, "which", lambda name: "/tmp/uv" if name == "uv" else None)
+    monkeypatch.setattr(pkg_cli.sys, "executable", "/tmp/hermes-venv/bin/python3")
+
+    def fake_check_call(cmd, cwd=None):
+        calls.append((cmd, cwd))
+        return 0
+
+    monkeypatch.setattr(pkg_cli.subprocess, "check_call", fake_check_call)
+
+    rc = pkg_cli.main([
+        "--home",
+        str(home),
+        "--source",
+        str(source),
+        "install",
+        "web-search",
+        "--yes",
+    ])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Installed web-search 0.1.0" in out
+    assert calls
+    cmd, _cwd = calls[0]
+    assert cmd[:5] == ["/tmp/uv", "pip", "install", "--python", "/tmp/hermes-venv/bin/python3"]
+    assert "-m" not in cmd
+    assert "pip" not in cmd[5:]
+
+
+def test_python_extra_target_preserves_remote_archive_install_source(monkeypatch, tmp_path):
+    class FakeDistribution:
+        def read_text(self, name):
+            assert name == "direct_url.json"
+            return json.dumps({
+                "url": "https://github.com/quarker1337/nanoHermes/archive/refs/heads/main.tar.gz",
+                "archive_info": {"hash": "sha256=abc"},
+            })
+
+    monkeypatch.setattr(pkg_cli, "_editable_project_root", lambda: None)
+    monkeypatch.setattr(
+        pkg_cli.importlib_metadata,
+        "distribution",
+        lambda distribution_name: FakeDistribution(),
+    )
+
+    target, cwd, editable = pkg_cli._python_extras_install_target(["browser"])
+
+    assert target == (
+        "hermes-agent[browser] @ "
+        "https://github.com/quarker1337/nanoHermes/archive/refs/heads/main.tar.gz"
+    )
+    assert cwd is None
+    assert editable is False
+
+
 def test_install_optional_python_asset_extracts_into_site_packages(tmp_path, monkeypatch, capsys):
     source = _write_registry_with_python_asset(tmp_path)
     home = tmp_path / "home"
