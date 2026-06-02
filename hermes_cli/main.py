@@ -6220,6 +6220,142 @@ def cmd_kanban(args):
     return kanban_command(args)
 
 
+def _desktop_workspace_root() -> Path:
+    """Package-managed desktop app workspace under HERMES_HOME."""
+    return get_hermes_home() / "apps" / "desktop-workspace"
+
+
+def _desktop_dir(workspace_root: Path | None = None) -> Path:
+    root = workspace_root or _desktop_workspace_root()
+    return root / "apps" / "desktop"
+
+
+def _desktop_dist_exists(desktop_dir: Path) -> bool:
+    return (desktop_dir / "dist" / "index.html").exists()
+
+
+def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
+    """Return the current platform's unpacked Electron app executable."""
+    release_dir = desktop_dir / "release"
+    if sys.platform == "darwin":
+        candidates = list(release_dir.glob("mac*/Hermes.app/Contents/MacOS/Hermes"))
+    elif sys.platform == "win32":
+        candidates = [
+            release_dir / "win-unpacked" / "Hermes.exe",
+            release_dir / "win-ia32-unpacked" / "Hermes.exe",
+            release_dir / "win-arm64-unpacked" / "Hermes.exe",
+        ]
+    else:
+        candidates = [
+            release_dir / "linux-unpacked" / "hermes",
+            release_dir / "linux-unpacked" / "Hermes",
+        ]
+    existing = [path for path in candidates if path.exists()]
+    if not existing:
+        return None
+    return max(existing, key=lambda path: path.stat().st_mtime)
+
+
+def _print_desktop_package_hint() -> None:
+    print("Desktop app is not installed in this NanoHermes base install.", file=sys.stderr)
+    print("Install it with: hermes pkg install desktop --yes", file=sys.stderr)
+    print("This keeps Node/Electron out of the base install until you opt in.", file=sys.stderr)
+
+
+def cmd_gui(args):
+    """Build and launch the package-managed Electron desktop app."""
+    workspace_root = _desktop_workspace_root()
+    desktop_dir = _desktop_dir(workspace_root)
+    if not (desktop_dir / "package.json").exists():
+        _print_desktop_package_hint()
+        return 1
+
+    try:
+        from hermes_runtime.hermes_logging import setup_logging as _setup_logging_gui
+        _setup_logging_gui(mode="gui")
+    except Exception:
+        pass
+
+    env = os.environ.copy()
+    if getattr(args, "fake_boot", False):
+        env["HERMES_DESKTOP_BOOT_FAKE"] = "1"
+    if getattr(args, "ignore_existing", False):
+        env["HERMES_DESKTOP_IGNORE_EXISTING"] = "1"
+    if getattr(args, "hermes_root", None):
+        env["HERMES_DESKTOP_HERMES_ROOT"] = str(Path(args.hermes_root).expanduser().resolve())
+    if getattr(args, "cwd", None):
+        env["HERMES_DESKTOP_CWD"] = str(Path(args.cwd).expanduser().resolve())
+
+    source_mode = getattr(args, "source", False)
+    skip_build = getattr(args, "skip_build", False)
+    npm = shutil.which("npm") if (source_mode or not skip_build) else None
+    if npm is None and (source_mode or not skip_build):
+        print("Desktop GUI requires Node.js/npm, but npm was not found on PATH.", file=sys.stderr)
+        print("Install Node.js, or run: hermes pkg install desktop --yes", file=sys.stderr)
+        return 1
+
+    packaged_executable = _desktop_packaged_executable(desktop_dir)
+    if skip_build:
+        if source_mode:
+            if not _desktop_dist_exists(desktop_dir):
+                print(f"✗ --skip-build --source was passed but no desktop dist found at: {desktop_dir / 'dist'}", file=sys.stderr)
+                print(f"  Pre-build first: cd {desktop_dir} && npm run build", file=sys.stderr)
+                return 1
+            if not (workspace_root / "node_modules" / "electron" / "package.json").exists():
+                print("✗ --skip-build --source requires existing desktop workspace dependencies.", file=sys.stderr)
+                print(f"  Install first: cd {workspace_root} && npm install", file=sys.stderr)
+                return 1
+            print(f"→ Skipping desktop source build (--skip-build --source); using dist at {desktop_dir / 'dist'}")
+        elif packaged_executable is None:
+            print(f"✗ --skip-build was passed but no packaged desktop app was found at: {desktop_dir / 'release'}", file=sys.stderr)
+            print(f"  Pre-build first: cd {desktop_dir} && npm run pack", file=sys.stderr)
+            return 1
+        else:
+            print(f"→ Skipping desktop package build (--skip-build); using {packaged_executable}")
+    else:
+        print("→ Installing desktop workspace dependencies...")
+        install_result = _run_npm_install_deterministic(npm, workspace_root, capture_output=False)  # type: ignore[arg-type]
+        if install_result.returncode != 0:
+            print("✗ Desktop dependency install failed", file=sys.stderr)
+            print(f"  Run manually: cd {workspace_root} && npm install", file=sys.stderr)
+            return int(install_result.returncode or 1)
+
+        build_script = "build" if source_mode else "pack"
+        print(f"→ Building desktop {'source build' if source_mode else 'packaged app'}...")
+        build_result = subprocess.run([npm, "run", build_script], cwd=desktop_dir, env=env, check=False)  # type: ignore[list-item]
+        if build_result.returncode != 0:
+            print("✗ Desktop GUI build failed", file=sys.stderr)
+            print(f"  Run manually: cd {desktop_dir} && npm run {build_script}", file=sys.stderr)
+            return int(build_result.returncode or 1)
+        packaged_executable = _desktop_packaged_executable(desktop_dir)
+
+    if getattr(args, "build_only", False):
+        if source_mode:
+            if not _desktop_dist_exists(desktop_dir):
+                print(f"✗ --build-only --source produced no dist at: {desktop_dir / 'dist'}", file=sys.stderr)
+                return 1
+            print(f"✓ Desktop source build ready at {desktop_dir / 'dist'} (not launching; --build-only)")
+            return 0
+        if packaged_executable is None:
+            print(f"✗ --build-only produced no launchable app at: {desktop_dir / 'release'}", file=sys.stderr)
+            return 1
+        print(f"✓ Desktop packaged app ready: {packaged_executable} (not launching; --build-only)")
+        return 0
+
+    if source_mode:
+        print("→ Launching Hermes Desktop from source build...")
+        launch_result = subprocess.run([npm, "exec", "--", "electron", "."], cwd=desktop_dir, env=env, check=False)  # type: ignore[list-item]
+        return int(launch_result.returncode or 0)
+
+    if packaged_executable is None:
+        print(f"✗ Desktop package build completed but no launchable app was found at {desktop_dir / 'release'}", file=sys.stderr)
+        return 1
+
+    print(f"→ Launching packaged Hermes Desktop: {packaged_executable}")
+    launch_result = subprocess.run([str(packaged_executable)], cwd=desktop_dir, env=env, check=False)
+    return int(launch_result.returncode or 0)
+
+
 def cmd_hooks(args):
     """Shell-hook inspection and management."""
     from hermes_cli.hooks import hooks_command
@@ -11089,8 +11225,8 @@ _BUILTIN_SUBCOMMANDS = frozenset(
     {
         "acp", "auth", "backup", "bundles", "checkpoints", "claw", "completion",
         "computer-use",
-        "config", "cron", "curator", "dashboard", "debug", "doctor",
-        "dump", "fallback", "gateway", "hooks", "import", "insights",
+        "config", "cron", "curator", "dashboard", "debug", "desktop", "doctor",
+        "dump", "fallback", "gateway", "gui", "hooks", "import", "insights",
         "kanban", "login", "logout", "logs", "lsp", "mcp", "memory", "migrate",
         "model", "pairing", "pkg", "plug", "plugins", "portal", "postinstall", "profile", "proxy",
         "send", "sessions", "setup",
@@ -14214,6 +14350,58 @@ Examples:
         help="List running hermes dashboard processes and exit",
     )
     dashboard_parser.set_defaults(func=cmd_dashboard)
+
+    # =========================================================================
+    # desktop (a.k.a. gui) command — package-managed Electron app
+    # =========================================================================
+    gui_parser = subparsers.add_parser(
+        "desktop",
+        aliases=["gui"],
+        help="Build and launch the package-managed native desktop app",
+        description=(
+            "Launch the Hermes Electron desktop app from the NanoHermes desktop package. "
+            "Install it first with: hermes pkg install desktop --yes"
+        ),
+    )
+    gui_parser.add_argument(
+        "--source",
+        action="store_true",
+        help="Launch via `electron .` against the desktop dist instead of the packaged app",
+    )
+    gui_parser.add_argument(
+        "--build-only",
+        action="store_true",
+        help="Build the desktop app but do not launch it",
+    )
+    gui_parser.add_argument(
+        "--fake-boot",
+        action="store_true",
+        help="Enable deterministic desktop boot delays for validating startup UI",
+    )
+    gui_parser.add_argument(
+        "--ignore-existing",
+        action="store_true",
+        help="Force Desktop to ignore any hermes CLI already on PATH during backend resolution",
+    )
+    gui_parser.add_argument(
+        "--hermes-root",
+        help="Override the Hermes source root used by Desktop (sets HERMES_DESKTOP_HERMES_ROOT)",
+    )
+    gui_parser.add_argument(
+        "--cwd",
+        help="Initial project directory for Desktop chat sessions (sets HERMES_DESKTOP_CWD)",
+    )
+    gui_parser.add_argument(
+        "--skip-build",
+        action="store_true",
+        help="Skip npm install/package and launch an existing desktop build from the package workspace",
+    )
+    gui_parser.add_argument(
+        "--force-build",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+    gui_parser.set_defaults(func=cmd_gui)
 
     # =========================================================================
     # logs command

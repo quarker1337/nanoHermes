@@ -177,6 +177,85 @@ def _write_registry_with_python_asset(
     return path
 
 
+def _write_registry_with_app_asset(
+    tmp_path: Path,
+    *,
+    destination: str = "apps/desktop-workspace",
+    sha256: str | None = None,
+) -> Path:
+    repo = tmp_path / "repo"
+    asset_dir = repo / "assets" / "apps"
+    payload_dir = tmp_path / "payload"
+    registry_dir = repo / "registry"
+    asset_dir.mkdir(parents=True)
+    desktop_package = payload_dir / "apps" / "desktop" / "package.json"
+    shared_package = payload_dir / "apps" / "shared" / "package.json"
+    desktop_package.parent.mkdir(parents=True, exist_ok=True)
+    shared_package.parent.mkdir(parents=True, exist_ok=True)
+    (payload_dir / "package.json").write_text(
+        '{"private": true, "workspaces": ["apps/*"]}\n',
+        encoding="utf-8",
+    )
+    desktop_package.write_text('{"name": "hermes"}\n', encoding="utf-8")
+    shared_package.write_text('{"name": "@hermes/shared"}\n', encoding="utf-8")
+    archive_path = asset_dir / "desktop-workspace.tar.gz"
+    with tarfile.open(archive_path, "w:gz") as archive:
+        for member in sorted(payload_dir.rglob("*")):
+            archive.add(member, arcname=member.relative_to(payload_dir))
+    actual_sha = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+
+    registry = {
+        "schema_version": 1,
+        "generated_at": "2026-05-29T00:00:00Z",
+        "package_count": 1,
+        "packages": {
+            "desktop": {
+                "name": "desktop",
+                "display_name": "Hermes Desktop",
+                "version": "0.1.0",
+                "type": "bundle",
+                "channel": "official",
+                "description": "Package-managed Electron desktop app workspace.",
+                "dependencies": [],
+                "install": {
+                    "python_extras": [],
+                    "python_packages": [],
+                    "system_packages": [],
+                    "npm_packages": ["electron workspace dependencies"],
+                    "runtime_dependencies": ["node"],
+                    "optional_assets": [
+                        {
+                            "type": "app_asset",
+                            "source": "assets/apps/desktop-workspace.tar.gz",
+                            "format": "tar.gz",
+                            "sha256": sha256 if sha256 is not None else actual_sha,
+                            "destination": destination,
+                        }
+                    ],
+                },
+                "tools": {"toolsets": [], "tools": []},
+                "permissions": {
+                    "network": True,
+                    "filesystem": True,
+                    "shell": True,
+                    "browser": False,
+                    "audio": True,
+                    "microphone": True,
+                    "secrets": [],
+                },
+                "env": {"required": [], "optional": []},
+                "security": {"post_install_scripts": False, "signed": False, "checksum": actual_sha},
+                "manifest_path": "packages/official/desktop/package.toml",
+                "manifest_sha256": "6" * 64,
+            }
+        },
+    }
+    registry_dir.mkdir(parents=True)
+    path = registry_dir / "index.json"
+    path.write_text(json.dumps(registry), encoding="utf-8")
+    return path
+
+
 def _write_registry_with_skill_asset(
     tmp_path: Path,
     *,
@@ -435,6 +514,21 @@ def test_install_dry_run_prints_plan_without_writing_state(tmp_path, capsys):
     assert not PackageState(home=home).installed
 
 
+def test_install_dry_run_prints_npm_and_runtime_work(tmp_path, capsys):
+    source = _write_registry_with_app_asset(tmp_path)
+    home = tmp_path / "home"
+
+    rc = pkg_cli.main(["--home", str(home), "--source", str(source), "install", "desktop", "--dry-run"])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "desktop 0.1.0" in out
+    assert "Optional assets: apps/desktop-workspace" in out
+    assert "Runtime dependencies: node" in out
+    assert "NPM packages: electron workspace dependencies" in out
+    assert not PackageState(home=home).installed
+
+
 def test_install_yes_no_pip_records_package_state(tmp_path, capsys):
     source = _write_registry(tmp_path)
     home = tmp_path / "home"
@@ -668,6 +762,64 @@ def test_install_optional_python_asset_requires_site_package_subdir(tmp_path, mo
     captured = capsys.readouterr()
     assert rc == 1
     assert "python-site-packages asset destination must include a package subdirectory" in captured.err
+    assert not PackageState(home=home).installed
+
+
+def test_install_optional_app_asset_extracts_into_hermes_home_apps(tmp_path, monkeypatch, capsys):
+    source = _write_registry_with_app_asset(tmp_path)
+    home = tmp_path / "home"
+
+    from hermes_cli import dep_ensure
+
+    monkeypatch.setattr(dep_ensure, "ensure_dependency", lambda dep, **kwargs: True)
+
+    rc = pkg_cli.main([
+        "--home",
+        str(home),
+        "--source",
+        str(source),
+        "install",
+        "desktop",
+        "--yes",
+        "--no-pip",
+    ])
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "Optional assets: apps/desktop-workspace" in captured.out
+    assert "Installed asset for desktop -> apps/desktop-workspace" in captured.out
+    assert (
+        home / "apps" / "desktop-workspace" / "apps" / "desktop" / "package.json"
+    ).read_text(encoding="utf-8") == '{"name": "hermes"}\n'
+    assert (
+        home / "apps" / "desktop-workspace" / "apps" / "shared" / "package.json"
+    ).read_text(encoding="utf-8") == '{"name": "@hermes/shared"}\n'
+    installed = PackageState(home=home).installed
+    assert installed["desktop"]["optional_assets"][0]["destination"] == "apps/desktop-workspace"
+
+
+def test_install_optional_app_asset_requires_app_subdir(tmp_path, monkeypatch, capsys):
+    source = _write_registry_with_app_asset(tmp_path, destination="apps")
+    home = tmp_path / "home"
+
+    from hermes_cli import dep_ensure
+
+    monkeypatch.setattr(dep_ensure, "ensure_dependency", lambda dep, **kwargs: True)
+
+    rc = pkg_cli.main([
+        "--home",
+        str(home),
+        "--source",
+        str(source),
+        "install",
+        "desktop",
+        "--yes",
+        "--no-pip",
+    ])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "apps asset destination must include an app subdirectory" in captured.err
     assert not PackageState(home=home).installed
 
 
@@ -917,6 +1069,8 @@ def test_pkg_and_plug_are_builtin_cli_commands():
 
     assert "pkg" in _BUILTIN_SUBCOMMANDS
     assert "plug" in _BUILTIN_SUBCOMMANDS
+    assert "desktop" in _BUILTIN_SUBCOMMANDS
+    assert "gui" in _BUILTIN_SUBCOMMANDS
 
 
 def _hide_kanban_module(monkeypatch):
@@ -962,6 +1116,21 @@ def test_top_level_hermes_kanban_without_package_prints_install_hint(monkeypatch
     assert "Kanban is not installed in this NanoHermes base install" in captured.err
     assert "hermes pkg install dashboard --yes" in captured.err
     assert "ModuleNotFoundError" not in captured.err
+
+
+def test_top_level_hermes_desktop_without_package_prints_install_hint(tmp_path, monkeypatch, capsys):
+    from hermes_cli import main as hermes_main
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    monkeypatch.setattr(sys, "argv", ["hermes", "desktop", "--skip-build"])
+
+    rc = hermes_main.main()
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "Desktop app is not installed in this NanoHermes base install" in captured.err
+    assert "hermes pkg install desktop --yes" in captured.err
+    assert "Node/Electron" in captured.err
 
 
 def test_top_level_hermes_pkg_returns_subcommand_exit_code(tmp_path, monkeypatch, capsys):

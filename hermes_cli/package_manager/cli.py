@@ -79,6 +79,11 @@ def _print_install_plan(packages: list[dict]) -> None:
             for dep in install.get("runtime_dependencies", []) or []
             if str(dep).strip()
         ]
+        npm_packages = [
+            str(package_name)
+            for package_name in install.get("npm_packages", []) or []
+            if str(package_name).strip()
+        ]
         tools = package.get("tools", {})
         permissions = _truthy_permission_names(package)
         print(f"  {package['name']} {package.get('version', '')}")
@@ -95,6 +100,8 @@ def _print_install_plan(packages: list[dict]) -> None:
                 print(f"    Optional assets: {len(assets)}")
         if runtime_deps:
             print(f"    Runtime dependencies: {', '.join(runtime_deps)}")
+        if npm_packages:
+            print(f"    NPM packages: {', '.join(npm_packages)}")
         included = _included_skills(package)
         if included:
             print(f"    Included skills: {len(included)}")
@@ -200,8 +207,9 @@ def _install_runtime_dependencies(deps: list[str], *, home: str | Path | None = 
             raise PackageRegistryError(f"Runtime dependency install failed: {dep}")
 
 
-_HOME_ASSET_ROOTS = {"skills", "optional-skills", "optional-mcps"}
+_HOME_ASSET_ROOTS = {"skills", "optional-skills", "optional-mcps", "apps"}
 _PYTHON_SITE_PACKAGES_ROOT = "python-site-packages"
+_APP_ASSET_ROOT = "apps"
 _ALLOWED_ASSET_ROOTS = _HOME_ASSET_ROOTS | {_PYTHON_SITE_PACKAGES_ROOT}
 
 
@@ -224,6 +232,10 @@ def _safe_asset_destination(home: str | Path | None, destination: str) -> Path:
     parts = _safe_relative_parts(destination, label="destination")
     root_name = parts[0]
     if root_name in _HOME_ASSET_ROOTS:
+        if root_name == _APP_ASSET_ROOT and len(parts) < 2:
+            raise PackageRegistryError(
+                "apps asset destination must include an app subdirectory"
+            )
         root = Path(home).expanduser().resolve() if home is not None else PackageState().home.resolve()
         relative_parts = parts
     elif root_name == _PYTHON_SITE_PACKAGES_ROOT:
