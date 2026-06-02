@@ -319,6 +319,30 @@ def stamp_install_method(method: str) -> None:
         pass
 
 
+def is_uv_tool_install() -> bool:
+    """Return True when the running Hermes lives in a ``uv tool`` layout.
+
+    ``uv tool install hermes-agent`` places the install at
+    ``.../uv/tools/hermes-agent/...``. Such installs live outside any active
+    virtualenv, so ``uv pip install`` fails with ``No virtual environment
+    found`` and the update path must use ``uv tool upgrade`` instead.
+
+    Detection is intentionally restricted to the running interpreter. Do not
+    call ``uv tool list`` here: that can report a different Hermes install on
+    the machine and make ``hermes update`` upgrade the wrong copy.
+    """
+
+    def _has_uv_tool_marker(path: str) -> bool:
+        norm = os.path.normpath(path).replace(os.sep, "/").lower()
+        return "/uv/tools/hermes-agent/" in norm + "/"
+
+    if _has_uv_tool_marker(sys.prefix):
+        return True
+    if _has_uv_tool_marker(sys.executable or ""):
+        return True
+    return False
+
+
 def recommended_update_command_for_method(method: str) -> str:
     """Return the update command or guidance for a given install method."""
     if method == "nixos":
@@ -328,6 +352,8 @@ def recommended_update_command_for_method(method: str) -> str:
     if method == "docker":
         return "docker pull nousresearch/hermes-agent:latest"
     if method == "pip":
+        if is_uv_tool_install():
+            return "uv tool upgrade hermes-agent"
         import shutil
         uv = shutil.which("uv")
         if uv:

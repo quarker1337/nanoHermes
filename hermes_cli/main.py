@@ -8903,18 +8903,47 @@ def cmd_update(args):
 def _cmd_update_pip(args):
     """Update Hermes via pip (for PyPI installs)."""
     from hermes_cli import __version__
+    from hermes_cli.config import is_uv_tool_install
 
     print(f"→ Current version: {__version__}")
     print("→ Checking PyPI for updates...")
 
     uv = shutil.which("uv")
-    if uv:
+    in_venv = sys.prefix != sys.base_prefix
+    # pipx-managed installs live under .../pipx/venvs/<name>/...
+    pipx_managed = "pipx" in sys.prefix.split(os.sep)
+    pipx = shutil.which("pipx") if pipx_managed else None
+
+    # Only the ``uv pip install`` path inside a venv needs VIRTUAL_ENV exported
+    # (uv refuses to install without it when a launcher shim did not activate
+    # the venv). ``uv tool upgrade`` and ``pipx upgrade`` operate on named
+    # environments and must not inherit a synthetic VIRTUAL_ENV.
+    export_virtualenv = False
+
+    if is_uv_tool_install():
+        if not uv:
+            print("✗ Detected a uv-tool install but `uv` is not on PATH; install uv and retry.")
+            sys.exit(1)
+        cmd = [uv, "tool", "upgrade", "hermes-agent"]
+    elif pipx_managed and pipx:
+        # pipx owns its own venv; ``pipx upgrade`` is the only correct path.
+        cmd = [pipx, "upgrade", "hermes-agent"]
+    elif uv:
         cmd = [uv, "pip", "install", "--upgrade", "hermes-agent"]
+        if in_venv:
+            export_virtualenv = True
+        else:
+            # Outside any venv, ``--system`` lets uv target the active
+            # interpreter instead of erroring with "No virtual environment found".
+            cmd.insert(3, "--system")
     else:
         cmd = [sys.executable, "-m", "pip", "install", "--upgrade", "hermes-agent"]
 
     print(f"→ Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd)
+    run_kwargs = {}
+    if export_virtualenv:
+        run_kwargs["env"] = {**os.environ, "VIRTUAL_ENV": sys.prefix}
+    result = subprocess.run(cmd, **run_kwargs)
     if result.returncode != 0:
         print("✗ Update failed")
         sys.exit(1)
