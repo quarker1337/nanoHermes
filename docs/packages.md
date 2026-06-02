@@ -57,8 +57,11 @@ hermes pkg install skills-agent-clis --yes
 # Dashboard/Kanban runtime plus matching Kanban skills
 hermes pkg install dashboard --yes
 
-# Browser automation Python tools + historical web_search helper (no local Chromium download)
+# Browser automation Python tools + generic browser workflow skill (no local Chromium download)
 hermes pkg install browser --yes
+
+# Browser-dependent exploratory web-app QA / dogfood workflow
+hermes pkg install web-qa --yes
 
 # Explicit local browser engine bootstrap: Node.js, agent-browser, Chromium/headless-shell
 hermes pkg install browser-engine --yes
@@ -91,7 +94,7 @@ hermes pkg install skills-mlops-models --yes
 hermes pkg install skills-mlops-eval-curation --yes
 ```
 
-Integration packages can also install matching skills automatically. For example, `spotify` includes `media/spotify`, `homeassistant` includes `smart-home/openhue`, `web-search` includes lightweight web-search skills, and `mcp` includes native MCP / FastMCP / mcporter skills.
+Integration packages can also install matching skills automatically. For example, `spotify` includes `media/spotify`, `homeassistant` includes `smart-home/openhue`, `web-search` includes lightweight web-search skills, `browser` includes the generic browser automation workflow, `web-qa` layers the `dogfood` QA workflow on top of browser, and `mcp` includes native MCP / FastMCP / mcporter skills.
 
 `hermes pkg show <package>` lists included skills when the registry manifest advertises them, and `hermes pkg search <skill-name>` can discover packages by included skill path, for example:
 
