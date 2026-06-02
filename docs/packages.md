@@ -57,7 +57,7 @@ hermes pkg install skills-agent-clis --yes
 # Dashboard/Kanban runtime plus matching Kanban skills
 hermes pkg install dashboard --yes
 
-# Browser automation Python tools only (no local Chromium download)
+# Browser automation Python tools + historical web_search helper (no local Chromium download)
 hermes pkg install browser --yes
 
 # Explicit local browser engine bootstrap: Node.js, agent-browser, Chromium/headless-shell
