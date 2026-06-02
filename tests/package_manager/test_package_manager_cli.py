@@ -1133,6 +1133,53 @@ def test_top_level_hermes_desktop_without_package_prints_install_hint(tmp_path, 
     assert "Node/Electron" in captured.err
 
 
+def test_desktop_build_ref_env_falls_back_to_installed_asset_sha(tmp_path, monkeypatch):
+    from hermes_cli import main as hermes_main
+
+    home = tmp_path / "home"
+    digest = "abcdef0123456789" * 4
+    PackageState(home=home).mark_installed(
+        {
+            "name": "desktop",
+            "display_name": "Hermes Desktop",
+            "version": "0.1.0",
+            "type": "bundle",
+            "channel": "official",
+            "description": "Desktop app package.",
+            "dependencies": [],
+            "install": {
+                "python_extras": [],
+                "python_packages": [],
+                "system_packages": [],
+                "npm_packages": ["electron workspace dependencies"],
+                "runtime_dependencies": ["node"],
+                "optional_assets": [
+                    {
+                        "type": "app_asset",
+                        "source": "assets/apps/desktop-workspace.tar.gz",
+                        "format": "tar.gz",
+                        "sha256": digest,
+                        "destination": "apps/desktop-workspace",
+                    }
+                ],
+            },
+            "tools": {"toolsets": [], "tools": []},
+            "permissions": {},
+            "env": {},
+            "manifest_path": "packages/official/desktop/package.toml",
+            "manifest_sha256": "7" * 64,
+        }
+    )
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setattr(hermes_main, "_runtime_git_ref", lambda: None)
+
+    env: dict[str, str] = {}
+    hermes_main._ensure_desktop_build_ref_env(env)
+
+    assert env["GITHUB_SHA"] == digest[:40]
+    assert env["GITHUB_REF_NAME"] == "package-managed"
+
+
 def test_top_level_hermes_pkg_returns_subcommand_exit_code(tmp_path, monkeypatch, capsys):
     from hermes_cli import main as hermes_main
 

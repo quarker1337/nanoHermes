@@ -6256,6 +6256,74 @@ def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
     return max(existing, key=lambda path: path.stat().st_mtime)
 
 
+def _git_output(args: list[str], cwd: Path) -> Optional[str]:
+    try:
+        result = subprocess.run(
+            args,
+            cwd=cwd,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except Exception:
+        return None
+    if result.returncode != 0:
+        return None
+    value = result.stdout.strip()
+    return value or None
+
+
+def _runtime_git_ref() -> Optional[tuple[str, str | None]]:
+    """Return the NanoHermes runtime checkout SHA/branch when available."""
+    repo_root = Path(__file__).resolve().parents[1]
+    sha = _git_output(["git", "rev-parse", "HEAD"], repo_root)
+    if not sha:
+        return None
+    branch = _git_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], repo_root)
+    if branch == "HEAD":
+        branch = None
+    return sha, branch
+
+
+def _desktop_installed_asset_ref() -> Optional[tuple[str, str]]:
+    """Return a deterministic fallback build ref for package-managed desktop assets."""
+    try:
+        from hermes_cli.package_manager.state import PackageState
+
+        installed = PackageState().installed.get("desktop", {})
+    except Exception:
+        return None
+    for asset in installed.get("optional_assets", []) or []:
+        if not isinstance(asset, dict):
+            continue
+        if asset.get("destination") != "apps/desktop-workspace":
+            continue
+        digest = str(asset.get("sha256") or "")
+        if len(digest) >= 40:
+            return digest[:40], "package-managed"
+    return None
+
+
+def _ensure_desktop_build_ref_env(env: dict[str, str]) -> None:
+    """Let upstream Desktop's build-stamp script run outside a git checkout.
+
+    The package-managed Desktop workspace is extracted under HERMES_HOME, not
+    from a git checkout, but upstream's build script requires GITHUB_SHA. Prefer
+    the runtime checkout ref when NanoHermes is running from source; otherwise
+    fall back to the installed desktop asset digest so local package smokes and
+    installed-wheel users still get deterministic build stamps.
+    """
+    if env.get("GITHUB_SHA"):
+        return
+    ref = _runtime_git_ref() or _desktop_installed_asset_ref()
+    if not ref:
+        return
+    sha, branch = ref
+    env["GITHUB_SHA"] = sha
+    if branch and not env.get("GITHUB_REF_NAME"):
+        env["GITHUB_REF_NAME"] = branch
+
+
 def _print_desktop_package_hint() -> None:
     print("Desktop app is not installed in this NanoHermes base install.", file=sys.stderr)
     print("Install it with: hermes pkg install desktop --yes", file=sys.stderr)
@@ -6277,6 +6345,7 @@ def cmd_gui(args):
         pass
 
     env = os.environ.copy()
+    _ensure_desktop_build_ref_env(env)
     if getattr(args, "fake_boot", False):
         env["HERMES_DESKTOP_BOOT_FAKE"] = "1"
     if getattr(args, "ignore_existing", False):
