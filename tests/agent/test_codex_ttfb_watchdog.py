@@ -102,6 +102,57 @@ def test_ttfb_kills_when_no_stream_event(tmp_path, monkeypatch):
         stop["flag"] = True
 
 
+def test_ttfb_default_tolerates_slow_first_event(tmp_path, monkeypatch):
+    """With no env var set, the no-byte TTFB defaults are generous (120s), so
+    subscription-backed Codex requests that spend time in backend admission /
+    prompt prefill are not killed by the old tight 12s cutoff. Capture the
+    defaults directly so this regression test fails instantly on the old
+    12s/20s implementation instead of sleeping past 12 real seconds."""
+    from agent import chat_completion_helpers as h
+
+    agent = _make_codex_agent(tmp_path, monkeypatch)
+    # Default behavior: no explicit TTFB override.
+    monkeypatch.delenv("HERMES_CODEX_TTFB_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("HERMES_CODEX_TTFB_MAX_SECONDS", raising=False)
+
+    seen_defaults: dict[str, float] = {}
+    real_env_float = h._env_float
+
+    def capture_env_float(name: str, default: float) -> float:
+        seen_defaults[name] = default
+        return real_env_float(name, default)
+
+    monkeypatch.setattr(h, "_env_float", capture_env_float)
+
+    closes: list = []
+    dummy_client = SimpleNamespace()
+    monkeypatch.setattr(agent, "_create_request_openai_client", lambda **k: dummy_client)
+    monkeypatch.setattr(
+        agent, "_abort_request_openai_client",
+        lambda c, reason=None: closes.append(reason),
+    )
+    monkeypatch.setattr(
+        agent, "_close_request_openai_client",
+        lambda c, reason=None: closes.append(reason),
+    )
+
+    sentinel = SimpleNamespace(ok=True)
+
+    def fake_slow_first_event(api_kwargs, client=None, on_first_delta=None):
+        # Backend is alive but slow to admit: any stream event satisfies the
+        # no-byte detector, then the response returns normally.
+        agent._codex_stream_last_event_ts = time.time()
+        return sentinel
+
+    monkeypatch.setattr(agent, "_run_codex_stream", fake_slow_first_event)
+
+    resp = h.interruptible_api_call(agent, {"model": "gpt-5.5", "input": "hi"})
+    assert resp is sentinel
+    assert "codex_ttfb_kill" not in closes
+    assert seen_defaults["HERMES_CODEX_TTFB_TIMEOUT_SECONDS"] == 120.0
+    assert seen_defaults["HERMES_CODEX_TTFB_MAX_SECONDS"] == 120.0
+
+
 def test_ttfb_includes_silent_hang_hint_for_gpt_5_5(tmp_path, monkeypatch):
     """The no-first-byte watchdog should surface the same actionable hint as the
     stale-call timeout path when the model matches the silent-hang heuristic."""
