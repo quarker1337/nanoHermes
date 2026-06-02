@@ -8897,13 +8897,50 @@ def cmd_update(args):
         _finalize_update_output(_update_io_state)
 
 
+def _direct_url_update_target(distribution_name: str = "hermes-agent") -> str | None:
+    """Return a PEP 508 direct-URL target for non-PyPI Hermes installs.
+
+    Pip/uv write PEP 610 ``direct_url.json`` metadata when a package is
+    installed from a URL such as the NanoHermes branch tarball. If ``hermes
+    update`` later runs ``pip install --upgrade hermes-agent``, that direct URL
+    install is replaced by the upstream PyPI package. Preserve remote archive
+    and VCS sources by upgrading the same source instead.
+
+    Local editable/file installs are intentionally ignored here; those are not
+    reliable self-update sources and should use the git update path when a
+    checkout is available.
+    """
+    try:
+        import importlib.metadata as importlib_metadata
+
+        dist = importlib_metadata.distribution(distribution_name)
+        raw = dist.read_text("direct_url.json")
+        if not raw:
+            return None
+        data = json.loads(raw)
+        url = str(data.get("url") or "").strip()
+        if not url:
+            return None
+        if data.get("archive_info") is None and data.get("vcs_info") is None:
+            return None
+        if not url.startswith(("http://", "https://", "git+http://", "git+https://", "ssh://", "git+ssh://")):
+            return None
+        return f"{distribution_name} @ {url}"
+    except Exception:
+        return None
+
+
 def _cmd_update_pip(args):
-    """Update Hermes via pip (for PyPI installs)."""
+    """Update Hermes via pip (for PyPI/direct-URL installs)."""
     from hermes_cli import __version__
     from hermes_cli.config import is_uv_tool_install
 
     print(f"→ Current version: {__version__}")
-    print("→ Checking PyPI for updates...")
+    install_target = _direct_url_update_target() or "hermes-agent"
+    if install_target == "hermes-agent":
+        print("→ Checking PyPI for updates...")
+    else:
+        print("→ Checking installed package source for updates...")
 
     uv = shutil.which("uv")
     in_venv = sys.prefix != sys.base_prefix
@@ -8926,7 +8963,7 @@ def _cmd_update_pip(args):
         # pipx owns its own venv; ``pipx upgrade`` is the only correct path.
         cmd = [pipx, "upgrade", "hermes-agent"]
     elif uv:
-        cmd = [uv, "pip", "install", "--upgrade", "hermes-agent"]
+        cmd = [uv, "pip", "install", "--upgrade", install_target]
         if in_venv:
             export_virtualenv = True
         else:
@@ -8934,9 +8971,11 @@ def _cmd_update_pip(args):
             # interpreter instead of erroring with "No virtual environment found".
             cmd.insert(3, "--system")
     else:
-        cmd = [sys.executable, "-m", "pip", "install", "--upgrade", "hermes-agent"]
+        cmd = [sys.executable, "-m", "pip", "install", "--upgrade", install_target]
 
-    print(f"→ Running: {' '.join(cmd)}")
+    import shlex
+
+    print(f"→ Running: {shlex.join(cmd)}")
     run_kwargs = {}
     if export_virtualenv:
         run_kwargs["env"] = {**os.environ, "VIRTUAL_ENV": sys.prefix}
