@@ -52,7 +52,7 @@ Pick the row that matches your goal:
 
 ```bash
 pip install hermes-agent
-hermes postinstall     # optional: installs Node.js, browser, ripgrep, ffmpeg + runs setup
+hermes postinstall     # optional: records pip install + runs setup; runtime deps come from packages
 ```
 
 PyPI releases track tagged versions (major/minor releases), not every commit on `main`. For bleeding-edge, use Option B.

@@ -2093,44 +2093,15 @@ def cmd_setup(args):
     run_setup_wizard(args)
 
 
-def _postinstall_browser_dependency_requested() -> bool:
-    """Return True when NanoHermes package state explicitly owns browser tools."""
-    try:
-        from hermes_cli.package_manager.state import PackageState
-
-        state = PackageState()
-        if state.package_for_toolset("browser") is not None:
-            return True
-        is_installed = getattr(state, "is_installed", None)
-        return bool(is_installed("browser")) if callable(is_installed) else False
-    except Exception:
-        # Postinstall should never become noisy because package-state lookup
-        # failed. Browser is optional in NanoHermes, so the safe fallback is to
-        # skip its Chromium prompt unless a package record explicitly asks for it.
-        return False
-
-
-def _postinstall_dependencies() -> tuple[str, ...]:
-    """Non-Python deps to bootstrap for the current NanoHermes install state."""
-    deps = ["node"]
-    if _postinstall_browser_dependency_requested():
-        deps.append("browser")
-    deps.extend(["ripgrep", "ffmpeg"])
-    return tuple(deps)
-
-
 def cmd_postinstall(args):
-    """One-shot bootstrap for pip users: install non-Python deps + run setup."""
+    """One-shot bootstrap for pip users: stamp install + run setup."""
     from hermes_cli.config import stamp_install_method
-    from hermes_cli.dep_ensure import ensure_dependency
 
     stamp_install_method("pip")
 
     print("⚕ Hermes post-install bootstrap")
     print()
-
-    for dep in _postinstall_dependencies():
-        ensure_dependency(dep, respect_decline=False)
+    print("Runtime dependencies are installed by NanoHermes packages, not base postinstall.")
 
     if not _has_any_provider_configured():
         print()
@@ -11859,10 +11830,10 @@ def main():
     # =========================================================================
     postinstall_parser = subparsers.add_parser(
         "postinstall",
-        help="Bootstrap base non-Python deps for pip installs (node, ripgrep, ffmpeg)",
-        description="One-shot post-install for pip users. Installs base system "
-        "dependencies that pip cannot provide, installs optional browser deps "
-        "only when the browser package/toolset is installed, then runs setup if needed.",
+        help="Finalize pip installs and run setup if needed",
+        description="One-shot post-install for pip users. Stamps the install "
+        "method and runs setup if needed. Runtime dependencies are installed "
+        "through NanoHermes packages, not base postinstall.",
     )
     postinstall_parser.set_defaults(func=cmd_postinstall)
 

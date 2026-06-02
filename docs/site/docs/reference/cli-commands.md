@@ -1398,7 +1398,7 @@ Additional behavior:
 |---------|-------------|
 | `hermes version` | Print version information. |
 | `hermes update` | Pull latest changes and reinstall dependencies. |
-| `hermes postinstall` | Internal bootstrap. Runs once after `pip install hermes-agent` (or `hermes update` on pip installs) to install non-Python dependencies that pip cannot provide — Node.js runtime, headless browser, ripgrep, ffmpeg — and then trigger `hermes setup` if the profile has not been configured yet. Safe to re-run idempotently. |
+| `hermes postinstall` | Internal bootstrap. Runs once after `pip install hermes-agent` (or `hermes update` on pip installs) to stamp the pip install method and trigger `hermes setup` if the profile has not been configured yet. Runtime dependencies such as Node.js, browser engines, ripgrep, and ffmpeg are installed through NanoHermes packages, not base postinstall. Safe to re-run idempotently. |
 | `hermes uninstall [--full] [--yes]` | Remove Hermes, optionally deleting all config/data. |
 
 ## See also
