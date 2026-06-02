@@ -27,11 +27,7 @@ _IS_WINDOWS = platform.system() == "Windows"
 
 _DEP_CHECKS = {
     "node": lambda: shutil.which("node") is not None,
-    "browser": lambda: (
-        shutil.which("agent-browser") is not None
-        or _has_system_browser()
-        or _has_hermes_agent_browser()
-    ),
+    "browser": lambda: _browser_runtime_available(),
     "ripgrep": lambda: shutil.which("rg") is not None,
     "ffmpeg": lambda: shutil.which("ffmpeg") is not None,
 }
@@ -67,6 +63,27 @@ def _has_hermes_agent_browser() -> bool:
         (home / "node" / "bin" / "agent-browser").is_file()
         or (home / "node_modules" / ".bin" / "agent-browser").is_file()
     )
+
+
+def _browser_runtime_available() -> bool:
+    """Return True when browser automation has a usable local/cloud runtime.
+
+    This intentionally mirrors ``tools.browser_tool.check_browser_requirements``
+    when the browser package is installed.  The fallback keeps explicit setup
+    flows usable before the optional browser Python module has been restored.
+    """
+    try:
+        from tools.browser_tool import check_browser_requirements
+    except Exception:
+        return (
+            shutil.which("agent-browser") is not None
+            or _has_system_browser()
+            or _has_hermes_agent_browser()
+        )
+    try:
+        return bool(check_browser_requirements())
+    except Exception:
+        return False
 
 
 def _find_install_script(
@@ -142,13 +159,29 @@ def ensure_dependency(
     dep: str,
     interactive: bool = True,
     respect_decline: bool = True,
+    home: str | Path | None = None,
+    force: bool = False,
 ) -> bool:
     """Ensure a non-Python dependency is available. Returns True if available."""
     check = _DEP_CHECKS.get(dep)
     if check is None:
         # Unknown dep — don't silently forward to install script.
         return False
-    if check():
+
+    def run_check() -> bool:
+        if home is None:
+            return bool(check())
+        old_home = os.environ.get("HERMES_HOME")
+        os.environ["HERMES_HOME"] = str(Path(home).expanduser())
+        try:
+            return bool(check())
+        finally:
+            if old_home is None:
+                os.environ.pop("HERMES_HOME", None)
+            else:
+                os.environ["HERMES_HOME"] = old_home
+
+    if not force and run_check():
         return True
 
     if respect_decline and _has_declined_prompt(dep):
@@ -172,8 +205,13 @@ def ensure_dependency(
             _remember_declined_prompt(dep)
             return False
 
-    if shell == "powershell":
+    if home is None:
         from hermes_runtime.hermes_constants import get_hermes_home
+        hermes_home = get_hermes_home()
+    else:
+        hermes_home = Path(home).expanduser()
+
+    if shell == "powershell":
         ps_bin = shutil.which("powershell") or shutil.which("pwsh")
         if not ps_bin:
             if interactive:
@@ -184,12 +222,12 @@ def ensure_dependency(
             "-ExecutionPolicy", "Bypass",
             "-File", str(script),
             "-Ensure", dep,
-            "-HermesHome", str(get_hermes_home()),
+            "-HermesHome", str(hermes_home),
         ]
     else:
         cmd = ["bash", str(script), "--ensure", dep]
 
-    run_env = {**os.environ, "IS_INTERACTIVE": "false"}
+    run_env = {**os.environ, "IS_INTERACTIVE": "false", "HERMES_HOME": str(hermes_home)}
     result = subprocess.run(
         cmd,
         env=run_env,
@@ -198,5 +236,5 @@ def ensure_dependency(
         return False
 
     if check:
-        return check()
+        return run_check()
     return True

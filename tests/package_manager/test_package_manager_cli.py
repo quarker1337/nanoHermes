@@ -74,7 +74,7 @@ def _write_registry_with_browser_dependency(tmp_path: Path) -> Path:
         "description": "Browser automation tools.",
         "dependencies": ["web-search"],
         "install": {
-            "python_extras": ["browser"],
+            "python_extras": [],
             "python_packages": [],
             "system_packages": [],
             "npm_packages": [],
@@ -287,6 +287,45 @@ def _write_registry_with_profile_bundle(tmp_path: Path) -> Path:
     return path
 
 
+def _write_registry_with_runtime_dependency(tmp_path: Path) -> Path:
+    path = _write_registry_with_browser_dependency(tmp_path)
+    registry = json.loads(path.read_text(encoding="utf-8"))
+    registry["package_count"] = 3
+    registry["packages"]["browser-engine"] = {
+        "name": "browser-engine",
+        "display_name": "Headless Chromium Browser Engine",
+        "version": "0.1.0",
+        "type": "bundle",
+        "channel": "official",
+        "description": "Installs Node.js, agent-browser, and a local Chromium/headless-shell runtime.",
+        "dependencies": ["browser"],
+        "install": {
+            "python_extras": [],
+            "python_packages": [],
+            "system_packages": [],
+            "npm_packages": [],
+            "runtime_dependencies": ["browser"],
+            "optional_assets": [],
+        },
+        "tools": {"toolsets": [], "tools": []},
+        "permissions": {
+            "network": True,
+            "filesystem": True,
+            "shell": True,
+            "browser": True,
+            "audio": False,
+            "microphone": False,
+            "secrets": [],
+        },
+        "env": {"required": [], "optional": []},
+        "security": {"post_install_scripts": True, "signed": False, "checksum": ""},
+        "manifest_path": "packages/official/browser-engine/package.toml",
+        "manifest_sha256": "5" * 64,
+    }
+    path.write_text(json.dumps(registry), encoding="utf-8")
+    return path
+
+
 # Package contents metadata helpers.
 def _write_registry_with_skill_contents(tmp_path: Path) -> Path:
     path = _write_registry(tmp_path)
@@ -420,6 +459,50 @@ def test_install_yes_no_pip_records_package_state(tmp_path, capsys):
     assert installed["web-search"]["status"] == "installed"
     assert installed["web-search"]["install_reason"] == "manual"
     assert installed["web-search"]["requested"] is True
+
+
+def test_install_runtime_dependency_package_runs_explicit_ensure(tmp_path, monkeypatch, capsys):
+    from hermes_cli import dep_ensure
+
+    source = _write_registry_with_runtime_dependency(tmp_path)
+    home = tmp_path / "home"
+    calls = []
+
+    def fake_ensure_dependency(dep, **kwargs):
+        calls.append((dep, kwargs))
+        return True
+
+    monkeypatch.setattr(dep_ensure, "ensure_dependency", fake_ensure_dependency)
+
+    rc = pkg_cli.main([
+        "--home",
+        str(home),
+        "--source",
+        str(source),
+        "install",
+        "browser-engine",
+        "--yes",
+        "--no-pip",
+    ])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Runtime dependencies: browser" in out
+    assert "Installing runtime dependency: browser" in out
+    assert calls == [(
+        "browser",
+        {
+            "interactive": False,
+            "respect_decline": False,
+            "home": home,
+            "force": True,
+        },
+    )]
+    installed = PackageState(home=home).installed
+    assert installed["browser-engine"]["runtime_dependencies"] == ["browser"]
+    assert installed["browser-engine"]["dependencies"] == ["browser"]
+    assert installed["browser-engine"]["install_reason"] == "manual"
+    assert installed["browser"]["install_reason"] == "dependency"
 
 
 def test_install_yes_uses_uv_for_python_extras_in_pipless_venv(tmp_path, monkeypatch, capsys):
@@ -680,7 +763,7 @@ def test_install_records_core_package_database_with_dependency_reasons(tmp_path,
     assert installed["browser"]["install_reason"] == "manual"
     assert installed["browser"]["requested"] is True
     assert installed["browser"]["dependencies"] == ["web-search"]
-    assert installed["browser"]["python_extras"] == ["browser"]
+    assert installed["browser"]["python_extras"] == []
     assert installed["web-search"]["install_reason"] == "dependency"
     assert installed["web-search"]["requested"] is False
     assert installed["web-search"]["source"] == str(source)

@@ -75,6 +75,36 @@ def test_ensure_dependency_returns_false_when_missing_noninteractive():
             assert result is False
 
 
+def test_ensure_dependency_force_runs_script_and_passes_home(tmp_path):
+    """Explicit package/setup flows can force a runtime install into a custom home."""
+    from hermes_cli.dep_ensure import ensure_dependency
+
+    script = tmp_path / "install.sh"
+    script.write_text("#!/bin/sh\n", encoding="utf-8")
+    calls = []
+
+    def check():
+        calls.append(("check", None))
+        return True
+
+    def fake_run(cmd, env=None):
+        calls.append((cmd, env))
+        return type("R", (), {"returncode": 0})()
+
+    with patch("hermes_cli.dep_ensure._DEP_CHECKS", {"browser": check}), \
+         patch("hermes_cli.dep_ensure._find_install_script", return_value=(script, "bash")), \
+         patch("subprocess.run", side_effect=fake_run), \
+         patch("sys.stdin") as mock_stdin:
+        mock_stdin.isatty.return_value = False
+        result = ensure_dependency("browser", interactive=False, home=tmp_path / "home", force=True)
+
+    assert result is True
+    run_call = next(item for item in calls if isinstance(item[0], list))
+    assert run_call[0] == ["bash", str(script), "--ensure", "browser"]
+    assert run_call[1]["HERMES_HOME"] == str(tmp_path / "home")
+    assert len([item for item in calls if item[0] == "check"]) == 1
+
+
 def test_find_install_script_from_checkout(tmp_path):
     """_find_install_script finds scripts/install.sh in a git checkout."""
     from hermes_cli.dep_ensure import _find_install_script

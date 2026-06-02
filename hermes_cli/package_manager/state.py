@@ -96,6 +96,7 @@ class PackageState:
             "python_packages": list(install.get("python_packages", [])),
             "system_packages": list(install.get("system_packages", [])),
             "npm_packages": list(install.get("npm_packages", [])),
+            "runtime_dependencies": list(install.get("runtime_dependencies", [])),
             "optional_assets": list(install.get("optional_assets", [])),
             "permissions": package.get("permissions", {}),
             "env": package.get("env", {}),

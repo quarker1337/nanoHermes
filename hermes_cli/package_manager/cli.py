@@ -55,12 +55,30 @@ def _print_included_skills(package: dict) -> None:
         print(f"  - {skill}")
 
 
+def _runtime_dependencies(packages: list[dict]) -> list[str]:
+    deps: list[str] = []
+    seen: set[str] = set()
+    for package in packages:
+        install = package.get("install", {}) if isinstance(package.get("install", {}), dict) else {}
+        for dep in install.get("runtime_dependencies", []) or []:
+            dep_name = str(dep).strip()
+            if dep_name and dep_name not in seen:
+                deps.append(dep_name)
+                seen.add(dep_name)
+    return deps
+
+
 def _print_install_plan(packages: list[dict]) -> None:
     print("Install plan")
     for package in packages:
         install = package.get("install", {})
         extras = install.get("python_extras", [])
         assets = install.get("optional_assets", [])
+        runtime_deps = [
+            str(dep)
+            for dep in install.get("runtime_dependencies", []) or []
+            if str(dep).strip()
+        ]
         tools = package.get("tools", {})
         permissions = _truthy_permission_names(package)
         print(f"  {package['name']} {package.get('version', '')}")
@@ -75,6 +93,8 @@ def _print_install_plan(packages: list[dict]) -> None:
                 print(f"    Optional assets: {', '.join(destinations)}")
             else:
                 print(f"    Optional assets: {len(assets)}")
+        if runtime_deps:
+            print(f"    Runtime dependencies: {', '.join(runtime_deps)}")
         included = _included_skills(package)
         if included:
             print(f"    Included skills: {len(included)}")
@@ -160,6 +180,24 @@ def _install_python_extras(extras: list[str]) -> None:
         else:
             cmd.append(target)
     subprocess.check_call(cmd, cwd=cwd)
+
+
+def _install_runtime_dependencies(deps: list[str], *, home: str | Path | None = None) -> None:
+    if not deps:
+        return
+    from hermes_cli.dep_ensure import ensure_dependency
+
+    for dep in deps:
+        print(f"Installing runtime dependency: {dep}")
+        ok = ensure_dependency(
+            dep,
+            interactive=False,
+            respect_decline=False,
+            home=home,
+            force=True,
+        )
+        if not ok:
+            raise PackageRegistryError(f"Runtime dependency install failed: {dep}")
 
 
 _HOME_ASSET_ROOTS = {"skills", "optional-skills", "optional-mcps"}
@@ -495,6 +533,7 @@ def cmd_install(args: argparse.Namespace) -> int:
             registry_source=source,
             timeout=_registry_timeout(args),
         )
+        _install_runtime_dependencies(_runtime_dependencies(packages), home=args.home)
     except PackageRegistryError as exc:
         return _print_registry_error(exc)
     state = PackageState(home=args.home)

@@ -56,6 +56,12 @@ hermes pkg install skills-agent-clis --yes
 
 # Dashboard/Kanban runtime plus matching Kanban skills
 hermes pkg install dashboard --yes
+
+# Browser automation Python tools only (no local Chromium download)
+hermes pkg install browser --yes
+
+# Explicit local browser engine bootstrap: Node.js, agent-browser, Chromium/headless-shell
+hermes pkg install browser-engine --yes
 ```
 
 Broader capability packs are split so users can install only what they need:
@@ -244,6 +250,7 @@ python_extras = []
 python_packages = []
 system_packages = []
 npm_packages = []
+runtime_dependencies = []
 optional_assets = [
   { type = "skill_pack", source = "assets/skills/my-dev-skills.tar.gz", format = "tar.gz", destination = "skills", overwrite = false },
 ]
@@ -309,6 +316,7 @@ python_extras = []
 python_packages = []
 system_packages = []
 npm_packages = []
+runtime_dependencies = []
 optional_assets = []
 
 [tools]
@@ -354,7 +362,7 @@ Notes:
 
 - This is for installed environments. Source checkouts can shadow site-packages, so smoke-test from outside the repo root or in a fresh venv.
 - The archive is merged non-destructively by default; existing files are kept unless `overwrite = true`.
-- No arbitrary post-install scripts run. If the tool needs setup, express Python extras in `python_extras`; treat `python_packages`, system packages, env vars, and commands as metadata/user instructions until a first-class installer handles them.
+- No arbitrary package-provided post-install scripts run. If a package needs one of NanoHermes' built-in runtime bootstraps, use `runtime_dependencies` (currently `browser` for the explicit `browser-engine` package). Otherwise express Python extras in `python_extras`; treat `python_packages`, system packages, env vars, and commands as metadata/user instructions until a first-class installer handles them.
 - Start a new Hermes session after installing so tool discovery imports the new module.
 
 ### 3. External tool server or plugin
