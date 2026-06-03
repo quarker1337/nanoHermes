@@ -119,9 +119,10 @@ def test_desktop_client_launch_loads_saved_remote_config_and_skips_local_bootstr
 
     assert rc == 0
     mock_run.assert_called_once()
-    assert mock_run.call_args.args[0] == [str(packaged_exe)]
+    assert mock_run.call_args.args[0] == [str(packaged_exe), "--no-sandbox"]
     assert mock_run.call_args.kwargs["cwd"] == desktop_dir
     launch_env = mock_run.call_args.kwargs["env"]
+    assert launch_env["ELECTRON_DISABLE_SANDBOX"] == "1"
     assert launch_env["HERMES_DESKTOP_USER_DATA_DIR"] == str(user_data)
     assert launch_env["HERMES_DESKTOP_REMOTE_URL"] == "https://gateway.example.test/api"
     assert launch_env["HERMES_DESKTOP_REMOTE_TOKEN"] == "secret-token"
@@ -156,6 +157,53 @@ def test_desktop_client_launch_missing_npm_does_not_suggest_pkg_reinstall(tmp_pa
     assert "Desktop client launch requires Node.js/npm" in err
     assert "does not auto-install Node.js" in err
     assert "hermes pkg install desktop-client --yes" not in err
+
+
+def test_desktop_client_default_launch_uses_prebuilt_app_without_npm(tmp_path, monkeypatch):
+    root = _make_desktop_tree(tmp_path)
+    desktop_dir = root / "apps" / "desktop"
+    monkeypatch.setattr(cli_main, "_desktop_workspace_root", lambda: root)
+    monkeypatch.setattr(cli_main.shutil, "which", lambda name: None)
+    packaged_exe = _make_packaged_executable(root, monkeypatch)
+    user_data = tmp_path / "client-user-data"
+    write_connection = getattr(cli_main, "_write_desktop_client_connection")
+    write_connection(user_data, "https://gateway.example.test/api/", "secret-token")
+    launch_ok = subprocess.CompletedProcess([str(packaged_exe)], 0)
+
+    launch_client = getattr(cli_main, "cmd_desktop_client_launch")
+    with patch("hermes_cli.main.subprocess.run", return_value=launch_ok) as mock_run:
+        rc = launch_client(_ns(
+            desktop_user_data_dir=str(user_data),
+            skip_build=False,
+        ))
+
+    assert rc == 0
+    mock_run.assert_called_once()
+    assert mock_run.call_args.args[0] == [str(packaged_exe), "--no-sandbox"]
+    assert mock_run.call_args.kwargs["cwd"] == desktop_dir
+
+
+def test_desktop_client_build_only_verifies_prebuilt_app_without_launching(tmp_path, monkeypatch, capsys):
+    root = _make_desktop_tree(tmp_path)
+    monkeypatch.setattr(cli_main, "_desktop_workspace_root", lambda: root)
+    monkeypatch.setattr(cli_main.shutil, "which", lambda name: None)
+    packaged_exe = _make_packaged_executable(root, monkeypatch)
+    user_data = tmp_path / "client-user-data"
+    write_connection = getattr(cli_main, "_write_desktop_client_connection")
+    write_connection(user_data, "https://gateway.example.test/api/", "secret-token")
+    launch_client = getattr(cli_main, "cmd_desktop_client_launch")
+
+    with patch("hermes_cli.main.subprocess.run") as mock_run:
+        rc = launch_client(_ns(
+            desktop_user_data_dir=str(user_data),
+            build_only=True,
+            skip_build=False,
+        ))
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    mock_run.assert_not_called()
+    assert f"✓ Desktop packaged app ready: {packaged_exe}" in out
 
 
 @pytest.mark.parametrize(

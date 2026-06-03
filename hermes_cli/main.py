@@ -6558,6 +6558,9 @@ def _run_desktop(args: argparse.Namespace) -> int:
             return int(build_result.returncode or 1)
         packaged_executable = _desktop_packaged_executable(desktop_dir)
 
+    if getattr(args, "desktop_client_mode", False):
+        env.setdefault("ELECTRON_DISABLE_SANDBOX", "1")
+
     if getattr(args, "build_only", False):
         if source_mode:
             if not _desktop_dist_exists(desktop_dir):
@@ -6581,7 +6584,10 @@ def _run_desktop(args: argparse.Namespace) -> int:
         return 1
 
     print(f"→ Launching packaged Hermes Desktop: {packaged_executable}")
-    launch_result = subprocess.run([str(packaged_executable)], cwd=desktop_dir, env=env, check=False)
+    launch_cmd = [str(packaged_executable)]
+    if getattr(args, "desktop_client_mode", False):
+        launch_cmd.append("--no-sandbox")
+    launch_result = subprocess.run(launch_cmd, cwd=desktop_dir, env=env, check=False)
     return int(launch_result.returncode or 0)
 
 
@@ -6591,6 +6597,11 @@ def cmd_gui(args: argparse.Namespace) -> int:
 
 def _desktop_client_desktop_args(args: argparse.Namespace, *, build_only: bool) -> argparse.Namespace:
     values = vars(args).copy()
+    if not values.get("source"):
+        # The remote client package ships a prebuilt Linux app asset. Launching
+        # it should not require Node.js/npm on minimal installs; only explicit
+        # source-mode runs need the JS toolchain.
+        values["skip_build"] = True
     values.update(
         {
             "desktop_client_mode": True,
@@ -6661,7 +6672,10 @@ def cmd_desktop_client_launch(args: argparse.Namespace) -> int:
         return 2
     if saved is not None:
         print(f"Saved remote desktop-client connection: {saved}")
-    return _run_desktop(_desktop_client_desktop_args(args, build_only=False))
+    return _run_desktop(_desktop_client_desktop_args(
+        args,
+        build_only=bool(getattr(args, "build_only", False)),
+    ))
 
 
 def cmd_hooks(args):
