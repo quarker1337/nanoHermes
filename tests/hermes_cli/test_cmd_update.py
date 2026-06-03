@@ -89,6 +89,52 @@ class TestCmdUpdatePip:
 
     @patch("shutil.which", return_value="/home/wayne/.local/bin/uv")
     @patch("subprocess.run")
+    def test_update_pip_branch_flag_rewrites_github_archive_direct_url(
+        self, mock_run, _mock_which, monkeypatch
+    ):
+        """Runtime NanoHermes installs can update to a named feature branch.
+
+        The default runtime installer records a PEP 610 direct URL like
+        ``.../archive/refs/heads/main.tar.gz``. Without branch-aware rewrite,
+        ``hermes update --branch sync/...`` still upgraded the main tarball,
+        leaving package-manager fixes on feature branches unavailable to
+        minimal testers.
+        """
+        from hermes_cli import main as hm
+
+        source = "https://github.com/quarker1337/nanoHermes/archive/refs/heads/main.tar.gz"
+        branch = "sync/upstream-selective-20260603"
+        expected = f"https://github.com/quarker1337/nanoHermes/archive/refs/heads/{branch}.tar.gz"
+
+        class DirectUrlDistribution:
+            def read_text(self, name):
+                assert name == "direct_url.json"
+                return json.dumps({"url": source, "archive_info": {}})
+
+        def fake_distribution(name):
+            assert name == "hermes-agent"
+            return DirectUrlDistribution()
+
+        mock_run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        monkeypatch.setattr("importlib.metadata.distribution", fake_distribution)
+        monkeypatch.delenv("VIRTUAL_ENV", raising=False)
+        monkeypatch.setattr(hm.sys, "prefix", "/usr")
+        monkeypatch.setattr(hm.sys, "base_prefix", "/usr")
+
+        hm._cmd_update_pip(SimpleNamespace(branch=branch))
+
+        assert mock_run.call_count == 1
+        assert mock_run.call_args.args[0] == [
+            "/home/wayne/.local/bin/uv",
+            "pip",
+            "install",
+            "--system",
+            "--upgrade",
+            f"hermes-agent @ {expected}",
+        ]
+
+    @patch("shutil.which", return_value="/home/wayne/.local/bin/uv")
+    @patch("subprocess.run")
     def test_update_pip_uses_uv_system_outside_virtualenv(
         self, mock_run, _mock_which, mock_args, monkeypatch
     ):
@@ -105,7 +151,7 @@ class TestCmdUpdatePip:
         monkeypatch.delenv("VIRTUAL_ENV", raising=False)
         monkeypatch.setattr(hm.sys, "prefix", "/usr")
         monkeypatch.setattr(hm.sys, "base_prefix", "/usr")
-        monkeypatch.setattr(hm, "_direct_url_update_target", lambda: None)
+        monkeypatch.setattr(hm, "_direct_url_update_target", lambda *args, **kwargs: None)
 
         hm._cmd_update_pip(mock_args)
 
@@ -131,7 +177,7 @@ class TestCmdUpdatePip:
         monkeypatch.delenv("VIRTUAL_ENV", raising=False)
         monkeypatch.setattr(hm.sys, "prefix", "/tmp/hermes-launcher-venv")
         monkeypatch.setattr(hm.sys, "base_prefix", "/usr")
-        monkeypatch.setattr(hm, "_direct_url_update_target", lambda: None)
+        monkeypatch.setattr(hm, "_direct_url_update_target", lambda *args, **kwargs: None)
 
         hm._cmd_update_pip(mock_args)
 
@@ -155,7 +201,7 @@ class TestCmdUpdatePip:
             "executable",
             "/home/wayne/.local/share/uv/tools/hermes-agent/bin/python",
         )
-        monkeypatch.setattr(hm, "_direct_url_update_target", lambda: None)
+        monkeypatch.setattr(hm, "_direct_url_update_target", lambda *args, **kwargs: None)
 
         hm._cmd_update_pip(mock_args)
 
@@ -177,7 +223,7 @@ class TestCmdUpdatePip:
         monkeypatch.delenv("VIRTUAL_ENV", raising=False)
         monkeypatch.setattr(hm.sys, "prefix", "/home/wayne/.local/pipx/venvs/hermes-agent")
         monkeypatch.setattr(hm.sys, "base_prefix", "/usr")
-        monkeypatch.setattr(hm, "_direct_url_update_target", lambda: None)
+        monkeypatch.setattr(hm, "_direct_url_update_target", lambda *args, **kwargs: None)
 
         hm._cmd_update_pip(mock_args)
 

@@ -9366,7 +9366,36 @@ def cmd_update(args):
         _finalize_update_output(_update_io_state)
 
 
-def _direct_url_update_target(distribution_name: str = "hermes-agent") -> str | None:
+def _rewrite_github_archive_url_branch(url: str, branch: str) -> str:
+    """Rewrite a GitHub ``archive/refs/heads/<branch>`` URL to another branch."""
+    if not branch or branch == "main":
+        return url
+    try:
+        from urllib.parse import quote, urlsplit, urlunsplit
+
+        parsed = urlsplit(url)
+        if parsed.netloc not in {"github.com", "www.github.com"}:
+            return url
+        marker = "/archive/refs/heads/"
+        if marker not in parsed.path:
+            return url
+        prefix, rest = parsed.path.split(marker, 1)
+        for suffix in (".tar.gz", ".tgz", ".zip", ".tar.xz", ".tar.bz2"):
+            if rest.endswith(suffix):
+                safe_branch = quote(branch, safe="/-._~")
+                new_path = f"{prefix}{marker}{safe_branch}{suffix}"
+                return urlunsplit((parsed.scheme, parsed.netloc, new_path, parsed.query, parsed.fragment))
+    except Exception:
+        return url
+    return url
+
+
+def _direct_url_update_target(
+    distribution_name: str = "hermes-agent",
+    *,
+    branch: str | None = None,
+    branch_explicit: bool = False,
+) -> str | None:
     """Return a PEP 508 direct-URL target for non-PyPI Hermes installs.
 
     Pip/uv write PEP 610 ``direct_url.json`` metadata when a package is
@@ -9374,6 +9403,11 @@ def _direct_url_update_target(distribution_name: str = "hermes-agent") -> str | 
     update`` later runs ``pip install --upgrade hermes-agent``, that direct URL
     install is replaced by the upstream PyPI package. Preserve remote archive
     and VCS sources by upgrading the same source instead.
+
+    When callers explicitly pass ``hermes update --branch <name>`` for a
+    GitHub branch archive install, rewrite the recorded archive URL to that
+    branch. This lets runtime NanoHermes testers move from the default main
+    tarball to a feature branch without doing a manual pip command.
 
     Local editable/file installs are intentionally ignored here; those are not
     reliable self-update sources and should use the git update path when a
@@ -9394,6 +9428,8 @@ def _direct_url_update_target(distribution_name: str = "hermes-agent") -> str | 
             return None
         if not url.startswith(("http://", "https://", "git+http://", "git+https://", "ssh://", "git+ssh://")):
             return None
+        if branch_explicit and branch:
+            url = _rewrite_github_archive_url_branch(url, branch)
         return f"{distribution_name} @ {url}"
     except Exception:
         return None
@@ -9405,9 +9441,16 @@ def _cmd_update_pip(args):
     from hermes_cli.config import is_uv_tool_install
 
     print(f"→ Current version: {__version__}")
-    install_target = _direct_url_update_target() or "hermes-agent"
+    branch = _resolve_update_branch(args)
+    branch_explicit = bool(getattr(args, "branch", None))
+    install_target = _direct_url_update_target(
+        branch=branch,
+        branch_explicit=branch_explicit,
+    ) or "hermes-agent"
     if install_target == "hermes-agent":
         print("→ Checking PyPI for updates...")
+        if branch_explicit and branch != "main":
+            print(f"⚠ --branch is ignored for PyPI installs (would have updated '{branch}').")
     else:
         print("→ Checking installed package source for updates...")
 
