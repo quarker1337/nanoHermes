@@ -29,6 +29,9 @@ from .registry import (
 from .state import PackageState
 
 
+DEFAULT_INSTALL_TIMEOUT_SECONDS = 300.0
+
+
 def _truthy_permission_names(package: dict) -> list[str]:
     permissions = package.get("permissions", {})
     return sorted(
@@ -615,7 +618,12 @@ def _populate_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
     install.add_argument("--dry-run", action="store_true", help="Print plan without changing state")
     install.add_argument("--yes", "-y", action="store_true", help="Apply install plan without prompting")
     install.add_argument("--no-pip", action="store_true", help="Record package state without invoking pip")
-    install.add_argument("--timeout", type=float, default=DEFAULT_REGISTRY_TIMEOUT_SECONDS, help="Registry fetch timeout in seconds")
+    install.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_INSTALL_TIMEOUT_SECONDS,
+        help="Registry and package asset fetch timeout in seconds",
+    )
     install.set_defaults(func=cmd_install)
 
     remove = sub.add_parser("remove", aliases=["rm"], help="Remove packages from local state")

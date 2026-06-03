@@ -1048,6 +1048,17 @@ def test_pkg_update_timeout_failure_is_user_friendly(tmp_path, monkeypatch, caps
     assert "Traceback" not in captured.err
 
 
+def test_pkg_install_default_timeout_allows_large_package_assets():
+    parser = pkg_cli.build_parser()
+
+    install_args = parser.parse_args(["install", "desktop-client"])
+    update_args = parser.parse_args(["update"])
+
+    assert install_args.timeout == pkg_cli.DEFAULT_INSTALL_TIMEOUT_SECONDS
+    assert install_args.timeout > registry_module.DEFAULT_REGISTRY_TIMEOUT_SECONDS
+    assert update_args.timeout == registry_module.DEFAULT_REGISTRY_TIMEOUT_SECONDS
+
+
 def test_pkg_update_accepts_timeout_after_subcommand(tmp_path, monkeypatch, capsys):
     seen = {}
 
