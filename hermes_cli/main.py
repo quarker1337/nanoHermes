@@ -6505,9 +6505,22 @@ def _run_desktop(args: argparse.Namespace) -> int:
     skip_build = getattr(args, "skip_build", False)
     npm = shutil.which("npm") if (source_mode or not skip_build) else None
     if npm is None and (source_mode or not skip_build):
-        print("Desktop GUI requires Node.js/npm, but npm was not found on PATH.", file=sys.stderr)
-        package_name = "desktop-client" if getattr(args, "desktop_client_mode", False) else "desktop"
-        print(f"Install Node.js, or run: hermes pkg install {package_name} --yes", file=sys.stderr)
+        if getattr(args, "desktop_client_mode", False):
+            print(
+                "Desktop client launch requires Node.js/npm to build the Electron app, but npm was not found on PATH.",
+                file=sys.stderr,
+            )
+            print(
+                "The desktop-client package only installs the remote client workspace; it does not auto-install Node.js.",
+                file=sys.stderr,
+            )
+            print(
+                f"Install Node.js/npm explicitly, or use --skip-build only after a packaged app exists at: {desktop_dir / 'release'}",
+                file=sys.stderr,
+            )
+        else:
+            print("Desktop GUI requires Node.js/npm, but npm was not found on PATH.", file=sys.stderr)
+            print("Install Node.js, or run: hermes pkg install desktop --yes", file=sys.stderr)
         return 1
 
     packaged_executable = _desktop_packaged_executable(desktop_dir)

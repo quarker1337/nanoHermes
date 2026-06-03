@@ -143,6 +143,21 @@ def test_desktop_client_launch_requires_remote_config(tmp_path, monkeypatch, cap
     assert "Remote gateway URL/token required" in capsys.readouterr().err
 
 
+def test_desktop_client_launch_missing_npm_does_not_suggest_pkg_reinstall(tmp_path, monkeypatch, capsys):
+    root = _make_desktop_tree(tmp_path)
+    monkeypatch.setattr(cli_main, "_desktop_workspace_root", lambda: root)
+    monkeypatch.setattr(cli_main.shutil, "which", lambda name: None)
+
+    run_desktop = getattr(cli_main, "_run_desktop")
+    rc = run_desktop(_ns(desktop_client_mode=True, skip_build=False))
+
+    err = capsys.readouterr().err
+    assert rc == 1
+    assert "Desktop client launch requires Node.js/npm" in err
+    assert "does not auto-install Node.js" in err
+    assert "hermes pkg install desktop-client --yes" not in err
+
+
 @pytest.mark.parametrize(
     "argv",
     [
