@@ -64,6 +64,30 @@ def _make_packaged_executable(root: Path, monkeypatch, platform: str = "linux") 
     return exe
 
 
+def test_desktop_client_install_without_remote_config_only_installs_package(tmp_path):
+    user_data = tmp_path / "desktop-client-user-data"
+
+    with patch("hermes_cli.package_manager.cli.main", return_value=0) as mock_pkg, \
+         patch("hermes_cli.main._run_desktop", return_value=0) as mock_run:
+        rc = cli_main.cmd_desktop_client_install(_ns(
+            yes=True,
+            dry_run=False,
+            registry_source=str(tmp_path / "registry.json"),
+            desktop_user_data_dir=str(user_data),
+            skip_build=True,
+            launch=False,
+        ))
+
+    assert rc == 0
+    mock_pkg.assert_called_once_with([
+        "--source", str(tmp_path / "registry.json"),
+        "install", "desktop-client",
+        "--yes", "--no-pip",
+    ])
+    mock_run.assert_not_called()
+    assert not (user_data / "connection.json").exists()
+
+
 def test_desktop_client_install_saves_remote_config_without_local_runtime(tmp_path):
     token_file = tmp_path / "token.txt"
     token_file.write_text("secret-token\n", encoding="utf-8")
@@ -125,24 +149,36 @@ def test_desktop_client_launch_loads_saved_remote_config_and_skips_local_bootstr
     launch_env = mock_run.call_args.kwargs["env"]
     assert launch_env["ELECTRON_DISABLE_SANDBOX"] == "1"
     assert launch_env["HERMES_DESKTOP_USER_DATA_DIR"] == str(user_data)
+    assert launch_env["HERMES_DESKTOP_CLIENT_MODE"] == "1"
     assert launch_env["HERMES_DESKTOP_REMOTE_URL"] == "https://gateway.example.test/api"
     assert launch_env["HERMES_DESKTOP_REMOTE_TOKEN"] == "secret-token"
     assert "HERMES_DESKTOP_BOOT_FAKE" not in launch_env
     assert "HERMES_DESKTOP_HERMES_ROOT" not in launch_env
 
 
-def test_desktop_client_launch_requires_remote_config(tmp_path, monkeypatch, capsys):
+def test_desktop_client_launch_without_remote_config_starts_client_for_first_screen(tmp_path, monkeypatch):
     root = _make_desktop_tree(tmp_path)
+    desktop_dir = root / "apps" / "desktop"
     monkeypatch.setattr(cli_main, "_desktop_workspace_root", lambda: root)
-    _make_packaged_executable(root, monkeypatch)
+    packaged_exe = _make_packaged_executable(root, monkeypatch)
+    user_data = tmp_path / "empty-user-data"
+    launch_ok = subprocess.CompletedProcess([str(packaged_exe)], 0)
 
-    rc = cli_main.cmd_desktop_client_launch(_ns(
-        desktop_user_data_dir=str(tmp_path / "empty-user-data"),
-        skip_build=True,
-    ))
+    with patch("hermes_cli.main.subprocess.run", return_value=launch_ok) as mock_run:
+        rc = cli_main.cmd_desktop_client_launch(_ns(
+            desktop_user_data_dir=str(user_data),
+            skip_build=True,
+        ))
 
-    assert rc == 2
-    assert "Remote gateway URL/token required" in capsys.readouterr().err
+    assert rc == 0
+    mock_run.assert_called_once()
+    assert mock_run.call_args.args[0] == [str(packaged_exe), "--no-sandbox"]
+    assert mock_run.call_args.kwargs["cwd"] == desktop_dir
+    launch_env = mock_run.call_args.kwargs["env"]
+    assert launch_env["HERMES_DESKTOP_USER_DATA_DIR"] == str(user_data)
+    assert launch_env["HERMES_DESKTOP_CLIENT_MODE"] == "1"
+    assert "HERMES_DESKTOP_REMOTE_URL" not in launch_env
+    assert "HERMES_DESKTOP_REMOTE_TOKEN" not in launch_env
 
 
 def test_desktop_client_launch_missing_npm_does_not_suggest_pkg_reinstall(tmp_path, monkeypatch, capsys):

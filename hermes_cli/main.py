@@ -6342,10 +6342,8 @@ def _ensure_desktop_build_ref_env(env: dict[str, str]) -> None:
 def _print_desktop_package_hint() -> None:
     print("Desktop app is not installed in this NanoHermes base install.", file=sys.stderr)
     print("Local-capable app: hermes pkg install desktop --yes", file=sys.stderr)
-    print(
-        "Remote-only client: hermes desktop-client install --remote-url URL --remote-token-file TOKENFILE --yes",
-        file=sys.stderr,
-    )
+    print("Remote-only client: hermes desktop-client install --yes", file=sys.stderr)
+    print("Remote connection can be added at launch or from the first screen.", file=sys.stderr)
     print("This keeps Node/Electron out of the base install until you opt in.", file=sys.stderr)
 
 
@@ -6462,6 +6460,8 @@ def _configure_desktop_env(env: dict[str, str], args: argparse.Namespace) -> Non
     if getattr(args, "desktop_client_mode", False) or getattr(args, "desktop_user_data_dir", None):
         user_data_dir = _desktop_client_user_data_dir_from_args(args)
         env["HERMES_DESKTOP_USER_DATA_DIR"] = str(user_data_dir)
+    if getattr(args, "desktop_client_mode", False):
+        env["HERMES_DESKTOP_CLIENT_MODE"] = "1"
 
     remote_url = getattr(args, "remote_url", None)
     remote_token = _desktop_remote_token_from_args(args)
@@ -6617,7 +6617,7 @@ def _desktop_client_desktop_args(args: argparse.Namespace, *, build_only: bool) 
         {
             "desktop_client_mode": True,
             "load_desktop_client_connection": True,
-            "require_remote": True,
+            "require_remote": False,
             "build_only": build_only,
         }
     )
@@ -6641,11 +6641,11 @@ def _save_desktop_client_connection_from_args(args: argparse.Namespace, *, requi
 
 
 def cmd_desktop_client_install(args: argparse.Namespace) -> int:
-    """Install the remote-only desktop client package and persist remote config."""
+    """Install the remote-only desktop client package and optionally persist remote config."""
     try:
         saved = None
         if not getattr(args, "dry_run", False):
-            saved = _save_desktop_client_connection_from_args(args, require=True)
+            saved = _save_desktop_client_connection_from_args(args, require=False)
     except ValueError as exc:
         print(f"✗ {exc}", file=sys.stderr)
         return 2
@@ -14798,8 +14798,8 @@ Examples:
         "desktop-client",
         help="Install or launch the remote-only Hermes Desktop client",
         description=(
-            "Install or launch the package-managed Electron Desktop client in remote mode. "
-            "It stores a remote gateway URL/token and does not require local dashboard/runtime packages."
+            "Install or launch the package-managed Electron Desktop client. "
+            "It can start without a local Hermes gateway and lets you connect a remote gateway on first launch."
         ),
     )
     desktop_client_sub = desktop_client_parser.add_subparsers(dest="desktop_client_command")
@@ -14832,7 +14832,7 @@ Examples:
 
     desktop_client_install = desktop_client_sub.add_parser(
         "install",
-        help="Install desktop-client package and save remote connection config",
+        help="Install desktop-client package and optionally save remote connection config",
     )
     desktop_client_install.add_argument(
         "--registry-source",
