@@ -84,6 +84,8 @@ class TestCmdUpdatePip:
             "install",
             "--system",
             "--upgrade",
+            "--reinstall-package",
+            "hermes-agent",
             f"hermes-agent @ {source}",
         ]
 
@@ -130,7 +132,78 @@ class TestCmdUpdatePip:
             "install",
             "--system",
             "--upgrade",
+            "--reinstall-package",
+            "hermes-agent",
             f"hermes-agent @ {expected}",
+        ]
+
+    @patch("shutil.which", return_value="/home/wayne/.local/bin/uv")
+    @patch("subprocess.run")
+    def test_update_pip_direct_url_reinstalls_same_version_archive(
+        self, mock_run, _mock_which, monkeypatch
+    ):
+        """Direct URL updates must refresh code even when pyproject version is unchanged."""
+        from hermes_cli import main as hm
+
+        source = "https://github.com/quarker1337/nanoHermes/archive/refs/heads/main.tar.gz"
+
+        class DirectUrlDistribution:
+            def read_text(self, name):
+                assert name == "direct_url.json"
+                return json.dumps({"url": source, "archive_info": {}})
+
+        monkeypatch.setattr(
+            "importlib.metadata.distribution",
+            lambda name: DirectUrlDistribution(),
+        )
+        monkeypatch.setattr(hm.sys, "prefix", "/tmp/hermes-venv")
+        monkeypatch.setattr(hm.sys, "base_prefix", "/usr")
+        mock_run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+
+        hm._cmd_update_pip(SimpleNamespace())
+
+        assert mock_run.call_args.args[0] == [
+            "/home/wayne/.local/bin/uv",
+            "pip",
+            "install",
+            "--upgrade",
+            "--reinstall-package",
+            "hermes-agent",
+            f"hermes-agent @ {source}",
+        ]
+        assert mock_run.call_args.kwargs["env"]["VIRTUAL_ENV"] == "/tmp/hermes-venv"
+
+    @patch("shutil.which", return_value=None)
+    @patch("subprocess.run")
+    def test_update_pip_direct_url_force_reinstalls_without_uv(
+        self, mock_run, _mock_which, monkeypatch
+    ):
+        from hermes_cli import main as hm
+
+        source = "https://github.com/quarker1337/nanoHermes/archive/refs/heads/main.tar.gz"
+
+        class DirectUrlDistribution:
+            def read_text(self, name):
+                assert name == "direct_url.json"
+                return json.dumps({"url": source, "archive_info": {}})
+
+        monkeypatch.setattr(
+            "importlib.metadata.distribution",
+            lambda name: DirectUrlDistribution(),
+        )
+        monkeypatch.setattr(hm.sys, "executable", "/tmp/hermes-venv/bin/python")
+        mock_run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+
+        hm._cmd_update_pip(SimpleNamespace())
+
+        assert mock_run.call_args.args[0] == [
+            "/tmp/hermes-venv/bin/python",
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "--force-reinstall",
+            f"hermes-agent @ {source}",
         ]
 
     @patch("shutil.which", return_value="/home/wayne/.local/bin/uv")
@@ -371,14 +444,16 @@ class TestCmdUpdateBranchFallback:
             "--no-audit",
             "--progress=false",
         ]
-        assert npm_calls[:2] == [
-            (update_flags, PROJECT_ROOT),
-            (update_flags, PROJECT_ROOT / "apps" / "tui"),
+        update_paths = [
+            path
+            for path in (PROJECT_ROOT, PROJECT_ROOT / "apps" / "tui")
+            if (path / "package.json").exists()
         ]
-        if len(npm_calls) > 2:
+        assert npm_calls[: len(update_paths)] == [(update_flags, path) for path in update_paths]
+        if len(npm_calls) > len(update_paths):
             # Only the dashboard install is left in subprocess.run; the build moved
             # to _run_with_idle_timeout to make Vite progress visible (#33788).
-            assert npm_calls[2:] == [
+            assert npm_calls[len(update_paths) :] == [
                 (["/usr/bin/npm", "ci", "--silent"], PROJECT_ROOT / "apps" / "dashboard"),
             ]
 
@@ -391,15 +466,20 @@ class TestCmdUpdateBranchFallback:
         # Regression for #18840: repo root + apps/tui installs must stream
         # output (capture_output=False) so postinstall progress is visible
         # to the user.
+        expected_streaming_paths = {
+            path
+            for path in (PROJECT_ROOT, PROJECT_ROOT / "apps" / "tui")
+            if (path / "package.json").exists()
+        }
         repo_and_tui_calls = [
             call
             for call in mock_run.call_args_list
             if call.args
             and call.args[0][0] == "/usr/bin/npm"
             and call.args[0][1] == "ci"
-            and call.kwargs.get("cwd") in {PROJECT_ROOT, PROJECT_ROOT / "apps" / "tui"}
+            and call.kwargs.get("cwd") in expected_streaming_paths
         ]
-        assert len(repo_and_tui_calls) == 2
+        assert len(repo_and_tui_calls) == len(expected_streaming_paths)
         for call in repo_and_tui_calls:
             assert call.kwargs.get("capture_output") is False, (
                 "repo-root / apps/tui npm install must stream output "

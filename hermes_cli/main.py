@@ -9443,10 +9443,11 @@ def _cmd_update_pip(args):
     print(f"→ Current version: {__version__}")
     branch = _resolve_update_branch(args)
     branch_explicit = bool(getattr(args, "branch", None))
-    install_target = _direct_url_update_target(
+    direct_url_target = _direct_url_update_target(
         branch=branch,
         branch_explicit=branch_explicit,
-    ) or "hermes-agent"
+    )
+    install_target = direct_url_target or "hermes-agent"
     if install_target == "hermes-agent":
         print("→ Checking PyPI for updates...")
         if branch_explicit and branch != "main":
@@ -9475,7 +9476,16 @@ def _cmd_update_pip(args):
         # pipx owns its own venv; ``pipx upgrade`` is the only correct path.
         cmd = [pipx, "upgrade", "hermes-agent"]
     elif uv:
-        cmd = [uv, "pip", "install", "--upgrade", install_target]
+        cmd = [uv, "pip", "install", "--upgrade"]
+        if direct_url_target:
+            # Branch tarballs often keep the same package version while the
+            # code changes.  Plain `uv pip install --upgrade name @ url` only
+            # checks the already-installed 0.x version and can no-op, leaving
+            # runtime testers stuck on the old updater/launcher code.  Reinstall
+            # only hermes-agent for direct URL/VCS installs so the source ref is
+            # actually refreshed without churning the dependency set.
+            cmd.extend(["--reinstall-package", "hermes-agent"])
+        cmd.append(install_target)
         if in_venv:
             export_virtualenv = True
         else:
@@ -9484,6 +9494,8 @@ def _cmd_update_pip(args):
             cmd.insert(3, "--system")
     else:
         cmd = [sys.executable, "-m", "pip", "install", "--upgrade", install_target]
+        if direct_url_target:
+            cmd.insert(5, "--force-reinstall")
 
     import shlex
 
