@@ -341,10 +341,19 @@ except Exception:
 
 # Initialize centralized file logging early — all `hermes` subcommands
 # (chat, setup, gateway, config, etc.) write to agent.log + errors.log.
+# Dashboard/Desktop entrypoints bootstrap with GUI mode so gui.log is present
+# during GUI testing, including pre-dispatch startup failures.
 try:
     from hermes_runtime.hermes_logging import setup_logging as _setup_logging
 
-    _setup_logging(mode="cli")
+    _setup_logging(
+        mode=(
+            "gui"
+            if next((arg for arg in sys.argv[1:] if not arg.startswith("-")), "")
+            in {"dashboard", "gui", "desktop", "desktop-client"}
+            else "cli"
+        )
+    )
 except Exception:
     pass  # best-effort — don't crash the CLI if logging setup fails
 
@@ -6257,19 +6266,23 @@ def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
 
 
 def _git_output(args: list[str], cwd: Path) -> Optional[str]:
+    """Best-effort git helper kept separate from launch/build subprocess.run calls."""
     try:
-        result = subprocess.run(
+        proc = subprocess.Popen(
             args,
             cwd=cwd,
-            check=False,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         )
+        stdout, _ = proc.communicate(timeout=2)
     except Exception:
         return None
-    if result.returncode != 0:
+    if proc.returncode != 0:
         return None
-    value = result.stdout.strip()
+    value = stdout.strip()
     return value or None
 
 
@@ -6290,17 +6303,19 @@ def _desktop_installed_asset_ref() -> Optional[tuple[str, str]]:
     try:
         from hermes_cli.package_manager.state import PackageState
 
-        installed = PackageState().installed.get("desktop", {})
+        installed_state = PackageState().installed
     except Exception:
         return None
-    for asset in installed.get("optional_assets", []) or []:
-        if not isinstance(asset, dict):
-            continue
-        if asset.get("destination") != "apps/desktop-workspace":
-            continue
-        digest = str(asset.get("sha256") or "")
-        if len(digest) >= 40:
-            return digest[:40], "package-managed"
+    for package_name in ("desktop-client", "desktop"):
+        installed = installed_state.get(package_name, {})
+        for asset in installed.get("optional_assets", []) or []:
+            if not isinstance(asset, dict):
+                continue
+            if asset.get("destination") != "apps/desktop-workspace":
+                continue
+            digest = str(asset.get("sha256") or "")
+            if len(digest) >= 40:
+                return digest[:40], "package-managed"
     return None
 
 
@@ -6326,11 +6341,146 @@ def _ensure_desktop_build_ref_env(env: dict[str, str]) -> None:
 
 def _print_desktop_package_hint() -> None:
     print("Desktop app is not installed in this NanoHermes base install.", file=sys.stderr)
-    print("Install it with: hermes pkg install desktop --yes", file=sys.stderr)
+    print("Local-capable app: hermes pkg install desktop --yes", file=sys.stderr)
+    print(
+        "Remote-only client: hermes desktop-client install --remote-url URL --remote-token-file TOKENFILE --yes",
+        file=sys.stderr,
+    )
     print("This keeps Node/Electron out of the base install until you opt in.", file=sys.stderr)
 
 
-def cmd_gui(args):
+_DESKTOP_CLIENT_PACKAGE = "desktop-client"
+
+
+def _desktop_client_root() -> Path:
+    return get_hermes_home() / "apps" / "desktop-client"
+
+
+def _desktop_client_default_user_data_dir() -> Path:
+    return _desktop_client_root() / "user-data"
+
+
+def _desktop_client_connection_path(user_data_dir: Path | None = None) -> Path:
+    root = user_data_dir or _desktop_client_default_user_data_dir()
+    return root / "connection.json"
+
+
+def _normalize_desktop_remote_url(value: str) -> str:
+    from urllib.parse import urlparse, urlunparse
+
+    raw = str(value or "").strip()
+    if not raw:
+        raise ValueError("Remote gateway URL is required.")
+    parsed = urlparse(raw)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError("Remote gateway URL must be http:// or https://.")
+    path = parsed.path.rstrip("/")
+    return urlunparse((parsed.scheme, parsed.netloc, path, "", "", "")).rstrip("/")
+
+
+def _desktop_remote_token_from_args(args: argparse.Namespace) -> str | None:
+    token = getattr(args, "remote_token", None)
+    token_file = getattr(args, "remote_token_file", None)
+    if token and token_file:
+        raise ValueError("Pass either --remote-token or --remote-token-file, not both.")
+    if token_file:
+        try:
+            return Path(token_file).expanduser().read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            raise ValueError(f"Could not read remote token file: {exc}") from exc
+    return str(token).strip() if token else None
+
+
+def _desktop_client_user_data_dir_from_args(args: argparse.Namespace) -> Path:
+    configured = getattr(args, "desktop_user_data_dir", None)
+    if configured:
+        return Path(configured).expanduser().resolve()
+    return _desktop_client_default_user_data_dir()
+
+
+def _write_desktop_client_connection(user_data_dir: Path, remote_url: str, remote_token: str) -> Path:
+    user_data_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        os.chmod(user_data_dir, 0o700)
+    except OSError:
+        pass
+    payload = {
+        "mode": "remote",
+        "remote": {
+            "url": _normalize_desktop_remote_url(remote_url),
+            "token": {"encoding": "plain", "value": remote_token},
+        },
+    }
+    path = _desktop_client_connection_path(user_data_dir)
+    tmp_path = path.with_name(f".{path.name}.tmp-{os.getpid()}")
+    fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, indent=2) + "\n")
+        os.replace(tmp_path, path)
+        try:
+            os.chmod(path, 0o600)
+        except OSError:
+            pass
+    except Exception:
+        try:
+            tmp_path.unlink()
+        except OSError:
+            pass
+        raise
+    return path
+
+
+def _read_desktop_client_connection(user_data_dir: Path) -> tuple[str | None, str | None]:
+    path = _desktop_client_connection_path(user_data_dir)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None, None
+    remote = payload.get("remote") if isinstance(payload, dict) else None
+    if not isinstance(remote, dict):
+        return None, None
+    secret = remote.get("token")
+    token = None
+    if isinstance(secret, dict) and secret.get("encoding") == "plain":
+        token = str(secret.get("value") or "").strip() or None
+    return str(remote.get("url") or "").strip() or None, token
+
+
+def _configure_desktop_env(env: dict[str, str], args: argparse.Namespace) -> None:
+    _ensure_desktop_build_ref_env(env)
+    if getattr(args, "fake_boot", False):
+        env["HERMES_DESKTOP_BOOT_FAKE"] = "1"
+    if getattr(args, "ignore_existing", False):
+        env["HERMES_DESKTOP_IGNORE_EXISTING"] = "1"
+    if getattr(args, "hermes_root", None):
+        env["HERMES_DESKTOP_HERMES_ROOT"] = str(Path(args.hermes_root).expanduser().resolve())
+    if getattr(args, "cwd", None):
+        env["HERMES_DESKTOP_CWD"] = str(Path(args.cwd).expanduser().resolve())
+
+    user_data_dir = None
+    if getattr(args, "desktop_client_mode", False) or getattr(args, "desktop_user_data_dir", None):
+        user_data_dir = _desktop_client_user_data_dir_from_args(args)
+        env["HERMES_DESKTOP_USER_DATA_DIR"] = str(user_data_dir)
+
+    remote_url = getattr(args, "remote_url", None)
+    remote_token = _desktop_remote_token_from_args(args)
+    if not remote_url and not remote_token and getattr(args, "load_desktop_client_connection", False):
+        remote_url, remote_token = _read_desktop_client_connection(user_data_dir or _desktop_client_default_user_data_dir())
+
+    if remote_url or remote_token:
+        if not remote_url or not remote_token:
+            raise ValueError("Remote desktop launch requires both --remote-url and --remote-token/--remote-token-file.")
+        env["HERMES_DESKTOP_REMOTE_URL"] = _normalize_desktop_remote_url(remote_url)
+        env["HERMES_DESKTOP_REMOTE_TOKEN"] = remote_token
+    elif getattr(args, "require_remote", False):
+        raise ValueError(
+            "Remote gateway URL/token required. Use `hermes desktop-client install --remote-url URL "
+            "--remote-token-file TOKENFILE --yes` or pass --remote-url/--remote-token now."
+        )
+
+
+def _run_desktop(args: argparse.Namespace) -> int:
     """Build and launch the package-managed Electron desktop app."""
     workspace_root = _desktop_workspace_root()
     desktop_dir = _desktop_dir(workspace_root)
@@ -6345,22 +6495,19 @@ def cmd_gui(args):
         pass
 
     env = os.environ.copy()
-    _ensure_desktop_build_ref_env(env)
-    if getattr(args, "fake_boot", False):
-        env["HERMES_DESKTOP_BOOT_FAKE"] = "1"
-    if getattr(args, "ignore_existing", False):
-        env["HERMES_DESKTOP_IGNORE_EXISTING"] = "1"
-    if getattr(args, "hermes_root", None):
-        env["HERMES_DESKTOP_HERMES_ROOT"] = str(Path(args.hermes_root).expanduser().resolve())
-    if getattr(args, "cwd", None):
-        env["HERMES_DESKTOP_CWD"] = str(Path(args.cwd).expanduser().resolve())
+    try:
+        _configure_desktop_env(env, args)
+    except ValueError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 2
 
     source_mode = getattr(args, "source", False)
     skip_build = getattr(args, "skip_build", False)
     npm = shutil.which("npm") if (source_mode or not skip_build) else None
     if npm is None and (source_mode or not skip_build):
         print("Desktop GUI requires Node.js/npm, but npm was not found on PATH.", file=sys.stderr)
-        print("Install Node.js, or run: hermes pkg install desktop --yes", file=sys.stderr)
+        package_name = "desktop-client" if getattr(args, "desktop_client_mode", False) else "desktop"
+        print(f"Install Node.js, or run: hermes pkg install {package_name} --yes", file=sys.stderr)
         return 1
 
     packaged_executable = _desktop_packaged_executable(desktop_dir)
@@ -6423,6 +6570,85 @@ def cmd_gui(args):
     print(f"→ Launching packaged Hermes Desktop: {packaged_executable}")
     launch_result = subprocess.run([str(packaged_executable)], cwd=desktop_dir, env=env, check=False)
     return int(launch_result.returncode or 0)
+
+
+def cmd_gui(args: argparse.Namespace) -> int:
+    return _run_desktop(args)
+
+
+def _desktop_client_desktop_args(args: argparse.Namespace, *, build_only: bool) -> argparse.Namespace:
+    values = vars(args).copy()
+    values.update(
+        {
+            "desktop_client_mode": True,
+            "load_desktop_client_connection": True,
+            "require_remote": True,
+            "build_only": build_only,
+        }
+    )
+    return argparse.Namespace(**values)
+
+
+def _save_desktop_client_connection_from_args(args: argparse.Namespace, *, require: bool) -> Path | None:
+    remote_url = getattr(args, "remote_url", None)
+    remote_token = _desktop_remote_token_from_args(args)
+    if not remote_url and not remote_token and not require:
+        return None
+    if not remote_url or not remote_token:
+        raise ValueError(
+            "Saving desktop-client remote config requires both --remote-url and --remote-token/--remote-token-file."
+        )
+    return _write_desktop_client_connection(
+        _desktop_client_user_data_dir_from_args(args),
+        remote_url,
+        remote_token,
+    )
+
+
+def cmd_desktop_client_install(args: argparse.Namespace) -> int:
+    """Install the remote-only desktop client package and persist remote config."""
+    try:
+        saved = None
+        if not getattr(args, "dry_run", False):
+            saved = _save_desktop_client_connection_from_args(args, require=True)
+    except ValueError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 2
+
+    pkg_argv: list[str] = []
+    if getattr(args, "registry_source", None):
+        pkg_argv.extend(["--source", str(args.registry_source)])
+    pkg_argv.extend(["install", getattr(args, "package", _DESKTOP_CLIENT_PACKAGE) or _DESKTOP_CLIENT_PACKAGE])
+    if getattr(args, "dry_run", False):
+        pkg_argv.append("--dry-run")
+    if getattr(args, "yes", False):
+        pkg_argv.append("--yes")
+    pkg_argv.append("--no-pip")
+
+    from hermes_cli.package_manager.cli import main as pkg_main
+
+    rc = int(pkg_main(pkg_argv) or 0)
+    if rc != 0:
+        return rc
+    if saved is not None:
+        print(f"Saved remote desktop-client connection: {saved}")
+    if getattr(args, "launch", False) or getattr(args, "build_only", False):
+        return _run_desktop(
+            _desktop_client_desktop_args(args, build_only=bool(getattr(args, "build_only", False)))
+        )
+    return 0
+
+
+def cmd_desktop_client_launch(args: argparse.Namespace) -> int:
+    """Launch the remote-only desktop client from a saved or provided connection."""
+    try:
+        saved = _save_desktop_client_connection_from_args(args, require=False)
+    except ValueError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 2
+    if saved is not None:
+        print(f"Saved remote desktop-client connection: {saved}")
+    return _run_desktop(_desktop_client_desktop_args(args, build_only=False))
 
 
 def cmd_hooks(args):
@@ -11294,7 +11520,7 @@ _BUILTIN_SUBCOMMANDS = frozenset(
     {
         "acp", "auth", "backup", "bundles", "checkpoints", "claw", "completion",
         "computer-use",
-        "config", "cron", "curator", "dashboard", "debug", "desktop", "doctor",
+        "config", "cron", "curator", "dashboard", "debug", "desktop", "desktop-client", "doctor",
         "dump", "fallback", "gateway", "gui", "hooks", "import", "insights",
         "kanban", "login", "logout", "logs", "lsp", "mcp", "memory", "migrate",
         "model", "pairing", "pkg", "plug", "plugins", "portal", "postinstall", "profile", "proxy",
@@ -14471,6 +14697,74 @@ Examples:
         help=argparse.SUPPRESS,
     )
     gui_parser.set_defaults(func=cmd_gui)
+
+    # =========================================================================
+    # desktop-client command — remote-only package-managed Electron client
+    # =========================================================================
+    desktop_client_parser = subparsers.add_parser(
+        "desktop-client",
+        help="Install or launch the remote-only Hermes Desktop client",
+        description=(
+            "Install or launch the package-managed Electron Desktop client in remote mode. "
+            "It stores a remote gateway URL/token and does not require local dashboard/runtime packages."
+        ),
+    )
+    desktop_client_sub = desktop_client_parser.add_subparsers(dest="desktop_client_command")
+
+    def _add_desktop_client_remote_args(parser: argparse.ArgumentParser) -> None:
+        parser.add_argument("--remote-url", help="Remote Hermes gateway/API URL")
+        parser.add_argument("--remote-token", help=argparse.SUPPRESS)
+        parser.add_argument("--remote-token-file", help="Path to a file containing the remote gateway token")
+        parser.add_argument(
+            "--desktop-user-data-dir",
+            help="Desktop/Electron user-data directory for persisted remote connection config",
+        )
+
+    def _add_desktop_launch_args(parser: argparse.ArgumentParser) -> None:
+        parser.add_argument(
+            "--source",
+            action="store_true",
+            help="Launch via `electron .` against the desktop dist instead of the packaged app",
+        )
+        parser.add_argument(
+            "--skip-build",
+            action="store_true",
+            help="Skip npm install/package and launch an existing desktop build from the package workspace",
+        )
+        parser.add_argument(
+            "--build-only",
+            action="store_true",
+            help="Build the desktop app but do not launch it",
+        )
+
+    desktop_client_install = desktop_client_sub.add_parser(
+        "install",
+        help="Install desktop-client package and save remote connection config",
+    )
+    desktop_client_install.add_argument(
+        "--registry-source",
+        help="Registry index URL or local path to pass to `hermes pkg --source`",
+    )
+    desktop_client_install.add_argument(
+        "--package",
+        default=_DESKTOP_CLIENT_PACKAGE,
+        help="Package name to install (default: desktop-client; use desktop for local-capable app)",
+    )
+    desktop_client_install.add_argument("--dry-run", action="store_true", help="Print package install plan only")
+    desktop_client_install.add_argument("--yes", "-y", action="store_true", help="Install without prompting")
+    desktop_client_install.add_argument("--launch", action="store_true", help="Launch after successful install")
+    _add_desktop_client_remote_args(desktop_client_install)
+    _add_desktop_launch_args(desktop_client_install)
+    desktop_client_install.set_defaults(func=cmd_desktop_client_install)
+
+    desktop_client_launch = desktop_client_sub.add_parser(
+        "launch",
+        help="Launch desktop-client using saved or provided remote connection config",
+    )
+    _add_desktop_client_remote_args(desktop_client_launch)
+    _add_desktop_launch_args(desktop_client_launch)
+    desktop_client_launch.set_defaults(func=cmd_desktop_client_launch)
+    desktop_client_parser.set_defaults(func=cmd_desktop_client_launch)
 
     # =========================================================================
     # logs command
