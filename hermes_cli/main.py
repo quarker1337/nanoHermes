@@ -6502,8 +6502,9 @@ def _run_desktop(args: argparse.Namespace) -> int:
         return 2
 
     source_mode = getattr(args, "source", False)
-    skip_build = getattr(args, "skip_build", False)
-    npm = shutil.which("npm") if (source_mode or not skip_build) else None
+    force_build = getattr(args, "force_build", False)
+    skip_build = getattr(args, "skip_build", False) or (not source_mode and not force_build)
+    npm = shutil.which("npm") if (source_mode or force_build or not skip_build) else None
     if npm is None and (source_mode or not skip_build):
         if getattr(args, "desktop_client_mode", False):
             print(
@@ -6536,8 +6537,14 @@ def _run_desktop(args: argparse.Namespace) -> int:
                 return 1
             print(f"→ Skipping desktop source build (--skip-build --source); using dist at {desktop_dir / 'dist'}")
         elif packaged_executable is None:
-            print(f"✗ --skip-build was passed but no packaged desktop app was found at: {desktop_dir / 'release'}", file=sys.stderr)
-            print(f"  Pre-build first: cd {desktop_dir} && npm run pack", file=sys.stderr)
+            if getattr(args, "desktop_client_mode", False):
+                print(f"✗ No prebuilt desktop client app was found at: {desktop_dir / 'release'}", file=sys.stderr)
+                print("  Install the prebuilt client package first: hermes pkg install desktop-client --yes", file=sys.stderr)
+                print("  For source builds, install Node.js/npm and pass --source.", file=sys.stderr)
+            else:
+                print(f"✗ No packaged desktop app was found at: {desktop_dir / 'release'}", file=sys.stderr)
+                print("  Install the prebuilt package first: hermes pkg install desktop --yes", file=sys.stderr)
+                print("  For source builds, install Node.js/npm and pass --source or --force-build.", file=sys.stderr)
             return 1
         else:
             print(f"→ Skipping desktop package build (--skip-build); using {packaged_executable}")
@@ -6558,7 +6565,11 @@ def _run_desktop(args: argparse.Namespace) -> int:
             return int(build_result.returncode or 1)
         packaged_executable = _desktop_packaged_executable(desktop_dir)
 
-    if getattr(args, "desktop_client_mode", False):
+    if not source_mode and sys.platform.startswith("linux"):
+        # Package-managed unpacked Electron apps live under the user's
+        # HERMES_HOME, so the setuid chrome-sandbox helper is not configured.
+        # Launch the prebuilt app without Chromium's sandbox rather than making
+        # minimal users repair a package asset with root-owned permissions.
         env.setdefault("ELECTRON_DISABLE_SANDBOX", "1")
 
     if getattr(args, "build_only", False):
@@ -6585,7 +6596,7 @@ def _run_desktop(args: argparse.Namespace) -> int:
 
     print(f"→ Launching packaged Hermes Desktop: {packaged_executable}")
     launch_cmd = [str(packaged_executable)]
-    if getattr(args, "desktop_client_mode", False):
+    if not source_mode and sys.platform.startswith("linux"):
         launch_cmd.append("--no-sandbox")
     launch_result = subprocess.run(launch_cmd, cwd=desktop_dir, env=env, check=False)
     return int(launch_result.returncode or 0)
@@ -14688,7 +14699,7 @@ Examples:
     gui_parser.add_argument(
         "--source",
         action="store_true",
-        help="Launch via `electron .` against the desktop dist instead of the packaged app",
+        help="Launch via `electron .` against the desktop dist instead of the packaged app; requires Node.js/npm",
     )
     gui_parser.add_argument(
         "--build-only",
@@ -14721,7 +14732,7 @@ Examples:
     gui_parser.add_argument(
         "--force-build",
         action="store_true",
-        help=argparse.SUPPRESS,
+        help="Force npm install/package instead of launching the prebuilt packaged app",
     )
     gui_parser.set_defaults(func=cmd_gui)
 
@@ -14751,7 +14762,7 @@ Examples:
         parser.add_argument(
             "--source",
             action="store_true",
-            help="Launch via `electron .` against the desktop dist instead of the packaged app",
+            help="Launch via `electron .` against the desktop dist instead of the packaged app; requires Node.js/npm",
         )
         parser.add_argument(
             "--skip-build",

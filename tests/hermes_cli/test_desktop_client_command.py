@@ -20,6 +20,7 @@ def _ns(**kw):
         skip_build=False,
         build_only=False,
         source=False,
+        force_build=False,
         fake_boot=False,
         ignore_existing=False,
         hermes_root=None,
@@ -150,7 +151,7 @@ def test_desktop_client_launch_missing_npm_does_not_suggest_pkg_reinstall(tmp_pa
     monkeypatch.setattr(cli_main.shutil, "which", lambda name: None)
 
     run_desktop = getattr(cli_main, "_run_desktop")
-    rc = run_desktop(_ns(desktop_client_mode=True, skip_build=False))
+    rc = run_desktop(_ns(desktop_client_mode=True, source=True, skip_build=False))
 
     err = capsys.readouterr().err
     assert rc == 1
@@ -204,6 +205,52 @@ def test_desktop_client_build_only_verifies_prebuilt_app_without_launching(tmp_p
     assert rc == 0
     mock_run.assert_not_called()
     assert f"✓ Desktop packaged app ready: {packaged_exe}" in out
+
+
+def test_desktop_default_launch_uses_prebuilt_app_without_npm(tmp_path, monkeypatch):
+    root = _make_desktop_tree(tmp_path)
+    desktop_dir = root / "apps" / "desktop"
+    monkeypatch.setattr(cli_main, "_desktop_workspace_root", lambda: root)
+    monkeypatch.setattr(cli_main.shutil, "which", lambda name: None)
+    packaged_exe = _make_packaged_executable(root, monkeypatch)
+    launch_ok = subprocess.CompletedProcess([str(packaged_exe)], 0)
+
+    with patch("hermes_cli.main.subprocess.run", return_value=launch_ok) as mock_run:
+        rc = cli_main.cmd_gui(_ns(skip_build=False))
+
+    assert rc == 0
+    mock_run.assert_called_once()
+    assert mock_run.call_args.args[0] == [str(packaged_exe), "--no-sandbox"]
+    assert mock_run.call_args.kwargs["cwd"] == desktop_dir
+    launch_env = mock_run.call_args.kwargs["env"]
+    assert launch_env["ELECTRON_DISABLE_SANDBOX"] == "1"
+
+
+def test_desktop_build_only_verifies_prebuilt_app_without_npm(tmp_path, monkeypatch, capsys):
+    root = _make_desktop_tree(tmp_path)
+    monkeypatch.setattr(cli_main, "_desktop_workspace_root", lambda: root)
+    monkeypatch.setattr(cli_main.shutil, "which", lambda name: None)
+    packaged_exe = _make_packaged_executable(root, monkeypatch)
+
+    with patch("hermes_cli.main.subprocess.run") as mock_run:
+        rc = cli_main.cmd_gui(_ns(build_only=True, skip_build=False))
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    mock_run.assert_not_called()
+    assert f"✓ Desktop packaged app ready: {packaged_exe}" in out
+
+
+def test_desktop_source_mode_still_reports_missing_npm(tmp_path, monkeypatch, capsys):
+    root = _make_desktop_tree(tmp_path)
+    monkeypatch.setattr(cli_main, "_desktop_workspace_root", lambda: root)
+    monkeypatch.setattr(cli_main.shutil, "which", lambda name: None)
+
+    rc = cli_main.cmd_gui(_ns(source=True, skip_build=False))
+
+    err = capsys.readouterr().err
+    assert rc == 1
+    assert "Desktop GUI requires Node.js/npm" in err
 
 
 @pytest.mark.parametrize(
