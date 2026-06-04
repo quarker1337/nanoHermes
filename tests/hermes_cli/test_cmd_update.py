@@ -71,6 +71,7 @@ class TestCmdUpdatePip:
 
         mock_run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
         monkeypatch.setattr("importlib.metadata.distribution", fake_distribution)
+        monkeypatch.setattr(hm, "_direct_url_update_status", lambda *args, **kwargs: {"state": "unknown"})
         monkeypatch.delenv("VIRTUAL_ENV", raising=False)
         monkeypatch.setattr(hm.sys, "prefix", "/usr")
         monkeypatch.setattr(hm.sys, "base_prefix", "/usr")
@@ -119,6 +120,7 @@ class TestCmdUpdatePip:
 
         mock_run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
         monkeypatch.setattr("importlib.metadata.distribution", fake_distribution)
+        monkeypatch.setattr(hm, "_direct_url_update_status", lambda *args, **kwargs: {"state": "unknown"})
         monkeypatch.delenv("VIRTUAL_ENV", raising=False)
         monkeypatch.setattr(hm.sys, "prefix", "/usr")
         monkeypatch.setattr(hm.sys, "base_prefix", "/usr")
@@ -156,6 +158,7 @@ class TestCmdUpdatePip:
             "importlib.metadata.distribution",
             lambda name: DirectUrlDistribution(),
         )
+        monkeypatch.setattr(hm, "_direct_url_update_status", lambda *args, **kwargs: {"state": "unknown"})
         monkeypatch.setattr(hm.sys, "prefix", "/tmp/hermes-venv")
         monkeypatch.setattr(hm.sys, "base_prefix", "/usr")
         mock_run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
@@ -191,6 +194,7 @@ class TestCmdUpdatePip:
             "importlib.metadata.distribution",
             lambda name: DirectUrlDistribution(),
         )
+        monkeypatch.setattr(hm, "_direct_url_update_status", lambda *args, **kwargs: {"state": "unknown"})
         monkeypatch.setattr(hm.sys, "executable", "/tmp/hermes-venv/bin/python")
         mock_run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
 
@@ -205,6 +209,161 @@ class TestCmdUpdatePip:
             "--force-reinstall",
             f"hermes-agent @ {source}",
         ]
+
+    @patch("shutil.which", return_value="/home/wayne/.local/bin/uv")
+    @patch("subprocess.run")
+    def test_update_pip_direct_url_archive_skips_when_source_state_matches(
+        self, mock_run, _mock_which, tmp_path, monkeypatch, capsys
+    ):
+        """Branch archive installs should say up-to-date instead of reinstalling forever."""
+        from hermes_cli import main as hm
+
+        source = "https://github.com/quarker1337/nanoHermes/archive/refs/heads/main.tar.gz"
+        sha = "a" * 40
+
+        class DirectUrlDistribution:
+            def read_text(self, name):
+                assert name == "direct_url.json"
+                return json.dumps({"url": source, "archive_info": {}})
+
+        monkeypatch.setattr(
+            "importlib.metadata.distribution",
+            lambda name: DirectUrlDistribution(),
+        )
+        monkeypatch.setattr(hm, "get_hermes_home", lambda: tmp_path)
+        (tmp_path / "update-source-state.json").write_text(
+            json.dumps(
+                {
+                    "hermes-agent": {
+                        "source_url": source,
+                        "requested_revision": "main",
+                        "resolved_commit": sha,
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(hm, "_github_resolve_ref", lambda owner, repo, ref: sha)
+
+        hm._cmd_update_pip(SimpleNamespace())
+
+        assert mock_run.call_count == 0
+        out = capsys.readouterr().out
+        assert "Checking installed package source" in out
+        assert "Already up to date" in out
+
+    @patch("shutil.which", return_value="/home/wayne/.local/bin/uv")
+    @patch("subprocess.run")
+    def test_update_pip_direct_url_archive_bootstraps_state_when_files_match(
+        self, mock_run, _mock_which, tmp_path, monkeypatch
+    ):
+        """A freshly updated archive install can seed state without one extra reinstall."""
+        from hermes_cli import main as hm
+
+        source = "https://github.com/quarker1337/nanoHermes/archive/refs/heads/main.tar.gz"
+        sha = "e" * 40
+
+        class DirectUrlDistribution:
+            def read_text(self, name):
+                assert name == "direct_url.json"
+                return json.dumps({"url": source, "archive_info": {}})
+
+        monkeypatch.setattr(
+            "importlib.metadata.distribution",
+            lambda name: DirectUrlDistribution(),
+        )
+        monkeypatch.setattr(hm, "get_hermes_home", lambda: tmp_path)
+        monkeypatch.setattr(hm, "_github_resolve_ref", lambda owner, repo, ref: sha)
+        monkeypatch.setattr(hm, "_installed_distribution_matches_github_commit", lambda *args, **kwargs: True)
+
+        hm._cmd_update_pip(SimpleNamespace())
+
+        assert mock_run.call_count == 0
+        state = json.loads((tmp_path / "update-source-state.json").read_text(encoding="utf-8"))
+        assert state["hermes-agent"]["resolved_commit"] == sha
+
+    @patch("shutil.which", return_value="/home/wayne/.local/bin/uv")
+    @patch("subprocess.run")
+    def test_update_pip_direct_url_archive_records_state_after_refresh(
+        self, mock_run, _mock_which, tmp_path, monkeypatch
+    ):
+        """The first archive refresh records the resolved branch SHA for future no-ops."""
+        from hermes_cli import main as hm
+
+        source = "https://github.com/quarker1337/nanoHermes/archive/refs/heads/main.tar.gz"
+        sha = "b" * 40
+
+        class DirectUrlDistribution:
+            def read_text(self, name):
+                assert name == "direct_url.json"
+                return json.dumps({"url": source, "archive_info": {}})
+
+        monkeypatch.setattr(
+            "importlib.metadata.distribution",
+            lambda name: DirectUrlDistribution(),
+        )
+        monkeypatch.setattr(hm, "get_hermes_home", lambda: tmp_path)
+        monkeypatch.setattr(hm, "_github_resolve_ref", lambda owner, repo, ref: sha)
+        monkeypatch.setattr(hm, "_installed_distribution_matches_github_commit", lambda *args, **kwargs: False)
+        monkeypatch.setattr(hm.sys, "prefix", "/tmp/hermes-venv")
+        monkeypatch.setattr(hm.sys, "base_prefix", "/usr")
+        mock_run.return_value = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+
+        hm._cmd_update_pip(SimpleNamespace())
+
+        assert mock_run.call_count == 1
+        state = json.loads((tmp_path / "update-source-state.json").read_text(encoding="utf-8"))
+        assert state["hermes-agent"]["source_url"] == source
+        assert state["hermes-agent"]["requested_revision"] == "main"
+        assert state["hermes-agent"]["resolved_commit"] == sha
+
+    @patch("shutil.which", return_value="/home/wayne/.local/bin/uv")
+    @patch("subprocess.run")
+    def test_update_pip_vcs_direct_url_skips_when_commit_matches(
+        self, mock_run, _mock_which, monkeypatch, capsys
+    ):
+        """VCS direct URL installs can compare PEP 610 commit_id directly."""
+        from hermes_cli import main as hm
+
+        source = "https://github.com/quarker1337/nanoHermes.git"
+        sha = "c" * 40
+
+        class DirectUrlDistribution:
+            def read_text(self, name):
+                assert name == "direct_url.json"
+                return json.dumps(
+                    {
+                        "url": source,
+                        "vcs_info": {
+                            "vcs": "git",
+                            "requested_revision": "main",
+                            "commit_id": sha,
+                        },
+                    }
+                )
+
+        monkeypatch.setattr(
+            "importlib.metadata.distribution",
+            lambda name: DirectUrlDistribution(),
+        )
+        monkeypatch.setattr(hm, "_github_resolve_ref", lambda owner, repo, ref: sha)
+
+        hm._cmd_update_pip(SimpleNamespace())
+
+        assert mock_run.call_count == 0
+        assert "Already up to date" in capsys.readouterr().out
+
+    def test_direct_url_target_preserves_vcs_requested_revision(self):
+        from hermes_cli.main import _direct_url_update_target_from_data
+
+        target = _direct_url_update_target_from_data(
+            {
+                "url": "https://github.com/quarker1337/nanoHermes.git",
+                "vcs_info": {"vcs": "git", "requested_revision": "main", "commit_id": "d" * 40},
+            }
+        )
+
+        assert target == "hermes-agent @ git+https://github.com/quarker1337/nanoHermes.git@main"
 
     @patch("shutil.which", return_value="/home/wayne/.local/bin/uv")
     @patch("subprocess.run")
@@ -224,7 +383,7 @@ class TestCmdUpdatePip:
         monkeypatch.delenv("VIRTUAL_ENV", raising=False)
         monkeypatch.setattr(hm.sys, "prefix", "/usr")
         monkeypatch.setattr(hm.sys, "base_prefix", "/usr")
-        monkeypatch.setattr(hm, "_direct_url_update_target", lambda *args, **kwargs: None)
+        monkeypatch.setattr(hm, "_direct_url_distribution_data", lambda *args, **kwargs: None)
 
         hm._cmd_update_pip(mock_args)
 
@@ -250,7 +409,7 @@ class TestCmdUpdatePip:
         monkeypatch.delenv("VIRTUAL_ENV", raising=False)
         monkeypatch.setattr(hm.sys, "prefix", "/tmp/hermes-launcher-venv")
         monkeypatch.setattr(hm.sys, "base_prefix", "/usr")
-        monkeypatch.setattr(hm, "_direct_url_update_target", lambda *args, **kwargs: None)
+        monkeypatch.setattr(hm, "_direct_url_distribution_data", lambda *args, **kwargs: None)
 
         hm._cmd_update_pip(mock_args)
 
@@ -274,7 +433,7 @@ class TestCmdUpdatePip:
             "executable",
             "/home/wayne/.local/share/uv/tools/hermes-agent/bin/python",
         )
-        monkeypatch.setattr(hm, "_direct_url_update_target", lambda *args, **kwargs: None)
+        monkeypatch.setattr(hm, "_direct_url_distribution_data", lambda *args, **kwargs: None)
 
         hm._cmd_update_pip(mock_args)
 
@@ -296,7 +455,7 @@ class TestCmdUpdatePip:
         monkeypatch.delenv("VIRTUAL_ENV", raising=False)
         monkeypatch.setattr(hm.sys, "prefix", "/home/wayne/.local/pipx/venvs/hermes-agent")
         monkeypatch.setattr(hm.sys, "base_prefix", "/usr")
-        monkeypatch.setattr(hm, "_direct_url_update_target", lambda *args, **kwargs: None)
+        monkeypatch.setattr(hm, "_direct_url_distribution_data", lambda *args, **kwargs: None)
 
         hm._cmd_update_pip(mock_args)
 

@@ -9026,6 +9026,40 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
     if method == "pip":
         from hermes_cli.config import recommended_update_command
         from hermes_cli.banner import check_via_pypi
+
+        direct_url_data = _direct_url_distribution_data()
+        direct_url_target = _direct_url_update_target_from_data(
+            direct_url_data,
+            branch=branch,
+            branch_explicit=branch_explicit,
+        )
+        if direct_url_target:
+            print("→ Checking installed package source for updates...")
+            status = _direct_url_update_status(
+                direct_url_data,
+                branch=branch,
+                branch_explicit=branch_explicit,
+            )
+            state = status.get("state")
+            if state == "up_to_date":
+                _record_direct_url_update_state(status)
+                commit = str(status.get("remote_commit") or "")[:10]
+                suffix = f" ({commit})" if commit else ""
+                print(f"✓ Already up to date{suffix}.")
+                return
+            if state == "available":
+                old = str(status.get("installed_commit") or "")[:10]
+                new = str(status.get("remote_commit") or "")[:10]
+                if old and new:
+                    print(f"⚕ Update available: {old} → {new}.")
+                else:
+                    print("⚕ Update available from installed package source.")
+                print(f"  Run '{recommended_update_command()}' to install.")
+                return
+            print("✗ Could not determine whether the installed package source has updates.")
+            print(f"  Run '{recommended_update_command()}' to refresh it.")
+            sys.exit(1)
+
         if branch_explicit and branch != "main":
             print(f"⚠ --branch is ignored for PyPI installs (would have checked '{branch}').")
         result = check_via_pypi()
@@ -9390,6 +9424,376 @@ def _rewrite_github_archive_url_branch(url: str, branch: str) -> str:
     return url
 
 
+def _direct_url_distribution_data(distribution_name: str = "hermes-agent") -> dict | None:
+    """Read PEP 610 ``direct_url.json`` metadata for ``distribution_name``."""
+    try:
+        import importlib.metadata as importlib_metadata
+
+        dist = importlib_metadata.distribution(distribution_name)
+        raw = dist.read_text("direct_url.json")
+        if not raw:
+            return None
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            return None
+        return data
+    except Exception:
+        return None
+
+
+def _direct_url_source_url(
+    data: dict,
+    *,
+    branch: str | None = None,
+    branch_explicit: bool = False,
+) -> str | None:
+    """Return the recorded direct URL, applying branch rewrites when needed."""
+    url = str(data.get("url") or "").strip()
+    if not url:
+        return None
+    if branch_explicit and branch:
+        url = _rewrite_github_archive_url_branch(url, branch)
+    return url
+
+
+def _direct_url_update_target_from_data(
+    data: dict | None,
+    distribution_name: str = "hermes-agent",
+    *,
+    branch: str | None = None,
+    branch_explicit: bool = False,
+) -> str | None:
+    """Build the PEP 508 install target for a direct URL distribution."""
+    if not isinstance(data, dict):
+        return None
+    url = _direct_url_source_url(data, branch=branch, branch_explicit=branch_explicit)
+    if not url:
+        return None
+    archive_info = data.get("archive_info")
+    vcs_info = data.get("vcs_info")
+    if archive_info is None and vcs_info is None:
+        return None
+    if not url.startswith(("http://", "https://", "git+http://", "git+https://", "ssh://", "git+ssh://")):
+        return None
+
+    if isinstance(vcs_info, dict):
+        vcs = str(vcs_info.get("vcs") or "").strip().lower()
+        if vcs == "git":
+            requested_revision = (
+                branch if branch_explicit and branch else str(vcs_info.get("requested_revision") or "").strip()
+            )
+            vcs_url = url if url.startswith("git+") else f"git+{url}"
+            if requested_revision:
+                return f"{distribution_name} @ {vcs_url}@{requested_revision}"
+            return f"{distribution_name} @ {vcs_url}"
+
+    return f"{distribution_name} @ {url}"
+
+
+def _github_repo_from_url(url: str) -> tuple[str, str] | None:
+    """Extract ``(owner, repo)`` from common GitHub HTTPS/Git URLs."""
+    try:
+        from urllib.parse import urlsplit
+
+        raw = url[4:] if url.startswith("git+") else url
+        parsed = urlsplit(raw)
+        if parsed.netloc not in {"github.com", "www.github.com"}:
+            return None
+        parts = [part for part in parsed.path.strip("/").split("/") if part]
+        if len(parts) < 2:
+            return None
+        owner = parts[0]
+        repo = parts[1]
+        if repo.endswith(".git"):
+            repo = repo[:-4]
+        if not owner or not repo:
+            return None
+        return owner, repo
+    except Exception:
+        return None
+
+
+def _github_archive_ref_from_url(url: str) -> tuple[str, str, str] | None:
+    """Extract ``(owner, repo, branch)`` from a GitHub branch archive URL."""
+    try:
+        from urllib.parse import unquote, urlsplit
+
+        parsed = urlsplit(url)
+        if parsed.netloc not in {"github.com", "www.github.com"}:
+            return None
+        marker = "/archive/refs/heads/"
+        if marker not in parsed.path:
+            return None
+        prefix, rest = parsed.path.split(marker, 1)
+        parts = [part for part in prefix.strip("/").split("/") if part]
+        if len(parts) < 2:
+            return None
+        branch = None
+        for suffix in (".tar.gz", ".tgz", ".zip", ".tar.xz", ".tar.bz2"):
+            if rest.endswith(suffix):
+                branch = rest[: -len(suffix)]
+                break
+        if not branch:
+            return None
+        return parts[0], parts[1], unquote(branch)
+    except Exception:
+        return None
+
+
+def _github_resolve_ref(owner: str, repo: str, ref: str, *, timeout: float = 10.0) -> str | None:
+    """Resolve a GitHub branch/tag/SHA-ish ref to a commit SHA via the public API."""
+    if not owner or not repo or not ref:
+        return None
+    try:
+        from urllib.parse import quote
+        from urllib.request import Request, urlopen
+
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/commits/{quote(ref, safe='')}"
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "Hermes-Agent-Update-Check",
+        }
+        token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        with urlopen(Request(api_url, headers=headers), timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        sha = str(payload.get("sha") or "").strip()
+        return sha or None
+    except Exception as exc:
+        logger.debug("GitHub ref resolution failed for %s/%s@%s: %s", owner, repo, ref, exc)
+        return None
+
+
+def _github_tree_blob_map(owner: str, repo: str, commit: str, *, timeout: float = 10.0) -> dict[str, str] | None:
+    """Return a ``path -> git blob sha`` map for a GitHub commit tree."""
+    if not owner or not repo or not commit:
+        return None
+    try:
+        from urllib.parse import quote
+        from urllib.request import Request, urlopen
+
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{quote(commit, safe='')}?recursive=1"
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "Hermes-Agent-Update-Check",
+        }
+        token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        with urlopen(Request(api_url, headers=headers), timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        if payload.get("truncated"):
+            return None
+        tree = payload.get("tree")
+        if not isinstance(tree, list):
+            return None
+        blobs: dict[str, str] = {}
+        for item in tree:
+            if not isinstance(item, dict) or item.get("type") != "blob":
+                continue
+            path = str(item.get("path") or "").strip()
+            sha = str(item.get("sha") or "").strip()
+            if path and sha:
+                blobs[path] = sha
+        return blobs
+    except Exception as exc:
+        logger.debug("GitHub tree lookup failed for %s/%s@%s: %s", owner, repo, commit, exc)
+        return None
+
+
+def _git_blob_sha(content: bytes) -> str:
+    import hashlib
+
+    return hashlib.sha1(b"blob " + str(len(content)).encode("ascii") + b"\0" + content).hexdigest()
+
+
+def _installed_distribution_matches_github_commit(
+    distribution_name: str,
+    owner: str,
+    repo: str,
+    commit: str,
+) -> bool:
+    """Best-effort bootstrap check for archive installs without recorded state.
+
+    Existing GitHub branch-archive installs predate the state file this updater
+    writes after a successful refresh. To avoid one extra reinstall immediately
+    after users update to this smarter updater, compare installed Python files
+    against the GitHub tree at the resolved commit. If all installed code files
+    we can map match that tree, seed the state and treat the source as current.
+    """
+    try:
+        import importlib.metadata as importlib_metadata
+
+        tree = _github_tree_blob_map(owner, repo, commit)
+        if not tree:
+            return False
+        dist = importlib_metadata.distribution(distribution_name)
+        checked = 0
+        for rel in dist.files or []:
+            rel_path = str(rel).replace("\\", "/")
+            if not rel_path.endswith(".py") or ".dist-info/" in rel_path:
+                continue
+            source_path = rel_path if rel_path in tree else f"runtime/{rel_path}"
+            remote_blob = tree.get(source_path)
+            if not remote_blob:
+                continue
+            local_path = dist.locate_file(rel)
+            try:
+                content = local_path.read_bytes()
+            except OSError:
+                return False
+            if _git_blob_sha(content) != remote_blob:
+                return False
+            checked += 1
+        return checked > 0
+    except Exception as exc:
+        logger.debug(
+            "Installed distribution source comparison failed for %s at %s/%s@%s: %s",
+            distribution_name,
+            owner,
+            repo,
+            commit,
+            exc,
+        )
+        return False
+
+
+def _direct_url_update_state_path() -> Path:
+    return get_hermes_home() / "update-source-state.json"
+
+
+def _read_direct_url_update_state() -> dict:
+    try:
+        path = _direct_url_update_state_path()
+        if not path.is_file():
+            return {}
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _write_direct_url_update_state(distribution_name: str, entry: dict) -> None:
+    try:
+        path = _direct_url_update_state_path()
+        state = _read_direct_url_update_state()
+        state[distribution_name] = entry
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        tmp.replace(path)
+    except Exception as exc:
+        logger.debug("Could not write direct URL update state: %s", exc)
+
+
+def _direct_url_update_status(
+    data: dict | None,
+    distribution_name: str = "hermes-agent",
+    *,
+    branch: str | None = None,
+    branch_explicit: bool = False,
+) -> dict:
+    """Return update status for remote direct-URL installs.
+
+    Direct URL branch archives keep the same package version across commits, so
+    pip/uv cannot tell whether a reinstall is needed from version metadata
+    alone. For GitHub sources we resolve the branch/ref to a commit SHA and
+    compare it with either PEP 610 VCS metadata or Hermes' small persisted state
+    from the last successful archive refresh.
+    """
+    info = {
+        "state": "unknown",
+        "source_url": None,
+        "requested_revision": None,
+        "remote_commit": None,
+        "installed_commit": None,
+        "kind": None,
+    }
+    if not isinstance(data, dict):
+        return info
+    source_url = _direct_url_source_url(data, branch=branch, branch_explicit=branch_explicit)
+    if not source_url:
+        return info
+    info["source_url"] = source_url
+
+    vcs_info = data.get("vcs_info")
+    archive_info = data.get("archive_info")
+
+    owner_repo_ref: tuple[str, str, str] | None = None
+    if isinstance(vcs_info, dict) and str(vcs_info.get("vcs") or "").strip().lower() == "git":
+        repo = _github_repo_from_url(source_url)
+        requested_revision = (
+            branch if branch_explicit and branch else str(vcs_info.get("requested_revision") or "").strip()
+        )
+        if repo and requested_revision:
+            owner_repo_ref = (repo[0], repo[1], requested_revision)
+            info["requested_revision"] = requested_revision
+            info["installed_commit"] = str(vcs_info.get("commit_id") or "").strip() or None
+            info["kind"] = "vcs"
+    elif archive_info is not None:
+        archive_ref = _github_archive_ref_from_url(source_url)
+        if archive_ref:
+            owner_repo_ref = archive_ref
+            info["requested_revision"] = archive_ref[2]
+            info["kind"] = "archive"
+            state = _read_direct_url_update_state().get(distribution_name, {})
+            if isinstance(state, dict):
+                if (
+                    state.get("source_url") == source_url
+                    and state.get("requested_revision") == archive_ref[2]
+                ):
+                    info["installed_commit"] = str(state.get("resolved_commit") or "").strip() or None
+
+    if owner_repo_ref is None:
+        return info
+
+    remote_commit = _github_resolve_ref(*owner_repo_ref)
+    if not remote_commit:
+        return info
+    info["remote_commit"] = remote_commit
+    installed_commit = info.get("installed_commit")
+    if not installed_commit and info.get("kind") == "archive":
+        owner, repo, _ref = owner_repo_ref
+        if _installed_distribution_matches_github_commit(
+            distribution_name,
+            owner,
+            repo,
+            remote_commit,
+        ):
+            installed_commit = remote_commit
+            info["installed_commit"] = remote_commit
+    if installed_commit:
+        info["state"] = "up_to_date" if installed_commit == remote_commit else "available"
+    else:
+        info["state"] = "unknown"
+    return info
+
+
+def _record_direct_url_update_state(
+    status: dict | None,
+    distribution_name: str = "hermes-agent",
+) -> None:
+    """Persist the resolved source revision after a successful direct URL update."""
+    if not isinstance(status, dict):
+        return
+    remote_commit = str(status.get("remote_commit") or "").strip()
+    source_url = str(status.get("source_url") or "").strip()
+    requested_revision = str(status.get("requested_revision") or "").strip()
+    if not remote_commit or not source_url or not requested_revision:
+        return
+    _write_direct_url_update_state(
+        distribution_name,
+        {
+            "source_url": source_url,
+            "requested_revision": requested_revision,
+            "resolved_commit": remote_commit,
+            "kind": status.get("kind") or "direct-url",
+            "updated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        },
+    )
+
+
 def _direct_url_update_target(
     distribution_name: str = "hermes-agent",
     *,
@@ -9413,26 +9817,12 @@ def _direct_url_update_target(
     reliable self-update sources and should use the git update path when a
     checkout is available.
     """
-    try:
-        import importlib.metadata as importlib_metadata
-
-        dist = importlib_metadata.distribution(distribution_name)
-        raw = dist.read_text("direct_url.json")
-        if not raw:
-            return None
-        data = json.loads(raw)
-        url = str(data.get("url") or "").strip()
-        if not url:
-            return None
-        if data.get("archive_info") is None and data.get("vcs_info") is None:
-            return None
-        if not url.startswith(("http://", "https://", "git+http://", "git+https://", "ssh://", "git+ssh://")):
-            return None
-        if branch_explicit and branch:
-            url = _rewrite_github_archive_url_branch(url, branch)
-        return f"{distribution_name} @ {url}"
-    except Exception:
-        return None
+    return _direct_url_update_target_from_data(
+        _direct_url_distribution_data(distribution_name),
+        distribution_name,
+        branch=branch,
+        branch_explicit=branch_explicit,
+    )
 
 
 def _cmd_update_pip(args):
@@ -9443,10 +9833,13 @@ def _cmd_update_pip(args):
     print(f"→ Current version: {__version__}")
     branch = _resolve_update_branch(args)
     branch_explicit = bool(getattr(args, "branch", None))
-    direct_url_target = _direct_url_update_target(
+    direct_url_data = _direct_url_distribution_data()
+    direct_url_target = _direct_url_update_target_from_data(
+        direct_url_data,
         branch=branch,
         branch_explicit=branch_explicit,
     )
+    direct_url_status = None
     install_target = direct_url_target or "hermes-agent"
     if install_target == "hermes-agent":
         print("→ Checking PyPI for updates...")
@@ -9454,6 +9847,22 @@ def _cmd_update_pip(args):
             print(f"⚠ --branch is ignored for PyPI installs (would have updated '{branch}').")
     else:
         print("→ Checking installed package source for updates...")
+        direct_url_status = _direct_url_update_status(
+            direct_url_data,
+            branch=branch,
+            branch_explicit=branch_explicit,
+        )
+        if direct_url_status.get("state") == "up_to_date" and not getattr(args, "force", False):
+            _record_direct_url_update_state(direct_url_status)
+            commit = str(direct_url_status.get("remote_commit") or "")[:10]
+            suffix = f" ({commit})" if commit else ""
+            print(f"✓ Already up to date{suffix}.")
+            return
+        if direct_url_status.get("state") == "available":
+            old = str(direct_url_status.get("installed_commit") or "")[:10]
+            new = str(direct_url_status.get("remote_commit") or "")[:10]
+            if old and new:
+                print(f"→ Source update available: {old} → {new}")
 
     uv = shutil.which("uv")
     in_venv = sys.prefix != sys.base_prefix
@@ -9507,6 +9916,9 @@ def _cmd_update_pip(args):
     if result.returncode != 0:
         print("✗ Update failed")
         sys.exit(1)
+
+    if direct_url_target:
+        _record_direct_url_update_state(direct_url_status)
 
     print("✓ Update complete! Restart hermes to use the new version.")
 
@@ -14389,7 +14801,11 @@ Examples:
         "--force",
         action="store_true",
         default=False,
-        help="Windows: proceed with the update even when another hermes.exe is detected. The concurrent process will likely cause WinError 32 warnings and may leave a reboot-deferred .exe replacement.",
+        help=(
+            "Force an update attempt even when source metadata says the install is up to date. "
+            "On Windows this also proceeds when another hermes.exe is detected; "
+            "the concurrent process will likely cause WinError 32 warnings."
+        ),
     )
     update_parser.set_defaults(func=cmd_update)
 
