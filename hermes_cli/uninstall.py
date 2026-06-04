@@ -176,14 +176,70 @@ def desktop_app_data_candidates() -> list[Path]:
     return _unique_paths(candidates)
 
 
+_DESKTOP_APP_DATA_SENTINEL_FILES = ("connection.json", "updates.json")
+_DESKTOP_APP_DATA_STORAGE_DIRS = ("Local Storage", "Session Storage", "IndexedDB")
+_DESKTOP_APP_DATA_STORAGE_MARKERS = (
+    b"hermes-dashboard-theme",
+    b"hermes-locale",
+    b"hermes-sidebar-collapsed",
+)
+_DESKTOP_APP_DATA_MAX_MARKER_SCAN_FILES = 128
+_DESKTOP_APP_DATA_MAX_MARKER_SCAN_BYTES = 2 * 1024 * 1024
+
+
+def _file_contains_any_marker(path: Path, markers: tuple[bytes, ...]) -> bool:
+    """Return True if ``path`` contains one of ``markers`` near its start.
+
+    Electron stores localStorage in Chromium/LevelDB files. Keys remain visible
+    as byte strings there, so a bounded binary scan is enough to identify Hermes
+    renderer preferences without slurping arbitrary cache blobs into memory.
+    """
+    try:
+        with path.open("rb") as fh:
+            data = fh.read(_DESKTOP_APP_DATA_MAX_MARKER_SCAN_BYTES)
+    except OSError:
+        return False
+    return any(marker in data for marker in markers)
+
+
+def _contains_hermes_desktop_storage_marker(path: Path) -> bool:
+    """Detect renderer-persisted Hermes state in Electron/Chromium storage."""
+    scanned = 0
+    for rel_dir in _DESKTOP_APP_DATA_STORAGE_DIRS:
+        storage_dir = path / rel_dir
+        try:
+            if not storage_dir.exists():
+                continue
+            candidates = [storage_dir] if storage_dir.is_file() else storage_dir.rglob("*")
+            for candidate in candidates:
+                if scanned >= _DESKTOP_APP_DATA_MAX_MARKER_SCAN_FILES:
+                    return False
+                try:
+                    if not candidate.is_file():
+                        continue
+                except OSError:
+                    continue
+                scanned += 1
+                if _file_contains_any_marker(candidate, _DESKTOP_APP_DATA_STORAGE_MARKERS):
+                    return True
+        except OSError:
+            continue
+    return False
+
+
 def _looks_like_hermes_desktop_app_data(path: Path) -> bool:
     """Conservative guard before deleting an OS app-data directory.
 
     ``Hermes`` is a generic product name, so do not remove a candidate directory
-    merely because it has that name. Only treat it as ours when it contains the
-    explicit desktop settings files written by the Hermes Electron app.
+    merely because it has that name. Only treat it as ours when it contains
+    explicit desktop files (``connection.json`` / ``updates.json``) or Hermes
+    renderer preference keys inside Electron's Chromium storage. The renderer
+    path matters for direct Electron launches: changing only the theme can create
+    ``Local Storage/leveldb`` state without ever writing ``connection.json``.
     """
-    return (path / "connection.json").exists() or (path / "updates.json").exists()
+    if any((path / name).exists() for name in _DESKTOP_APP_DATA_SENTINEL_FILES):
+        return True
+    return _contains_hermes_desktop_storage_marker(path)
 
 
 def external_desktop_app_data_paths(hermes_home: Path) -> list[Path]:
