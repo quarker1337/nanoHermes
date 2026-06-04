@@ -9,6 +9,7 @@ Provides options for:
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from hermes_runtime.hermes_constants import get_hermes_home
@@ -114,6 +115,103 @@ def remove_wrapper_script():
             except Exception as e:
                 log_warn(f"Could not remove {wrapper}: {e}")
     
+    return removed
+
+
+def _unique_paths(paths: list[Path]) -> list[Path]:
+    """Return paths in first-seen order, de-duplicated by resolved path."""
+    seen: set[Path] = set()
+    result: list[Path] = []
+    for path in paths:
+        try:
+            key = path.expanduser().resolve()
+        except OSError:
+            key = path.expanduser().absolute()
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(path.expanduser())
+    return result
+
+
+def _path_is_inside(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def desktop_app_data_candidates() -> list[Path]:
+    """Likely Electron ``app.getPath('userData')`` dirs for Hermes Desktop.
+
+    The package-managed NanoHermes launcher sets ``HERMES_DESKTOP_USER_DATA_DIR``
+    so the remote-client connection config lives under ``$HERMES_HOME``. If a
+    user starts the packaged Electron binary directly, Electron falls back to
+    its OS app-data default instead (Linux: ``~/.config/Hermes``, macOS:
+    ``~/Library/Application Support/Hermes``, Windows: ``%APPDATA%\\Hermes``).
+    These directories sit outside ``$HERMES_HOME`` and therefore need explicit
+    handling during a full uninstall.
+    """
+    candidates: list[Path] = []
+
+    override = os.getenv("HERMES_DESKTOP_USER_DATA_DIR")
+    if override:
+        candidates.append(Path(override))
+
+    home = Path.home()
+    app_names = ("Hermes", "hermes")
+    if sys.platform == "win32":
+        for base_var in ("APPDATA", "LOCALAPPDATA"):
+            base = os.getenv(base_var)
+            if base:
+                candidates.extend(Path(base) / name for name in app_names)
+    elif sys.platform == "darwin":
+        base = home / "Library" / "Application Support"
+        candidates.extend(base / name for name in app_names)
+    else:
+        config_home = Path(os.getenv("XDG_CONFIG_HOME", str(home / ".config")))
+        candidates.extend(config_home / name for name in app_names)
+
+    return _unique_paths(candidates)
+
+
+def _looks_like_hermes_desktop_app_data(path: Path) -> bool:
+    """Conservative guard before deleting an OS app-data directory.
+
+    ``Hermes`` is a generic product name, so do not remove a candidate directory
+    merely because it has that name. Only treat it as ours when it contains the
+    explicit desktop settings files written by the Hermes Electron app.
+    """
+    return (path / "connection.json").exists() or (path / "updates.json").exists()
+
+
+def external_desktop_app_data_paths(hermes_home: Path) -> list[Path]:
+    """Existing, recognized desktop app-data dirs outside ``hermes_home``."""
+    result: list[Path] = []
+    for candidate in desktop_app_data_candidates():
+        if _path_is_inside(candidate, hermes_home):
+            continue
+        try:
+            if candidate.exists() and _looks_like_hermes_desktop_app_data(candidate):
+                result.append(candidate)
+        except OSError:
+            continue
+    return _unique_paths(result)
+
+
+def remove_external_desktop_app_data(hermes_home: Path) -> list[Path]:
+    """Remove recognized desktop app-data dirs outside ``hermes_home``."""
+    removed: list[Path] = []
+    for path in external_desktop_app_data_paths(hermes_home):
+        try:
+            if path.is_symlink() or path.is_file():
+                path.unlink()
+            else:
+                shutil.rmtree(path)
+            removed.append(path)
+        except Exception as e:
+            log_warn(f"Could not remove desktop app data {path}: {e}")
     return removed
 
 
@@ -443,6 +541,7 @@ def run_uninstall(args):
     """
     project_root = get_project_root()
     hermes_home = get_hermes_home()
+    desktop_app_data = external_desktop_app_data_paths(hermes_home)
 
     # Detect named profiles when uninstalling from the default root —
     # offer to clean them up too instead of leaving zombie HERMES_HOMEs
@@ -462,6 +561,10 @@ def run_uninstall(args):
     print(f"  Config:  {hermes_home / 'config.yaml'}")
     print(f"  Secrets: {hermes_home / '.env'}")
     print(f"  Data:    {hermes_home / 'cron/'}, {hermes_home / 'sessions/'}, {hermes_home / 'logs/'}")
+    if desktop_app_data:
+        print("  Desktop app data outside Hermes home:")
+        for path in desktop_app_data:
+            print(f"           {path}")
     print()
 
     if named_profiles:
@@ -524,6 +627,8 @@ def run_uninstall(args):
     if full_uninstall:
         print(color("⚠️  WARNING: This will permanently delete ALL Hermes data!", Colors.RED, Colors.BOLD))
         print(color("   Including: configs, API keys, sessions, scheduled jobs, logs", Colors.RED))
+        if desktop_app_data:
+            print(color("   Plus desktop app connection/settings data outside Hermes home", Colors.RED))
         if remove_profiles:
             print(color(
                 f"   Plus {len(named_profiles)} profile(s): " +
@@ -648,8 +753,20 @@ def run_uninstall(args):
         except Exception as e:
             log_warn(f"Could not fully remove {hermes_home}: {e}")
             log_info("You may need to manually remove it")
+
+        if desktop_app_data:
+            log_info("Removing desktop app data outside Hermes home...")
+            removed_desktop_data = remove_external_desktop_app_data(hermes_home)
+            if removed_desktop_data:
+                for path in removed_desktop_data:
+                    log_success(f"Removed {path}")
+            else:
+                log_info("No recognized desktop app data found outside Hermes home")
     else:
         log_info(f"Keeping configuration and data in {hermes_home}")
+        if desktop_app_data:
+            for path in desktop_app_data:
+                log_info(f"Keeping desktop app data outside Hermes home: {path}")
     
     # Done
     print()
