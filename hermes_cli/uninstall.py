@@ -216,6 +216,8 @@ _DESKTOP_APP_DATA_SENTINEL_FILES = ("connection.json", "updates.json")
 _DESKTOP_APP_DATA_STORAGE_DIRS = ("Local Storage", "Session Storage", "IndexedDB")
 _DESKTOP_APP_DATA_STORAGE_MARKERS = (
     b"hermes-dashboard-theme",
+    b"hermes-desktop-mode-v1",
+    b"hermes-desktop-theme-v2",
     b"hermes-locale",
     b"hermes-sidebar-collapsed",
 )

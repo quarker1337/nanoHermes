@@ -79,6 +79,24 @@ def test_external_desktop_app_data_paths_recognizes_renderer_local_storage_marke
     assert uninstall.external_desktop_app_data_paths(hermes_home) == [external]
 
 
+def test_external_desktop_app_data_paths_recognizes_desktop_mode_theme_keys(
+    monkeypatch,
+    tmp_path: Path,
+):
+    hermes_home = tmp_path / ".hermes"
+    external = tmp_path / "xdg-config" / "Hermes"
+    leveldb = external / "Local Storage" / "leveldb"
+    leveldb.mkdir(parents=True)
+    (leveldb / "000003.log").write_bytes(
+        b"\x00_file://\x00\x01hermes-desktop-mode-v1\x05\x01dark"
+        b"\x00_file://\x00\x01hermes-desktop-theme-v2\x05\x01mono"
+    )
+
+    monkeypatch.setattr(uninstall, "desktop_app_data_candidates", lambda: [external])
+
+    assert uninstall.external_desktop_app_data_paths(hermes_home) == [external]
+
+
 def test_external_desktop_app_data_paths_ignores_plain_chromium_cache_without_marker(
     monkeypatch,
     tmp_path: Path,
