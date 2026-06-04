@@ -5,6 +5,32 @@ from pathlib import Path
 from hermes_cli import uninstall
 
 
+def test_remove_wrapper_script_removes_modern_env_sanitizing_launcher(monkeypatch, tmp_path: Path):
+    wrapper = tmp_path / "bin" / "hermes"
+    wrapper.parent.mkdir(parents=True)
+    wrapper.write_text(
+        "#!/usr/bin/env bash\n"
+        "unset PYTHONPATH\n"
+        "unset PYTHONHOME\n"
+        f"exec \"{tmp_path}/install/venv/bin/hermes\" \"$@\"\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(uninstall, "_wrapper_script_candidates", lambda: [wrapper])
+
+    assert uninstall.remove_wrapper_script() == [wrapper]
+    assert not wrapper.exists()
+
+
+def test_remove_wrapper_script_keeps_unrelated_hermes_command(monkeypatch, tmp_path: Path):
+    wrapper = tmp_path / "bin" / "hermes"
+    wrapper.parent.mkdir(parents=True)
+    wrapper.write_text("#!/usr/bin/env bash\necho 'not the installer shim'\n", encoding="utf-8")
+    monkeypatch.setattr(uninstall, "_wrapper_script_candidates", lambda: [wrapper])
+
+    assert uninstall.remove_wrapper_script() == []
+    assert wrapper.exists()
+
+
 def test_desktop_app_data_candidates_include_linux_xdg_and_override(monkeypatch, tmp_path: Path):
     override = tmp_path / "override-user-data"
     xdg_config = tmp_path / "xdg-config"

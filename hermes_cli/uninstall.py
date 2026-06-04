@@ -7,6 +7,7 @@ Provides options for:
 """
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -96,20 +97,55 @@ def remove_path_from_shell_configs():
     return removed_from
 
 
-def remove_wrapper_script():
-    """Remove the hermes wrapper script if it exists."""
-    wrapper_paths = [
+_HERMES_ENTRYPOINT_EXEC_RE = re.compile(
+    r"(?m)^\s*exec\s+[\"']?[^\"'\n]*/bin/hermes[\"']?(?:\s|$)"
+)
+
+
+def _wrapper_script_candidates() -> list[Path]:
+    return [
         Path.home() / ".local" / "bin" / "hermes",
         Path("/usr/local/bin/hermes"),
     ]
+
+
+def _looks_like_hermes_wrapper(content: str) -> bool:
+    """Return True when a ``hermes`` command shim looks installer-owned.
+
+    Historical wrappers contained ``hermes_cli`` / ``hermes-agent`` markers, but
+    the current installer intentionally writes a tiny environment-sanitising
+    bash shim:
+
+    ``unset PYTHONPATH; unset PYTHONHOME; exec "$INSTALL_DIR/venv/bin/hermes"``
+
+    That newer shape has no import/package marker, so older uninstall logic left
+    stale launchers behind.  Match the full shim shape rather than the generic
+    word "hermes" so we do not delete unrelated user commands by name alone.
+    """
+    if "hermes_cli" in content or "hermes-agent" in content:
+        return True
+    if "NanoHermes launcher" in content or "Hermes Agent launcher" in content:
+        return True
+    return (
+        "unset PYTHONPATH" in content
+        and "unset PYTHONHOME" in content
+        and _HERMES_ENTRYPOINT_EXEC_RE.search(content) is not None
+    )
+
+
+def remove_wrapper_script():
+    """Remove the hermes wrapper script if it exists."""
+    wrapper_paths = _wrapper_script_candidates()
     
     removed = []
     for wrapper in wrapper_paths:
         if wrapper.exists():
             try:
-                # Check if it's our wrapper (contains hermes_cli reference)
+                # Check if it's our wrapper before deleting a generic command
+                # name.  See ``_looks_like_hermes_wrapper`` for supported
+                # historical and modern launcher shapes.
                 content = wrapper.read_text()
-                if 'hermes_cli' in content or 'hermes-agent' in content:
+                if _looks_like_hermes_wrapper(content):
                     wrapper.unlink()
                     removed.append(wrapper)
             except Exception as e:
