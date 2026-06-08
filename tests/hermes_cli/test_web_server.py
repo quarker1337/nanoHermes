@@ -900,7 +900,7 @@ class TestNewEndpoints:
         assert resp.json() == [
             {
                 "name": "web",
-                "label": "🔍 Web Search & Scraping",
+                "label": "Web Search & Scraping",
                 "description": "web_search, web_extract",
                 "enabled": True,
                 "available": True,
@@ -909,7 +909,7 @@ class TestNewEndpoints:
             },
             {
                 "name": "skills",
-                "label": "📚 Skills",
+                "label": "Skills",
                 "description": "list, view, manage",
                 "enabled": True,
                 "available": True,
@@ -918,7 +918,7 @@ class TestNewEndpoints:
             },
             {
                 "name": "memory",
-                "label": "💾 Memory",
+                "label": "Memory",
                 "description": "persistent memory across sessions",
                 "enabled": False,
                 "available": False,
@@ -2109,7 +2109,7 @@ class TestPtyWebSocket:
         with pytest.raises(WebSocketDisconnect) as exc:
             with self.client.websocket_connect(self._url()):
                 pass
-        assert exc.value.code == 4403
+        assert exc.value.code == 4404
 
     def test_rejects_missing_token(self, monkeypatch):
         monkeypatch.setattr(

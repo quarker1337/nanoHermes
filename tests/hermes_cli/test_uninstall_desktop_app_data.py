@@ -5,6 +5,32 @@ from pathlib import Path
 from hermes_cli import uninstall
 
 
+def test_remove_wrapper_script_removes_modern_env_sanitizing_launcher(monkeypatch, tmp_path: Path):
+    wrapper = tmp_path / "bin" / "hermes"
+    wrapper.parent.mkdir(parents=True)
+    wrapper.write_text(
+        "#!/usr/bin/env bash\n"
+        "unset PYTHONPATH\n"
+        "unset PYTHONHOME\n"
+        f"exec \"{tmp_path}/install/venv/bin/hermes\" \"$@\"\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(uninstall, "_wrapper_script_candidates", lambda: [wrapper])
+
+    assert uninstall.remove_wrapper_script() == [wrapper]
+    assert not wrapper.exists()
+
+
+def test_remove_wrapper_script_keeps_unrelated_hermes_command(monkeypatch, tmp_path: Path):
+    wrapper = tmp_path / "bin" / "hermes"
+    wrapper.parent.mkdir(parents=True)
+    wrapper.write_text("#!/usr/bin/env bash\necho 'not the installer shim'\n", encoding="utf-8")
+    monkeypatch.setattr(uninstall, "_wrapper_script_candidates", lambda: [wrapper])
+
+    assert uninstall.remove_wrapper_script() == []
+    assert wrapper.exists()
+
+
 def test_desktop_app_data_candidates_include_linux_xdg_and_override(monkeypatch, tmp_path: Path):
     override = tmp_path / "override-user-data"
     xdg_config = tmp_path / "xdg-config"
@@ -38,11 +64,61 @@ def test_external_desktop_app_data_paths_only_recognized_outside_hermes_home(mon
     assert uninstall.external_desktop_app_data_paths(hermes_home) == [external]
 
 
+def test_external_desktop_app_data_paths_recognizes_renderer_local_storage_marker(
+    monkeypatch,
+    tmp_path: Path,
+):
+    hermes_home = tmp_path / ".hermes"
+    external = tmp_path / "xdg-config" / "Hermes"
+    leveldb = external / "Local Storage" / "leveldb"
+    leveldb.mkdir(parents=True)
+    (leveldb / "000003.log").write_bytes(b"\x00hermes-dashboard-theme\x00dark")
+
+    monkeypatch.setattr(uninstall, "desktop_app_data_candidates", lambda: [external])
+
+    assert uninstall.external_desktop_app_data_paths(hermes_home) == [external]
+
+
+def test_external_desktop_app_data_paths_recognizes_desktop_mode_theme_keys(
+    monkeypatch,
+    tmp_path: Path,
+):
+    hermes_home = tmp_path / ".hermes"
+    external = tmp_path / "xdg-config" / "Hermes"
+    leveldb = external / "Local Storage" / "leveldb"
+    leveldb.mkdir(parents=True)
+    (leveldb / "000003.log").write_bytes(
+        b"\x00_file://\x00\x01hermes-desktop-mode-v1\x05\x01dark"
+        b"\x00_file://\x00\x01hermes-desktop-theme-v2\x05\x01mono"
+    )
+
+    monkeypatch.setattr(uninstall, "desktop_app_data_candidates", lambda: [external])
+
+    assert uninstall.external_desktop_app_data_paths(hermes_home) == [external]
+
+
+def test_external_desktop_app_data_paths_ignores_plain_chromium_cache_without_marker(
+    monkeypatch,
+    tmp_path: Path,
+):
+    hermes_home = tmp_path / ".hermes"
+    external = tmp_path / "xdg-config" / "Hermes"
+    cache = external / "Cache" / "Cache_Data"
+    cache.mkdir(parents=True)
+    (cache / "data_0").write_bytes(b"generic chromium cache")
+
+    monkeypatch.setattr(uninstall, "desktop_app_data_candidates", lambda: [external])
+
+    assert uninstall.external_desktop_app_data_paths(hermes_home) == []
+
+
 def test_remove_external_desktop_app_data_removes_recognized_dir_not_internal(monkeypatch, tmp_path: Path):
     hermes_home = tmp_path / ".hermes"
     external = tmp_path / "xdg-config" / "Hermes"
-    (external / "Cache").mkdir(parents=True)
-    (external / "connection.json").write_text("{}", encoding="utf-8")
+    leveldb = external / "Local Storage" / "leveldb"
+    leveldb.mkdir(parents=True)
+    (leveldb / "000003.log").write_bytes(b"\x00hermes-dashboard-theme\x00dark")
+    (external / "Cache").mkdir()
     (external / "Cache" / "blob").write_text("cache", encoding="utf-8")
 
     internal = hermes_home / "apps" / "desktop-client" / "user-data"

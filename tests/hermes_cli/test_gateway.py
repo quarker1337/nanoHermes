@@ -286,6 +286,7 @@ def test_gateway_restart_on_windows_without_service_uses_detached_backend(monkey
     """
     import hermes_cli.gateway_windows as gateway_windows
 
+    monkeypatch.delenv("_HERMES_GATEWAY", raising=False)
     calls = []
 
     monkeypatch.setattr(gateway, "supports_systemd_services", lambda: False)
@@ -314,6 +315,7 @@ def test_gateway_restart_on_windows_preserves_failure_fallback(monkeypatch):
     """If the Windows backend cannot launch, keep the existing fallback."""
     import hermes_cli.gateway_windows as gateway_windows
 
+    monkeypatch.delenv("_HERMES_GATEWAY", raising=False)
     calls = []
 
     def fail_restart():

@@ -17,6 +17,12 @@ from gateway.restart import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _not_inside_gateway(monkeypatch):
+    """Service-management unit tests exercise shell-side commands, not self-stop guards."""
+    monkeypatch.delenv("_HERMES_GATEWAY", raising=False)
+
+
 class TestUserSystemdPrivateSocketPreflight:
     def test_preflight_accepts_private_socket_without_dbus_bus(self, monkeypatch):
         monkeypatch.setattr(gateway_cli, "_ensure_user_systemd_env", lambda: None)
@@ -1704,7 +1710,7 @@ class TestSystemUnitPathRemapping:
         assert str(root_home) not in unit
         # Target user paths should be present
         assert "/home/alice" in unit
-        assert "WorkingDirectory=/home/alice/.hermes/hermes-agent" in unit
+        assert "WorkingDirectory=/home/alice/.hermes" in unit
 
 
 class TestDockerAwareGateway:

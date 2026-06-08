@@ -86,7 +86,7 @@ class TestChatVerboseArg:
         chat_parser.set_defaults(func=main_mod.cmd_chat)
         args = parser.parse_args(["chat"])
         captured = {}
-        fake_cli = types.ModuleType("cli")
+        fake_cli = types.ModuleType("hermes_runtime.cli")
 
         def fake_main(**kwargs):
             captured.update(kwargs)
@@ -97,7 +97,7 @@ class TestChatVerboseArg:
         fake_skills_sync = types.ModuleType("tools.skills_sync")
         setattr(fake_skills_sync, "sync_skills", lambda quiet=True: None)
 
-        monkeypatch.setitem(sys.modules, "cli", fake_cli)
+        monkeypatch.setitem(sys.modules, "hermes_runtime.cli", fake_cli)
         monkeypatch.setitem(sys.modules, "hermes_cli.banner", fake_banner)
         monkeypatch.setitem(sys.modules, "tools.skills_sync", fake_skills_sync)
         monkeypatch.setattr(main_mod, "_has_any_provider_configured", lambda: True)

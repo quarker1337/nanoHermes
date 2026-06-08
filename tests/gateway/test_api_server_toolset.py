@@ -123,4 +123,7 @@ class TestApiServerAdapterToolset:
             mock_agent_cls.assert_called_once()
             call_kwargs = mock_agent_cls.call_args
             toolsets = call_kwargs.kwargs.get("enabled_toolsets")
-            assert sorted(toolsets) == ["terminal", "web"]
+            # NanoHermes only enables bundled or installed package toolsets.
+            # ``web`` is package-managed, so an explicit config entry is
+            # ignored until its package is installed.
+            assert sorted(toolsets) == ["terminal"]

@@ -17,7 +17,7 @@ Pure module-level utilities extracted from ``runtime/hermes_runtime/run_agent.py
   trajectory saving.
 
 All helpers are stateless.  ``run_agent`` re-exports each name so existing
-``from run_agent import ...`` imports in tests and other modules keep
+``from hermes_runtime.run_agent import ...`` imports in tests and other modules keep
 working unchanged.
 """
 

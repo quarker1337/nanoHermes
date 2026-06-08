@@ -7,6 +7,7 @@ Provides options for:
 """
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -96,20 +97,55 @@ def remove_path_from_shell_configs():
     return removed_from
 
 
-def remove_wrapper_script():
-    """Remove the hermes wrapper script if it exists."""
-    wrapper_paths = [
+_HERMES_ENTRYPOINT_EXEC_RE = re.compile(
+    r"(?m)^\s*exec\s+[\"']?[^\"'\n]*/bin/hermes[\"']?(?:\s|$)"
+)
+
+
+def _wrapper_script_candidates() -> list[Path]:
+    return [
         Path.home() / ".local" / "bin" / "hermes",
         Path("/usr/local/bin/hermes"),
     ]
+
+
+def _looks_like_hermes_wrapper(content: str) -> bool:
+    """Return True when a ``hermes`` command shim looks installer-owned.
+
+    Historical wrappers contained ``hermes_cli`` / ``hermes-agent`` markers, but
+    the current installer intentionally writes a tiny environment-sanitising
+    bash shim:
+
+    ``unset PYTHONPATH; unset PYTHONHOME; exec "$INSTALL_DIR/venv/bin/hermes"``
+
+    That newer shape has no import/package marker, so older uninstall logic left
+    stale launchers behind.  Match the full shim shape rather than the generic
+    word "hermes" so we do not delete unrelated user commands by name alone.
+    """
+    if "hermes_cli" in content or "hermes-agent" in content:
+        return True
+    if "NanoHermes launcher" in content or "Hermes Agent launcher" in content:
+        return True
+    return (
+        "unset PYTHONPATH" in content
+        and "unset PYTHONHOME" in content
+        and _HERMES_ENTRYPOINT_EXEC_RE.search(content) is not None
+    )
+
+
+def remove_wrapper_script():
+    """Remove the hermes wrapper script if it exists."""
+    wrapper_paths = _wrapper_script_candidates()
     
     removed = []
     for wrapper in wrapper_paths:
         if wrapper.exists():
             try:
-                # Check if it's our wrapper (contains hermes_cli reference)
+                # Check if it's our wrapper before deleting a generic command
+                # name.  See ``_looks_like_hermes_wrapper`` for supported
+                # historical and modern launcher shapes.
                 content = wrapper.read_text()
-                if 'hermes_cli' in content or 'hermes-agent' in content:
+                if _looks_like_hermes_wrapper(content):
                     wrapper.unlink()
                     removed.append(wrapper)
             except Exception as e:
@@ -149,7 +185,7 @@ def desktop_app_data_candidates() -> list[Path]:
     so the remote-client connection config lives under ``$HERMES_HOME``. If a
     user starts the packaged Electron binary directly, Electron falls back to
     its OS app-data default instead (Linux: ``~/.config/Hermes``, macOS:
-    ``~/Library/Application Support/Hermes``, Windows: ``%APPDATA%\\Hermes``).
+    ``~/Library/Application Support/Hermes``, Windows: ``%APPDATA%\Hermes``).
     These directories sit outside ``$HERMES_HOME`` and therefore need explicit
     handling during a full uninstall.
     """
@@ -176,14 +212,72 @@ def desktop_app_data_candidates() -> list[Path]:
     return _unique_paths(candidates)
 
 
+_DESKTOP_APP_DATA_SENTINEL_FILES = ("connection.json", "updates.json")
+_DESKTOP_APP_DATA_STORAGE_DIRS = ("Local Storage", "Session Storage", "IndexedDB")
+_DESKTOP_APP_DATA_STORAGE_MARKERS = (
+    b"hermes-dashboard-theme",
+    b"hermes-desktop-mode-v1",
+    b"hermes-desktop-theme-v2",
+    b"hermes-locale",
+    b"hermes-sidebar-collapsed",
+)
+_DESKTOP_APP_DATA_MAX_MARKER_SCAN_FILES = 128
+_DESKTOP_APP_DATA_MAX_MARKER_SCAN_BYTES = 2 * 1024 * 1024
+
+
+def _file_contains_any_marker(path: Path, markers: tuple[bytes, ...]) -> bool:
+    """Return True if ``path`` contains one of ``markers`` near its start.
+
+    Electron stores localStorage in Chromium/LevelDB files. Keys remain visible
+    as byte strings there, so a bounded binary scan is enough to identify Hermes
+    renderer preferences without slurping arbitrary cache blobs into memory.
+    """
+    try:
+        with path.open("rb") as fh:
+            data = fh.read(_DESKTOP_APP_DATA_MAX_MARKER_SCAN_BYTES)
+    except OSError:
+        return False
+    return any(marker in data for marker in markers)
+
+
+def _contains_hermes_desktop_storage_marker(path: Path) -> bool:
+    """Detect renderer-persisted Hermes state in Electron/Chromium storage."""
+    scanned = 0
+    for rel_dir in _DESKTOP_APP_DATA_STORAGE_DIRS:
+        storage_dir = path / rel_dir
+        try:
+            if not storage_dir.exists():
+                continue
+            candidates = [storage_dir] if storage_dir.is_file() else storage_dir.rglob("*")
+            for candidate in candidates:
+                if scanned >= _DESKTOP_APP_DATA_MAX_MARKER_SCAN_FILES:
+                    return False
+                try:
+                    if not candidate.is_file():
+                        continue
+                except OSError:
+                    continue
+                scanned += 1
+                if _file_contains_any_marker(candidate, _DESKTOP_APP_DATA_STORAGE_MARKERS):
+                    return True
+        except OSError:
+            continue
+    return False
+
+
 def _looks_like_hermes_desktop_app_data(path: Path) -> bool:
     """Conservative guard before deleting an OS app-data directory.
 
     ``Hermes`` is a generic product name, so do not remove a candidate directory
-    merely because it has that name. Only treat it as ours when it contains the
-    explicit desktop settings files written by the Hermes Electron app.
+    merely because it has that name. Only treat it as ours when it contains
+    explicit desktop files (``connection.json`` / ``updates.json``) or Hermes
+    renderer preference keys inside Electron's Chromium storage. The renderer
+    path matters for direct Electron launches: changing only the theme can create
+    ``Local Storage/leveldb`` state without ever writing ``connection.json``.
     """
-    return (path / "connection.json").exists() or (path / "updates.json").exists()
+    if any((path / name).exists() for name in _DESKTOP_APP_DATA_SENTINEL_FILES):
+        return True
+    return _contains_hermes_desktop_storage_marker(path)
 
 
 def external_desktop_app_data_paths(hermes_home: Path) -> list[Path]:
@@ -212,6 +306,63 @@ def remove_external_desktop_app_data(hermes_home: Path) -> list[Path]:
             removed.append(path)
         except Exception as e:
             log_warn(f"Could not remove desktop app data {path}: {e}")
+    return removed
+
+
+def _node_symlink_candidate_dirs() -> "list[Path]":
+    """Directories where the installer may have placed node/npm/npx symlinks."""
+    dirs: list[Path] = [Path.home() / ".local" / "bin"]
+    # Root FHS installs put links in /usr/local/bin.
+    if sys.platform == "linux":
+        dirs.append(Path("/usr/local/bin"))
+    # Termux installs put links in $PREFIX/bin.
+    prefix = os.environ.get("PREFIX", "")
+    if prefix and "com.termux" in prefix:
+        dirs.append(Path(prefix) / "bin")
+    return dirs
+
+
+def remove_node_symlinks(hermes_home: Path) -> list:
+    """Remove the node/npm/npx symlinks the installer placed on PATH.
+
+    The POSIX installer (``scripts/install.sh`` / ``scripts/lib/node-bootstrap.sh``)
+    symlinks node/npm/npx into the same directory as the ``hermes`` command:
+
+    - ``/usr/local/bin/`` on root FHS installs (Linux, uid 0)
+    - ``$PREFIX/bin/`` on Termux
+    - ``~/.local/bin/`` otherwise (the common non-root case)
+
+    We check all candidate directories so that uninstall works regardless of
+    how the install was done (e.g. a root FHS install that placed links in
+    ``/usr/local/bin``, or an older install that used ``~/.local/bin`` before
+    the FHS fix).  Only symlinks that resolve into this Hermes home's ``node``
+    directory are removed — links the user has repointed elsewhere (nvm, fnm,
+    etc.) are left untouched.
+    """
+    node_dir = (hermes_home / "node").resolve()
+    removed = []
+
+    for name in ("node", "npm", "npx"):
+        for bin_dir in _node_symlink_candidate_dirs():
+            link = bin_dir / name
+            try:
+                # Only act on symlinks — never delete a real binary the user put here.
+                if not link.is_symlink():
+                    continue
+
+                # Resolve the link target and confirm it points into our node dir.
+                # os.readlink + manual join handles broken (dangling) links too;
+                # Path.resolve() on a dangling link still returns the target path.
+                target = Path(os.readlink(link))
+                if not target.is_absolute():
+                    target = (link.parent / target)
+                target = target.resolve()
+
+                if target == node_dir or node_dir in target.parents:
+                    link.unlink()
+                    removed.append(link)
+            except Exception as e:
+                log_warn(f"Could not remove {link}: {e}")
     return removed
 
 
@@ -699,6 +850,17 @@ def run_uninstall(args):
             log_success(f"Removed {wrapper}")
     else:
         log_info("No wrapper script found")
+
+    # 3b. Remove node/npm/npx symlinks the installer left in ~/.local/bin
+    #     (only when they still point into this Hermes home's node dir, so we
+    #     never clobber an existing nvm / user-managed Node).
+    log_info("Removing Hermes-managed node/npm/npx symlinks...")
+    removed_node_links = remove_node_symlinks(hermes_home)
+    if removed_node_links:
+        for link in removed_node_links:
+            log_success(f"Removed {link}")
+    else:
+        log_info("No Hermes-managed node/npm/npx symlinks found")
     
     # 4. Remove installation directory (code)
     log_info("Removing installation directory...")

@@ -445,7 +445,10 @@ class TestReadmeNoLongerSaysWindowsUnsupported:
 
     def test_readme_does_not_say_not_supported(self):
         root = Path(__file__).resolve().parents[2]
-        source = (root / "README.md").read_text(encoding="utf-8")
+        readme = root / "README.md"
+        if not readme.exists():
+            pytest.skip("NanoHermes trims the upstream root README")
+        source = readme.read_text(encoding="utf-8")
         # Previous string (removed in this PR): "Native Windows is not supported"
         assert "Native Windows is not supported" not in source, (
             "README.md still says native Windows is not supported — update the "
@@ -454,7 +457,10 @@ class TestReadmeNoLongerSaysWindowsUnsupported:
 
     def test_readme_mentions_powershell_installer(self):
         root = Path(__file__).resolve().parents[2]
-        source = (root / "README.md").read_text(encoding="utf-8")
+        readme = root / "README.md"
+        if not readme.exists():
+            pytest.skip("NanoHermes trims the upstream root README")
+        source = readme.read_text(encoding="utf-8")
         assert "install.ps1" in source, (
             "README.md must point at scripts/install.ps1 for Windows users"
         )

@@ -735,18 +735,29 @@ def test_board_auto_initializes_missing_db(tmp_path, monkeypatch):
 
 
 def test_ws_events_rejects_when_token_required(tmp_path, monkeypatch):
-    """When _SESSION_TOKEN is set (normal dashboard context), a missing or
-    wrong ?token= query param must be rejected with policy-violation."""
+    """Loopback mode: a missing or wrong ?token= must be rejected with
+    policy-violation; the correct token is accepted. The kanban WS now
+    delegates to web_server._ws_auth_ok, so we stub that with the real
+    loopback-token semantics (auth_required False → constant-time token
+    compare)."""
     home = tmp_path / ".hermes"
     home.mkdir()
     monkeypatch.setenv("HERMES_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     kb.init_db()
 
-    # Stub web_server so _check_ws_token has a token to compare against.
+    # Stub web_server with a loopback-mode _ws_auth_ok (auth_required False →
+    # accept only the correct ?token=). Mirrors the real gate's loopback path.
     import hermes_cli
     import types
-    stub = types.SimpleNamespace(_SESSION_TOKEN="secret-xyz")
+
+    def _fake_ws_auth_ok(ws):
+        return ws.query_params.get("token", "") == "secret-xyz"
+
+    stub = types.SimpleNamespace(
+        _SESSION_TOKEN="***",
+        _ws_auth_ok=_fake_ws_auth_ok,
+    )
     monkeypatch.setitem(sys.modules, "hermes_cli.web_server", stub)
     monkeypatch.setattr(hermes_cli, "web_server", stub, raising=False)
 
@@ -806,7 +817,13 @@ def test_ws_events_board_query_param_default_overrides_current_board_pointer(tmp
     import hermes_cli
     import types
 
-    stub = types.SimpleNamespace(_SESSION_TOKEN="secret-xyz")
+    def _fake_ws_auth_ok(ws):
+        return ws.query_params.get("token", "") == "secret-xyz"
+
+    stub = types.SimpleNamespace(
+        _SESSION_TOKEN="***",
+        _ws_auth_ok=_fake_ws_auth_ok,
+    )
     monkeypatch.setitem(sys.modules, "hermes_cli.web_server", stub)
     monkeypatch.setattr(hermes_cli, "web_server", stub, raising=False)
 

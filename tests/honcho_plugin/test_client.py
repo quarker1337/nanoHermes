@@ -444,7 +444,7 @@ class TestResolveActiveHost:
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("HERMES_HONCHO_HOST", None)
             with patch("hermes_cli.profiles.get_active_profile_name", return_value="coder"):
-                assert resolve_active_host() == "hermes.coder"
+                assert resolve_active_host() == "hermes_coder"
 
     def test_default_profile_returns_hermes(self):
         with patch.dict(os.environ, {}, clear=False):

@@ -337,6 +337,22 @@ def test_model_flow_nous_offers_tool_gateway_prompt_when_unconfigured(monkeypatc
     monkeypatch.setattr("hermes_cli.auth._prompt_model_selection", lambda model_ids, current_model="", pricing=None, **kw: "claude-opus-4-6")
     monkeypatch.setattr("hermes_cli.auth._save_model_choice", lambda model: None)
     monkeypatch.setattr("hermes_cli.auth._update_config_for_provider", lambda provider, url: None)
+    monkeypatch.setattr(
+        "hermes_cli.nous_subscription.get_nous_portal_account_info",
+        lambda *args, **kwargs: SimpleNamespace(
+            logged_in=True,
+            tool_gateway_entitled=True,
+            tool_gateway_entitled_for=lambda _category: True,
+            paid_service_access=True,
+            tool_access=None,
+        ),
+    )
+
+    def _fake_prompt_checklist(title, labels, pre_selected):
+        print(title)
+        raise OSError("non-interactive test prompt")
+
+    monkeypatch.setattr("hermes_cli.setup.prompt_checklist", _fake_prompt_checklist)
     hermes_main._model_flow_nous(config, current_model="claude-opus-4-6")
 
     out = capsys.readouterr().out
