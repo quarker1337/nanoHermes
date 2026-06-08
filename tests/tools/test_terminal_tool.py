@@ -1,5 +1,7 @@
 """Regression tests for sudo detection and sudo password handling."""
 
+import importlib
+
 import tools.terminal_tool as terminal_tool
 
 
@@ -93,15 +95,20 @@ def test_cached_sudo_password_is_used_when_env_is_unset(monkeypatch):
 def test_cached_sudo_password_isolated_by_session_key(monkeypatch):
     monkeypatch.delenv("SUDO_PASSWORD", raising=False)
     monkeypatch.delenv("HERMES_INTERACTIVE", raising=False)
+    terminal_tool._reset_cached_sudo_passwords()
 
-    monkeypatch.setenv("HERMES_SESSION_KEY", "session-a")
+    session_context = importlib.import_module("gateway.session_context")
+
+    session_context.set_session_vars(session_key="session-a")
     terminal_tool._set_cached_sudo_password("alpha-pass")
 
-    monkeypatch.setenv("HERMES_SESSION_KEY", "session-b")
+    session_context.set_session_vars(session_key="session-b")
     assert terminal_tool._get_cached_sudo_password() == ""
 
-    monkeypatch.setenv("HERMES_SESSION_KEY", "session-a")
+    session_context.set_session_vars(session_key="session-a")
     assert terminal_tool._get_cached_sudo_password() == "alpha-pass"
+    session_context.clear_session_vars([])
+    terminal_tool._reset_cached_sudo_passwords()
 
 
 def test_passwordless_sudo_skips_interactive_prompt_and_rewrite(monkeypatch):

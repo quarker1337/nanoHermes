@@ -278,9 +278,9 @@ class TestRunJobTerminalCwd:
             def get_activity_summary(self):
                 return {"seconds_since_activity": 0.0}
 
-        fake_mod = type(sys)("run_agent")
+        fake_mod = type(sys)("hermes_runtime.run_agent")
         fake_mod.AIAgent = FakeAgent
-        monkeypatch.setitem(sys.modules, "run_agent", fake_mod)
+        monkeypatch.setitem(sys.modules, "hermes_runtime.run_agent", fake_mod)
 
         # Bypass the real provider resolver — it reads ~/.hermes and credentials.
         from hermes_cli import runtime_provider as _rtp

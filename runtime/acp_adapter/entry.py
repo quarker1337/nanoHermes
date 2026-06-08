@@ -233,7 +233,7 @@ def main(argv: list[str] | None = None) -> None:
     logger = logging.getLogger(__name__)
     logger.info("Starting hermes-agent ACP adapter")
 
-    # Ensure the project root is on sys.path so ``from run_agent import AIAgent`` works
+    # Ensure the project root is on sys.path so ``from hermes_runtime.run_agent import AIAgent`` works
     project_root = str(Path(__file__).resolve().parents[2])
     if project_root not in sys.path:
         sys.path.insert(0, project_root)

@@ -122,10 +122,13 @@ class TestExistingInstallDefault:
         m["prompt_choice"].assert_not_called()
         # Quick-setup path NOT taken.
         m["quick"].assert_not_called()
-        # All five sections ran.
+        # Full setup runs the prompted sections. Agent settings are no longer
+        # prompted during full setup; first installs get defaults silently and
+        # existing installs keep their current values. Use `hermes setup agent`
+        # for that section explicitly.
         m["model"].assert_called_once()
         m["terminal"].assert_called_once()
-        m["agent"].assert_called_once()
+        m["agent"].assert_not_called()
         m["gateway"].assert_called_once()
         m["tools"].assert_called_once()
 
@@ -149,7 +152,7 @@ class TestExistingInstallDefault:
         m["prompt_choice"].assert_not_called()
         m["model"].assert_called_once()
         m["terminal"].assert_called_once()
-        m["agent"].assert_called_once()
+        m["agent"].assert_not_called()
         m["gateway"].assert_called_once()
         m["tools"].assert_called_once()
 

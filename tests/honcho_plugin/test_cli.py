@@ -192,7 +192,7 @@ class TestCloneHonchoForProfile:
         honcho_cli, written = self._setup_clone_env(monkeypatch, tmp_path, cfg)
         ok = honcho_cli.clone_honcho_for_profile("coder")
         assert ok is True
-        new_block = written["cfg"]["hosts"]["hermes.coder"]
+        new_block = written["cfg"]["hosts"]["hermes_coder"]
         assert new_block["userPeerAliases"] == {"86701400": "eri", "discord-491827364": "eri"}
 
     def test_runtime_peer_prefix_carries_into_cloned_profile(self, monkeypatch, tmp_path):
@@ -208,7 +208,7 @@ class TestCloneHonchoForProfile:
         honcho_cli, written = self._setup_clone_env(monkeypatch, tmp_path, cfg)
         ok = honcho_cli.clone_honcho_for_profile("coder")
         assert ok is True
-        new_block = written["cfg"]["hosts"]["hermes.coder"]
+        new_block = written["cfg"]["hosts"]["hermes_coder"]
         assert new_block["runtimePeerPrefix"] == "telegram_"
 
     def test_pin_peer_name_carries_into_cloned_profile(self, monkeypatch, tmp_path):
@@ -224,7 +224,7 @@ class TestCloneHonchoForProfile:
         honcho_cli, written = self._setup_clone_env(monkeypatch, tmp_path, cfg)
         ok = honcho_cli.clone_honcho_for_profile("coder")
         assert ok is True
-        new_block = written["cfg"]["hosts"]["hermes.coder"]
+        new_block = written["cfg"]["hosts"]["hermes_coder"]
         assert new_block["pinPeerName"] is True
 
     def test_unset_identity_keys_do_not_appear_in_cloned_profile(self, monkeypatch, tmp_path):
@@ -235,7 +235,7 @@ class TestCloneHonchoForProfile:
         honcho_cli, written = self._setup_clone_env(monkeypatch, tmp_path, cfg)
         ok = honcho_cli.clone_honcho_for_profile("coder")
         assert ok is True
-        new_block = written["cfg"]["hosts"]["hermes.coder"]
+        new_block = written["cfg"]["hosts"]["hermes_coder"]
         assert "userPeerAliases" not in new_block
         assert "runtimePeerPrefix" not in new_block
         assert "pinPeerName" not in new_block
@@ -572,5 +572,5 @@ class TestCloneCarriesPinUserPeer:
 
         ok = honcho_cli.clone_honcho_for_profile("partner")
         assert ok is True
-        new_block = written["cfg"]["hosts"]["hermes.partner"]
+        new_block = written["cfg"]["hosts"]["hermes_partner"]
         assert new_block["pinUserPeer"] is True

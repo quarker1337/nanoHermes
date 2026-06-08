@@ -206,9 +206,10 @@ class TestBuildJobPromptScansSkillContent:
         assert prompt is not None
         assert "cat ~/.hermes/.env" in prompt
 
-    def test_skill_with_invisible_unicode_raises(self, cron_env):
+    def test_skill_with_invisible_unicode_is_sanitized(self, cron_env):
         hermes_home, scheduler = cron_env
-        # Zero-width space smuggled into the skill body.
+        # Zero-width space in vetted skill body is stripped rather than
+        # blocking every future tick for a copy/paste artifact.
         _plant_skill(hermes_home, "zwsp-skill", "clean looking\u200bskill content")
 
         job = {
@@ -218,8 +219,9 @@ class TestBuildJobPromptScansSkillContent:
             "skills": ["zwsp-skill"],
         }
 
-        with pytest.raises(scheduler.CronPromptInjectionBlocked):
-            scheduler._build_job_prompt(job)
+        prompt = scheduler._build_job_prompt(job)
+        assert "clean lookingskill content" in prompt
+        assert "\u200b" not in prompt
 
     def test_no_skills_still_scans_user_prompt(self, cron_env):
         """Defense-in-depth: even without skills, assembled-prompt scanning

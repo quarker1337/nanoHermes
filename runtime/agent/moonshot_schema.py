@@ -15,18 +15,6 @@ and MoonshotAI/kimi-cli#1595:
 2. When ``anyOf`` is used, ``type`` must be on the ``anyOf`` children, not
    the parent.  Presence of both causes "type should be defined in anyOf
    items instead of the parent schema".
-3. ``enum`` arrays on scalar-typed nodes may not contain ``null`` or empty
-   strings.  Strip those entries (drop the enum entirely if it becomes empty).
-4. ``$ref`` nodes may not carry sibling keywords.  Moonshot expands the
-   reference before validation and then rejects the node if sibling keys
-   like ``description`` remain on the same node as ``$ref``.  Strip every
-   sibling from ``$ref`` nodes so only ``{"$ref": "..."}`` survives.
-   (Ported from anomalyco/opencode#24730.)
-5. ``items`` may not be a tuple-style array (``items: [schemaA, schemaB]``
-   for positional element schemas).  Moonshot's schema engine requires a
-   single object schema applied to every array element.  Collapse tuple
-   ``items`` to the first element schema (or ``{}`` if the tuple is empty).
-   (Ported from anomalyco/opencode#24730.)
 
 The ``#/definitions/...`` → ``#/$defs/...`` rewrite for draft-07 refs is
 handled separately in ``tools/mcp_tool._normalize_mcp_input_schema`` so it
@@ -65,6 +53,11 @@ def _repair_schema(node: Any, is_schema: bool = True) -> Any:
     if not isinstance(node, dict):
         return node
 
+    # Moonshot rejects sibling keywords on ``$ref`` schema nodes. Keep only
+    # the reference itself; referenced definitions retain their own metadata.
+    if is_schema and "$ref" in node:
+        return {"$ref": node["$ref"]}
+
     # Walk the dict, deciding per-key whether recursion is into a schema
     # node, a container map, or a scalar.
     repaired: Dict[str, Any] = {}
@@ -78,20 +71,16 @@ def _repair_schema(node: Any, is_schema: bool = True) -> Any:
             }
         elif key in _SCHEMA_LIST_KEYS and isinstance(value, list):
             repaired[key] = [_repair_schema(v, is_schema=True) for v in value]
-        elif key == "items" and isinstance(value, list):
-            # Rule 5: tuple-style ``items`` arrays (positional element
-            # schemas) are not accepted by Moonshot.  Collapse to the
-            # first element schema if present, else to ``{}``.  This
-            # matches opencode's behaviour for moonshotai / kimi models.
-            first = value[0] if value else {}
-            if isinstance(first, dict):
-                repaired[key] = _repair_schema(first, is_schema=True)
-            else:
-                repaired[key] = first
         elif key in _SCHEMA_NODE_KEYS:
             # items / not / additionalProperties: single nested schema.
             # additionalProperties can also be a bool — leave those alone.
-            if isinstance(value, dict):
+            if key == "items" and isinstance(value, list):
+                # Moonshot requires ``items`` to be one schema object, not
+                # tuple-style positional schemas. Collapse to the first item,
+                # or an empty schema for an empty tuple, then repair it.
+                first = value[0] if value else {}
+                repaired[key] = _repair_schema(first, is_schema=True)
+            elif isinstance(value, dict):
                 repaired[key] = _repair_schema(value, is_schema=True)
             else:
                 repaired[key] = value
@@ -151,15 +140,6 @@ def _repair_schema(node: Any, is_schema: bool = True) -> Any:
                 repaired["enum"] = cleaned
             else:
                 repaired.pop("enum")
-
-    # Rule 4: $ref nodes must not have sibling keywords.  Moonshot expands
-    # the reference before validation and then rejects the node if siblings
-    # like ``description`` / ``type`` / ``default`` appear alongside $ref.
-    # The referenced definition still carries its own description on the
-    # target node, which Moonshot accepts.
-    # (Ported from anomalyco/opencode#24730.)
-    if "$ref" in repaired:
-        return {"$ref": repaired["$ref"]}
 
     return repaired
 

@@ -83,7 +83,11 @@ def test_acp_real_agent_gets_session_db_for_recall(monkeypatch):
             setattr(module, key, value)
         return module
 
-    monkeypatch.setitem(sys.modules, "run_agent", mod("run_agent", AIAgent=CapturingAgent))
+    monkeypatch.setitem(
+        sys.modules,
+        "hermes_runtime.run_agent",
+        mod("hermes_runtime.run_agent", AIAgent=CapturingAgent),
+    )
     monkeypatch.setitem(
         sys.modules,
         "hermes_cli.config",

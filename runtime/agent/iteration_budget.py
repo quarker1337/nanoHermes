@@ -6,7 +6,7 @@ subagent) holds an :class:`IterationBudget`; the parent's cap comes from
 ``delegation.max_iterations`` (default 50).
 
 ``run_agent`` re-exports ``IterationBudget`` so existing
-``from run_agent import IterationBudget`` imports keep working unchanged.
+``from hermes_runtime.run_agent import IterationBudget`` imports keep working unchanged.
 """
 
 from __future__ import annotations

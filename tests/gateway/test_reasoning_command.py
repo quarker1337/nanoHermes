@@ -218,10 +218,8 @@ class TestReasoningCommand:
                 "api_key": "test-key",
             },
         )
-        fake_run_agent = types.ModuleType("run_agent")
-        fake_run_agent.AIAgent = _CapturingAgent
-        monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
-        monkeypatch.setitem(sys.modules, "hermes_runtime.run_agent", fake_run_agent)
+        import hermes_runtime.run_agent as run_agent_mod
+        monkeypatch.setattr(run_agent_mod, "AIAgent", _CapturingAgent)
 
         _CapturingAgent.last_init = None
         runner = _make_runner()
@@ -268,10 +266,8 @@ class TestReasoningCommand:
                 "api_key": "***",
             },
         )
-        fake_run_agent = types.ModuleType("run_agent")
-        fake_run_agent.AIAgent = _CapturingAgent
-        monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
-        monkeypatch.setitem(sys.modules, "hermes_runtime.run_agent", fake_run_agent)
+        import hermes_runtime.run_agent as run_agent_mod
+        monkeypatch.setattr(run_agent_mod, "AIAgent", _CapturingAgent)
 
         _CapturingAgent.last_init = None
         runner = _make_runner()
@@ -328,10 +324,8 @@ class TestReasoningCommand:
                 "api_key": "test-key",
             },
         )
-        fake_run_agent = types.ModuleType("run_agent")
-        fake_run_agent.AIAgent = _CapturingAgent
-        monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
-        monkeypatch.setitem(sys.modules, "hermes_runtime.run_agent", fake_run_agent)
+        import hermes_runtime.run_agent as run_agent_mod
+        monkeypatch.setattr(run_agent_mod, "AIAgent", _CapturingAgent)
 
         _CapturingAgent.last_init = None
         runner = _make_runner()
@@ -358,7 +352,9 @@ class TestReasoningCommand:
         assert result["final_response"] == "ok"
         assert _CapturingAgent.last_init is not None
         enabled_toolsets = set(_CapturingAgent.last_init["enabled_toolsets"])
-        assert "web" in enabled_toolsets
+        # Nano package-gates optional source-tree toolsets such as web while
+        # preserving configured bundled toolsets and explicitly enabled MCPs.
+        assert "web" not in enabled_toolsets
         assert "memory" in enabled_toolsets
         assert "exa" in enabled_toolsets
         assert "web-search-prime" in enabled_toolsets
@@ -381,10 +377,8 @@ class TestReasoningCommand:
                 "api_key": "test-key",
             },
         )
-        fake_run_agent = types.ModuleType("run_agent")
-        fake_run_agent.AIAgent = _CapturingAgent
-        monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
-        monkeypatch.setitem(sys.modules, "hermes_runtime.run_agent", fake_run_agent)
+        import hermes_runtime.run_agent as run_agent_mod
+        monkeypatch.setattr(run_agent_mod, "AIAgent", _CapturingAgent)
 
         _CapturingAgent.last_init = None
         runner = _make_runner()
@@ -410,7 +404,11 @@ class TestReasoningCommand:
 
         assert result["final_response"] == "ok"
         assert _CapturingAgent.last_init is not None
-        assert "homeassistant" in set(_CapturingAgent.last_init["enabled_toolsets"])
+        enabled_toolsets = set(_CapturingAgent.last_init["enabled_toolsets"])
+        # Home Assistant is an optional Nano package; absent package state must
+        # not activate it just because the platform name matches.
+        assert "homeassistant" not in enabled_toolsets
+        assert "terminal" in enabled_toolsets
 
 
 class TestLoadShowReasoningCoercion:

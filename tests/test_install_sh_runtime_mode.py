@@ -46,7 +46,7 @@ def test_default_install_mode_uses_nanohermes_runtime_archive_with_source_escape
 
 def test_branch_install_implies_source_mode_instead_of_silently_ignoring_branch() -> None:
     text = _script()
-    branch_case = text.split("--branch)", 1)[1].split(";;", 1)[0]
+    branch_case = text.split("--branch|-Branch)", 1)[1].split(";;", 1)[0]
 
     assert 'BRANCH="$2"' in branch_case
     assert 'INSTALL_MODE="source"' in branch_case

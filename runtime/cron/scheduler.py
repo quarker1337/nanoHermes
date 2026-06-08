@@ -1188,8 +1188,10 @@ def _scan_assembled_cron_prompt(assembled: str, job: dict, *, has_skills: bool =
     """
     from tools.cronjob_tools import _scan_cron_prompt, _scan_cron_skill_assembled
 
-    scanner = _scan_cron_skill_assembled if has_skills else _scan_cron_prompt
-    scan_error = scanner(assembled)
+    if has_skills:
+        assembled, scan_error = _scan_cron_skill_assembled(assembled)
+    else:
+        scan_error = _scan_cron_prompt(assembled)
     if scan_error:
         job_label = job.get("name") or job.get("id") or "<unknown>"
         logger.warning(

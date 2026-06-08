@@ -9,7 +9,7 @@ SDK or be rejected by upstream APIs.
 All helpers are stateless and side-effect-free except for in-place
 mutation of their input (where documented).  Backward-compatible
 re-exports from ``run_agent`` remain in place so existing imports
-``from run_agent import _sanitize_surrogates`` keep working.
+``from hermes_runtime.run_agent import _sanitize_surrogates`` keep working.
 """
 
 from __future__ import annotations

@@ -22,6 +22,13 @@ import pytest
 from tools import tool_output_limits as tol
 
 
+@pytest.fixture(autouse=True)
+def reset_tool_output_limits_cache():
+    tol._reset_tool_output_limits_cache()
+    yield
+    tol._reset_tool_output_limits_cache()
+
+
 class TestDefaults:
     def test_defaults_match_previous_hardcoded_values(self):
         assert tol.DEFAULT_MAX_BYTES == 50_000

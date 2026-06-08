@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sysconfig
 import threading
 from functools import lru_cache
 from pathlib import Path
@@ -90,7 +91,8 @@ def _locales_dir() -> Path:
     """Return the directory containing locale YAML files.
 
     Source checkouts load ``resources/locales`` from the repository root;
-    wheel installs load the same tree from setuptools data-files.
+    wheel installs load the same tree from setuptools data-files. The
+    ``HERMES_BUNDLED_LOCALES`` env var is honored by get_bundled_locales_dir().
     """
     # runtime/agent/i18n.py -> runtime/agent/ -> runtime/ -> repo root
     source_locales = Path(__file__).resolve().parents[2] / "resources" / "locales"

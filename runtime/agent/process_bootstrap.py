@@ -17,7 +17,7 @@ Three concerns, all tied to ``AIAgent`` boot-time / runtime IO setup:
    ``_get_proxy_for_base_url`` respects ``NO_PROXY`` for the given base URL.
 
 ``run_agent`` re-exports every name so existing
-``from run_agent import _get_proxy_from_env`` imports keep working
+``from hermes_runtime.run_agent import _get_proxy_from_env`` imports keep working
 unchanged.
 """
 

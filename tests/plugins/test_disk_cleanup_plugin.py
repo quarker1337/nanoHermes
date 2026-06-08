@@ -127,13 +127,21 @@ class TestGuessCategory:
         # Even though it matches test_* pattern, logs/ is excluded.
         assert dg.guess_category(p) is None
 
-    def test_cron_subtree_categorised(self, _isolate_env):
+    def test_cron_output_subtree_categorised(self, _isolate_env):
+        dg = _load_lib()
+        cron_dir = _isolate_env / "cron" / "output"
+        cron_dir.mkdir(parents=True)
+        p = cron_dir / "job_output.md"
+        p.write_text("x")
+        assert dg.guess_category(p) == "cron-output"
+
+    def test_cron_control_plane_file_not_categorised(self, _isolate_env):
         dg = _load_lib()
         cron_dir = _isolate_env / "cron"
         cron_dir.mkdir()
         p = cron_dir / "job_output.md"
         p.write_text("x")
-        assert dg.guess_category(p) == "cron-output"
+        assert dg.guess_category(p) is None
 
     def test_ordinary_file_returns_none(self, _isolate_env):
         dg = _load_lib()

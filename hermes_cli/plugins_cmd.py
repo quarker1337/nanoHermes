@@ -703,110 +703,69 @@ def cmd_disable(name: str) -> None:
 
 def _plugin_exists(name: str) -> bool:
     """Return True if a plugin with *name* is installed (user) or bundled."""
-    # Installed: directory name or manifest name match in user plugins dir
-    user_dir = _plugins_dir()
-    if user_dir.is_dir():
-        if (user_dir / name).is_dir():
-            return True
-        for child in user_dir.iterdir():
-            if not child.is_dir():
-                continue
-            manifest = _read_manifest(child)
-            if manifest.get("name") == name:
-                return True
-    # Bundled: <repo>/plugins/<name>/ (or HERMES_BUNDLED_PLUGINS on Nix).
-    from hermes_cli.plugins import get_bundled_plugins_dir
-    repo_plugins = get_bundled_plugins_dir()
-    if repo_plugins.is_dir():
-        candidate = repo_plugins / name
-        if candidate.is_dir() and (
-            (candidate / "plugin.yaml").exists()
-            or (candidate / "plugin.yml").exists()
-        ):
-            return True
-    return False
+    return any(entry[0] == name for entry in _discover_all_plugins())
 
 
 def _discover_all_plugins() -> list:
-    """Return a list of (key, version, description, source, dir_path) for
+    """Return a list of (name, version, description, source, dir_path) for
     every plugin the loader can see — user + bundled.
 
-    Mirrors :meth:`PluginManager._scan_directory_level` so category-namespaced
-    plugins (``observability/langfuse``, ``image_gen/openai``) surface here
-    just like flat ones (``disk-cleanup``). A subdirectory with no
-    ``plugin.yaml`` of its own is treated as a category and recursed into
-    one level deeper (depth capped at 2, same as the loader).
-
-    The returned ``key`` is the path-derived registry key — the value the
-    user types into ``hermes plugins enable <key>``. For category-namespaced
-    plugins that's ``<category>/<dirname>``; for flat plugins it's the
-    manifest's ``name`` (or the directory name if the manifest omits it).
-
-    User entries override bundled on key collision, matching
-    ``PluginManager.discover_and_load``.
+    Mirrors the runtime plugin loader's one-category-deep scan so CLI list /
+    enable / disable see keys such as ``observability/langfuse`` and
+    ``memory/my-custom-store``. Bundled memory/context-engine implementation
+    directories are skipped at the top level; user plugins under those
+    categories are still discoverable.
     """
-    try:
-        import yaml
-    except ImportError:
-        yaml = None
-
-    seen: dict = {}  # key -> (key, version, description, source, path)
-
-    def _scan(base: Path, source: str, prefix: str, depth: int) -> None:
-        if not base.is_dir():
-            return
-        for d in sorted(base.iterdir()):
-            if not d.is_dir():
-                continue
-            if (
-                depth == 0
-                and source == "bundled"
-                and d.name in {"memory", "context_engine"}
-            ):
-                continue
-            manifest_file = d / "plugin.yaml"
-            if not manifest_file.exists():
-                manifest_file = d / "plugin.yml"
-
-            if manifest_file.exists():
-                manifest_name = d.name
-                version = ""
-                description = ""
-                if yaml:
-                    try:
-                        with open(manifest_file, encoding="utf-8") as f:
-                            manifest = yaml.safe_load(f) or {}
-                        manifest_name = manifest.get("name", d.name)
-                        version = manifest.get("version", "")
-                        description = manifest.get("description", "")
-                    except Exception:
-                        pass
-                # Path-derived key, intentionally ignoring the manifest
-                # ``name:`` field for category-namespaced plugins — mirrors
-                # ``PluginManager._parse_manifest`` in plugins.py:1027-1028
-                # so renaming a directory (without touching plugin.yaml) shifts
-                # the registry key in both places consistently.
-                key = f"{prefix}/{d.name}" if prefix else manifest_name
-                src_label = source
-                if source == "user" and (d / ".git").exists():
-                    src_label = "git"
-                # Bundled is scanned before user, so the user pass overwrites
-                # bundled entries with the same key — matches
-                # PluginManager.discover_and_load's "user wins" semantics.
-                seen[key] = (key, version, description, src_label, d)
-                continue
-
-            # No manifest at this level — treat as a category namespace and
-            # recurse one level deeper. Cap at depth 2 (same as the loader).
-            if depth >= 1:
-                continue
-            sub_prefix = f"{prefix}/{d.name}" if prefix else d.name
-            _scan(d, source, sub_prefix, depth + 1)
+    seen: dict = {}  # name -> (name, version, description, source, path)
 
     from hermes_cli.plugins import get_bundled_plugins_dir
-    _scan(get_bundled_plugins_dir(), "bundled", "", 0)
-    _scan(_plugins_dir(), "user", "", 0)
 
+    def _manifest_path(plugin_dir: Path) -> Path | None:
+        for filename in ("plugin.yaml", "plugin.yml"):
+            candidate = plugin_dir / filename
+            if candidate.exists():
+                return candidate
+        return None
+
+    def _entry_for(plugin_dir: Path, key: str, source: str) -> tuple | None:
+        manifest_file = _manifest_path(plugin_dir)
+        if manifest_file is None:
+            return None
+        manifest = _read_manifest(plugin_dir)
+        # Nested/category plugins use the loader's path-derived key regardless
+        # of manifest name. Flat plugins keep their manifest name fallback.
+        name = key if "/" in key else (manifest.get("name") or key)
+        version = manifest.get("version", "")
+        description = manifest.get("description", "")
+        src_label = source
+        if source == "user" and (plugin_dir / ".git").exists():
+            src_label = "git"
+        return (name, version, description, src_label, plugin_dir)
+
+    def _scan(base: Path, source: str) -> None:
+        if not base.is_dir():
+            return
+        for child in sorted(base.iterdir()):
+            if not child.is_dir():
+                continue
+            if source == "bundled" and child.name in {"memory", "context_engine"}:
+                continue
+            direct = _entry_for(child, child.name, source)
+            if direct is not None:
+                seen[direct[0]] = direct
+                continue
+            # Category namespace: <base>/<category>/<plugin>/plugin.yaml.
+            for grandchild in sorted(child.iterdir()):
+                if not grandchild.is_dir():
+                    continue
+                key = f"{child.name}/{grandchild.name}"
+                nested = _entry_for(grandchild, key, source)
+                if nested is not None:
+                    seen[nested[0]] = nested
+
+    _scan(get_bundled_plugins_dir(), "bundled")
+    # User plugins intentionally scan second so they override bundled keys.
+    _scan(_plugins_dir(), "user")
     return list(seen.values())
 
 

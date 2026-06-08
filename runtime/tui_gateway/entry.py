@@ -148,23 +148,18 @@ def _log_signal(signum: int, frame) -> None:
 # with hasattr so ``python -m tui_gateway.entry`` (spawned by
 # ``hermes --tui``) imports cleanly there.  SIGBREAK (Windows' Ctrl+Break)
 # is installed when available as a weaker equivalent of SIGHUP.
-sigpipe = getattr(signal, "SIGPIPE", None)
-if sigpipe is not None:
-    signal.signal(sigpipe, signal.SIG_IGN)
-sigterm = getattr(signal, "SIGTERM", None)
-if sigterm is not None:
-    signal.signal(sigterm, _log_signal)
-sighup = getattr(signal, "SIGHUP", None)
-sigbreak = getattr(signal, "SIGBREAK", None)
-if sighup is not None:
-    signal.signal(sighup, _log_signal)
-elif sigbreak is not None:
+if hasattr(signal, "SIGPIPE"):
+    signal.signal(signal.SIGPIPE, signal.SIG_IGN)
+if hasattr(signal, "SIGTERM"):
+    signal.signal(signal.SIGTERM, _log_signal)
+if hasattr(signal, "SIGHUP"):
+    signal.signal(signal.SIGHUP, _log_signal)
+elif hasattr(signal, "SIGBREAK"):
     # Windows-only: Ctrl+Break in a console window delivers SIGBREAK.
     # Route it through the same handler so kills are diagnosable.
-    signal.signal(sigbreak, _log_signal)
-sigint = getattr(signal, "SIGINT", None)
-if sigint is not None:
-    signal.signal(sigint, signal.SIG_IGN)
+    signal.signal(getattr(signal, "SIGBREAK"), _log_signal)
+if hasattr(signal, "SIGINT"):
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 def _log_exit(reason: str) -> None:

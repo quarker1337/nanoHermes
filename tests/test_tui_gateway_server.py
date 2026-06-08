@@ -454,10 +454,8 @@ def test_load_enabled_toolsets_rejects_disabled_mcp_env(monkeypatch, capsys):
         config_mod, "load_config", lambda: {"platform_toolsets": {"cli": ["memory"]}}
     )
 
-    # Sorted: ["kanban", "memory"]. `kanban` is auto-recovered by
-    # _get_platform_tools because it's a non-configurable platform toolset
-    # whose tools live in hermes-cli's universe (see runtime/hermes_runtime/toolsets.py).
-    assert server._load_enabled_toolsets() == ["kanban", "memory"]
+    # NanoHermes base only auto-recovers bundled toolsets; kanban is package-managed.
+    assert server._load_enabled_toolsets() == ["memory"]
     err = capsys.readouterr().err
     assert "ignoring disabled MCP servers" in err
     assert "mcp-off" in err
@@ -478,7 +476,7 @@ def test_load_enabled_toolsets_falls_back_when_tui_env_invalid(monkeypatch, caps
         config_mod, "load_config", lambda: {"platform_toolsets": {"cli": ["memory"]}}
     )
 
-    assert server._load_enabled_toolsets() == ["kanban", "memory"]
+    assert server._load_enabled_toolsets() == ["memory"]
     assert "using configured CLI toolsets" in capsys.readouterr().err
 
 
@@ -1611,12 +1609,12 @@ def test_setup_status_reports_provider_config(monkeypatch):
     assert resp["result"]["provider_configured"] is False
 
 
-def test_complete_slash_includes_provider_alias():
+def test_complete_slash_includes_profile_command():
     resp = server.handle_request(
         {"id": "1", "method": "complete.slash", "params": {"text": "/pro"}}
     )
 
-    assert any(item["text"] == "provider" for item in resp["result"]["items"])
+    assert any(item["text"] == "profile" for item in resp["result"]["items"])
 
 
 def test_complete_slash_returns_plain_string_fields():
@@ -2231,7 +2229,7 @@ def test_prompt_submit_expands_context_refs(monkeypatch):
 
 
 def test_image_attach_appends_local_image(monkeypatch):
-    fake_cli = types.ModuleType("cli")
+    fake_cli = types.ModuleType("hermes_runtime.cli")
     fake_cli._IMAGE_EXTENSIONS = {".png"}
     fake_cli._detect_file_drop = lambda raw: {
         "path": Path("/tmp/cat.png"),
@@ -2242,7 +2240,7 @@ def test_image_attach_appends_local_image(monkeypatch):
     fake_cli._resolve_attachment_path = lambda raw: Path("/tmp/cat.png")
 
     server._sessions["sid"] = _session()
-    monkeypatch.setitem(sys.modules, "cli", fake_cli)
+    monkeypatch.setitem(sys.modules, "hermes_runtime.cli", fake_cli)
 
     resp = server.handle_request(
         {
@@ -2259,7 +2257,7 @@ def test_image_attach_appends_local_image(monkeypatch):
 
 def test_image_attach_accepts_unquoted_screenshot_path_with_spaces(monkeypatch):
     screenshot = Path("/tmp/Screenshot 2026-04-21 at 1.04.43 PM.png")
-    fake_cli = types.ModuleType("cli")
+    fake_cli = types.ModuleType("hermes_runtime.cli")
     fake_cli._IMAGE_EXTENSIONS = {".png"}
     fake_cli._detect_file_drop = lambda raw: {
         "path": screenshot,
@@ -2273,7 +2271,7 @@ def test_image_attach_accepts_unquoted_screenshot_path_with_spaces(monkeypatch):
     fake_cli._resolve_attachment_path = lambda raw: None
 
     server._sessions["sid"] = _session()
-    monkeypatch.setitem(sys.modules, "cli", fake_cli)
+    monkeypatch.setitem(sys.modules, "hermes_runtime.cli", fake_cli)
 
     resp = server.handle_request(
         {
@@ -2501,7 +2499,7 @@ def test_complete_slash_surfaces_completer_error(monkeypatch):
 
 
 def test_input_detect_drop_attaches_image(monkeypatch):
-    fake_cli = types.ModuleType("cli")
+    fake_cli = types.ModuleType("hermes_runtime.cli")
     fake_cli._detect_file_drop = lambda raw: {
         "path": Path("/tmp/cat.png"),
         "is_image": True,
@@ -2509,7 +2507,7 @@ def test_input_detect_drop_attaches_image(monkeypatch):
     }
 
     server._sessions["sid"] = _session()
-    monkeypatch.setitem(sys.modules, "cli", fake_cli)
+    monkeypatch.setitem(sys.modules, "hermes_runtime.cli", fake_cli)
 
     resp = server.handle_request(
         {
@@ -3381,14 +3379,14 @@ def test_session_create_no_race_keeps_worker_alive(monkeypatch):
 
 
 def test_get_db_degrades_cleanly_when_sessiondb_init_fails(monkeypatch):
-    fake_mod = types.ModuleType("hermes_state")
+    fake_mod = types.ModuleType("hermes_runtime.hermes_state")
 
     class _BrokenSessionDB:
         def __init__(self):
             raise RuntimeError("locking protocol")
 
     fake_mod.SessionDB = _BrokenSessionDB
-    monkeypatch.setitem(sys.modules, "hermes_state", fake_mod)
+    monkeypatch.setitem(sys.modules, "hermes_runtime.hermes_state", fake_mod)
     monkeypatch.setattr(server, "_db", None)
     monkeypatch.setattr(server, "_db_error", None)
 

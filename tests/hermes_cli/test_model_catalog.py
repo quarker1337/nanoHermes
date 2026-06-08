@@ -368,12 +368,12 @@ class TestIntegrationWithModelsModule:
 
         assert result == ["anthropic/claude-opus-4.7", "moonshotai/kimi-k2.6"]
 
-    def test_picker_nous_row_uses_manifest(self, tmp_path, monkeypatch):
-        """The /model picker must surface the manifest's nous list, not the
-        in-repo _PROVIDER_MODELS["nous"] snapshot. Regression: before this
-        fix, list_authenticated_providers() built the curated dict from
-        _PROVIDER_MODELS only — so newly-added Portal models never reached
-        the slash-command picker until the next Hermes release.
+    def test_picker_nous_row_uses_curated_list(self, tmp_path, monkeypatch):
+        """The /model picker surfaces the curated ``_PROVIDER_MODELS["nous"]``
+        list in curated order — matching the ``hermes model`` CLI — not the live
+        ``/v1/models`` catalog or the manifest. Portal free/paid recommendations
+        are unioned in when reachable; offline (as here, with the Portal calls
+        stubbed out) it's exactly the curated list.
         """
         # We deliberately do NOT use the ``isolated_home`` fixture here:
         # that fixture monkeypatches ``Path.home`` to ``tmp_path``, which
@@ -383,6 +383,7 @@ class TestIntegrationWithModelsModule:
         # ``_hermetic_environment`` HERMES_HOME directly instead.
         import importlib
         from hermes_cli import model_catalog
+        from hermes_cli.models import get_curated_nous_model_ids
         importlib.reload(model_catalog)
         try:
             from hermes_cli.model_switch import list_picker_providers
@@ -397,9 +398,21 @@ class TestIntegrationWithModelsModule:
                 )
             )
 
+            # Stub the Portal recommendation union so the row is deterministic
+            # (the curated list alone) and never touches the network. ``expected``
+            # is computed from the same source the picker uses internally
+            # (``curated["nous"] = get_curated_nous_model_ids()``), so the test
+            # stays an invariant — it can't rot as the curated/manifest list grows.
             with patch.object(
                 model_catalog, "_fetch_manifest", return_value=_valid_manifest()
+            ), patch("hermes_cli.models.check_nous_free_tier", return_value=False), patch(
+                "hermes_cli.models.union_with_portal_free_recommendations",
+                side_effect=lambda ids, *a, **k: (ids, {}),
+            ), patch(
+                "hermes_cli.models.union_with_portal_paid_recommendations",
+                side_effect=lambda ids, *a, **k: (ids, {}),
             ):
+                expected = get_curated_nous_model_ids()
                 picker = list_picker_providers(
                     current_provider="nous", max_models=99
                 )
@@ -408,18 +421,15 @@ class TestIntegrationWithModelsModule:
 
         nous_row = next((r for r in picker if r["slug"] == "nous"), None)
         assert nous_row is not None, "nous row must appear when authed"
-        assert nous_row["models"] == [
-            "anthropic/claude-opus-4.7",
-            "moonshotai/kimi-k2.6",
-        ]
+        assert nous_row["models"] == expected
 
 
 # -----------------------------------------------------------------------------
 # Drift guard — prevent the in-repo curated lists from going out of sync with
-# the docs-hosted manifest at docs/site/static/api/model-catalog.json.
+# the docs-hosted manifest at website/static/api/model-catalog.json.
 #
 # History: qwen/qwen3.6-plus was added to _PROVIDER_MODELS["nous"] in commit
-# 9dd6e5510 but docs/site/static/api/model-catalog.json was not regenerated for
+# 9dd6e5510 but website/static/api/model-catalog.json was not regenerated for
 # weeks, so free-tier users on a new install fetched a stale manifest and the
 # free-tier picker showed "No free models currently available." even though
 # the Portal was serving qwen/qwen3.6-plus as free. CI must catch this.
@@ -440,11 +450,11 @@ class TestManifestMatchesInRepoLists:
         """``scripts/build_model_catalog.py`` output must match the committed file.
 
         If this fails, run ``python scripts/build_model_catalog.py`` and
-        commit the regenerated ``docs/site/static/api/model-catalog.json``.
+        commit the regenerated ``website/static/api/model-catalog.json``.
         """
         # Resolve the repo root from this test file's location.
         repo_root = Path(__file__).resolve().parents[2]
-        manifest_path = repo_root / "docs" / "site" / "static" / "api" / "model-catalog.json"
+        manifest_path = repo_root / "website" / "static" / "api" / "model-catalog.json"
 
         if not manifest_path.exists():
             pytest.skip(f"manifest missing at {manifest_path}")
@@ -462,8 +472,8 @@ class TestManifestMatchesInRepoLists:
             actual = json.load(fh)
 
         assert self._strip_volatile(actual) == self._strip_volatile(expected), (
-            "docs/site/static/api/model-catalog.json is out of sync with "
+            "website/static/api/model-catalog.json is out of sync with "
             "_PROVIDER_MODELS['nous'] / OPENROUTER_MODELS. "
             "Run: python scripts/build_model_catalog.py && "
-            "git add docs/site/static/api/model-catalog.json"
+            "git add website/static/api/model-catalog.json"
         )

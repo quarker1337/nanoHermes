@@ -198,9 +198,9 @@ class TestRunJobProfileContext:
             def close(self):
                 observed["closed"] = True
 
-        fake_mod = type(sys)("run_agent")
+        fake_mod = type(sys)("hermes_runtime.run_agent")
         fake_mod.AIAgent = FakeAgent
-        monkeypatch.setitem(sys.modules, "run_agent", fake_mod)
+        monkeypatch.setitem(sys.modules, "hermes_runtime.run_agent", fake_mod)
 
         from hermes_cli import runtime_provider as runtime_provider
 
