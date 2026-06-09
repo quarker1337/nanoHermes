@@ -5,6 +5,7 @@ source checkout. Source/editable installs remain available explicitly for
 contributors and branch testing.
 """
 
+import subprocess
 from pathlib import Path
 
 
@@ -14,6 +15,17 @@ INSTALL_SH = REPO_ROOT / "scripts" / "install.sh"
 
 def _script() -> str:
     return INSTALL_SH.read_text(encoding="utf-8")
+
+
+def test_install_script_has_valid_bash_syntax() -> None:
+    result = subprocess.run(
+        ["bash", "-n", str(INSTALL_SH)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
 
 
 def _function_body(text: str, name: str) -> str:

@@ -1832,6 +1832,7 @@ SOUL_EOF
             if [ -d "$bundled_skills_dir" ]                 && [ ! -f "$bundled_skills_dir/.no-bundled-sync" ]                 && [ -n "$(find "$bundled_skills_dir" -name SKILL.md -print -quit 2>/dev/null)" ]                 && [ ! "$(find "$HERMES_HOME/skills" -mindepth 1 ! -name '.bundled_manifest' -print -quit 2>/dev/null)" ]; then
                 cp -r "$bundled_skills_dir/"* "$HERMES_HOME/skills/" 2>/dev/null || true
                 log_success "Skills copied to ~/.hermes/skills/"
+            fi
         fi
     fi
 }
