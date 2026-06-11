@@ -13355,6 +13355,13 @@ def cmd_dashboard(args):
         print(f"Import error: {e}")
         sys.exit(1)
 
+    # Preserve the documented/desktop-spawned `hermes dashboard --tui` flag.
+    # The Electron Desktop local backend invokes the dashboard subcommand with
+    # --tui after the subcommand name, so the dashboard parser itself must own
+    # the flag (the top-level --tui is only accepted before `dashboard`).
+    if getattr(args, "tui", False):
+        os.environ["HERMES_DASHBOARD_TUI"] = "1"
+
     # Seed bundled skills on first dashboard launch so the desktop GUI's
     # skills picker / agent skill discovery sees the bundled library.
     # cmd_chat does this in its own pre-dispatch block; the dashboard
@@ -16669,6 +16676,11 @@ Examples:
     )
     dashboard_parser.add_argument(
         "--no-open", action="store_true", help="Don't open browser automatically"
+    )
+    dashboard_parser.add_argument(
+        "--tui",
+        action="store_true",
+        help="Enable the embedded browser chat/TUI bridge (also used by Hermes Desktop)",
     )
     dashboard_parser.add_argument(
         "--insecure",

@@ -10,6 +10,7 @@ exit codes.
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 from unittest.mock import patch, MagicMock
 
@@ -179,3 +180,21 @@ class TestArgparseWiring:
              pytest.raises(SystemExit) as exc:
             mod.cmd_dashboard(_ns(status=True))
         assert exc.value.code == 0
+
+    def test_dashboard_tui_flag_parses_after_subcommand_for_desktop_spawn(self):
+        """Desktop spawns `hermes dashboard --no-open --tui ...`.
+
+        `--tui` used to exist only as a top-level flag, so placing it after the
+        dashboard subcommand made argparse exit 2 before the local backend could
+        start.  Pair with --status to exercise the real parser without starting
+        a server.
+        """
+        result = subprocess.run(
+            [sys.executable, "-m", "hermes_cli.main", "dashboard", "--tui", "--status"],
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+
+        assert result.returncode == 0
+        assert "unrecognized arguments: --tui" not in result.stderr
