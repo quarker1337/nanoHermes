@@ -244,6 +244,12 @@ def _get_wrapper_dir() -> Path:
     return Path.home() / ".local" / "bin"
 
 
+# Profile wrapper scripts are tiny shell/batch launchers. Alias discovery scans
+# the wrapper directory, which may also contain unrelated executables; never read
+# large files into memory just to look for ``hermes -p <profile>``.
+_WRAPPER_ALIAS_SCAN_MAX_BYTES = 64 * 1024
+
+
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
@@ -441,6 +447,11 @@ def find_alias_for_profile(profile_name: str) -> Optional[str]:
     )
     for wrapper_path in sorted(wrapper_dir.iterdir(), key=lambda p: p.name):
         if not wrapper_path.is_file():
+            continue
+        try:
+            if wrapper_path.stat().st_size > _WRAPPER_ALIAS_SCAN_MAX_BYTES:
+                continue
+        except OSError:
             continue
         try:
             content = wrapper_path.read_text(encoding="utf-8", errors="replace")

@@ -19,6 +19,9 @@ def isolated_profiles(tmp_path, monkeypatch):
 
     monkeypatch.setattr(profiles, "_get_default_hermes_home", lambda: default_home)
     monkeypatch.setattr(profiles, "_get_profiles_root", lambda: profiles_root)
+    wrapper_dir = default_home / "bin"
+    wrapper_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(profiles, "_get_wrapper_dir", lambda: wrapper_dir)
     return {"default": default_home, "worker_alpha": worker_home}
 
 

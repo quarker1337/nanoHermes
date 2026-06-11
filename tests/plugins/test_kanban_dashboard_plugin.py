@@ -862,7 +862,7 @@ def test_ws_events_swallows_cancellation_on_shutdown(tmp_path, monkeypatch):
     # Short-circuit the token check — this test is about the cancellation
     # path, not auth.
     import plugins.kanban.dashboard.plugin_api as pa
-    monkeypatch.setattr(pa, "_check_ws_token", lambda t: True)
+    monkeypatch.setattr(pa, "_ws_upgrade_authorized", lambda ws: True)
 
     class _FakeWS:
         def __init__(self):

@@ -25,6 +25,7 @@ from hermes_cli.profiles import (
     get_active_profile_name,
     resolve_profile_env,
     check_alias_collision,
+    find_alias_for_profile,
     rename_profile,
     export_profile,
     import_profile,
@@ -1257,6 +1258,25 @@ class TestInternalHelpers:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
         monkeypatch.setenv("HERMES_HOME", str(profile))
         assert get_active_profile_name() == "orchestrator"
+
+    def test_find_alias_skips_oversized_wrapper_candidates(self, profile_env, monkeypatch):
+        """Alias discovery must not read unrelated large files in ~/.local/bin."""
+        wrapper_dir = profile_env / ".local" / "bin"
+        wrapper_dir.mkdir(parents=True, exist_ok=True)
+        oversized = wrapper_dir / "000-large-binary"
+        oversized.write_bytes(b"x" * (70 * 1024))
+        valid = wrapper_dir / "worker-alias"
+        valid.write_text("#!/bin/sh\nexec hermes -p worker_alpha \"$@\"\n")
+
+        real_read_text = Path.read_text
+
+        def guarded_read_text(self, *args, **kwargs):
+            if self == oversized:
+                raise AssertionError("oversized wrapper candidate was read")
+            return real_read_text(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "read_text", guarded_read_text)
+        assert find_alias_for_profile("worker_alpha") == "worker-alias"
 
 
 # ===================================================================

@@ -47,17 +47,28 @@ class TestToolsEnableBuiltin:
         config = {"platform_toolsets": {"cli": ["memory"]}}
         with patch("hermes_cli.tools_config.load_config", return_value=config), \
              patch("hermes_cli.tools_config.save_config") as mock_save:
-            tools_disable_enable_command(Namespace(tools_action="enable", names=["web"], platform="cli"))
+            tools_disable_enable_command(Namespace(tools_action="enable", names=["terminal"], platform="cli"))
         saved = mock_save.call_args[0][0]
-        assert "web" in saved["platform_toolsets"]["cli"]
+        assert "terminal" in saved["platform_toolsets"]["cli"]
 
     def test_enable_already_present_is_idempotent(self):
-        config = {"platform_toolsets": {"cli": ["web"]}}
+        config = {"platform_toolsets": {"cli": ["terminal"]}}
         with patch("hermes_cli.tools_config.load_config", return_value=config), \
+             patch("hermes_cli.tools_config.save_config") as mock_save:
+            tools_disable_enable_command(Namespace(tools_action="enable", names=["terminal"], platform="cli"))
+        saved = mock_save.call_args[0][0]
+        assert saved["platform_toolsets"]["cli"].count("terminal") == 1
+
+    def test_enable_uninstalled_optional_toolset_prints_package_hint(self, capsys):
+        config = {"platform_toolsets": {"cli": ["memory"]}}
+        with patch("hermes_cli.tools_config.load_config", return_value=config), \
+             patch("hermes_cli.tools_config._installed_package_toolsets", return_value=set()), \
              patch("hermes_cli.tools_config.save_config") as mock_save:
             tools_disable_enable_command(Namespace(tools_action="enable", names=["web"], platform="cli"))
         saved = mock_save.call_args[0][0]
-        assert saved["platform_toolsets"]["cli"].count("web") == 1
+        out = capsys.readouterr().out
+        assert "Toolset 'web' is not installed" in out
+        assert "web" not in saved["platform_toolsets"]["cli"]
 
 
 # ── MCP tool disable ────────────────────────────────────────────────────────
@@ -158,11 +169,11 @@ class TestToolsMixedTargets:
 class TestToolsList:
 
     def test_list_shows_enabled_toolsets(self, capsys):
-        config = {"platform_toolsets": {"cli": ["web", "memory"]}}
+        config = {"platform_toolsets": {"cli": ["terminal", "memory"]}}
         with patch("hermes_cli.tools_config.load_config", return_value=config):
             tools_disable_enable_command(Namespace(tools_action="list", platform="cli"))
         out = capsys.readouterr().out
-        assert "web" in out
+        assert "terminal" in out
         assert "memory" in out
 
     def test_list_shows_mcp_excluded_tools(self, capsys):
