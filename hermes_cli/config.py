@@ -13,10 +13,13 @@ This module provides:
 """
 
 import copy
+import importlib.metadata as importlib_metadata
+import json
 import logging
 import os
 import platform
 import re
+import shlex
 import shutil
 import stat
 import subprocess
@@ -426,6 +429,38 @@ def is_uv_tool_install() -> bool:
     return False
 
 
+def direct_url_distribution_target(distribution_name: str = "hermes-agent") -> Optional[str]:
+    """Return a PEP 508 target preserving the installed direct URL source.
+
+    ``pip``/``uv`` installs from GitHub forks, branch tarballs, or local paths
+    write PEP 610 ``direct_url.json`` metadata.  NanoHermes must preserve that
+    source in update hints; plain ``hermes-agent`` can resolve to upstream PyPI
+    and replace the downstream fork.
+    """
+    try:
+        dist = importlib_metadata.distribution(distribution_name)
+        raw = dist.read_text("direct_url.json")
+        if not raw:
+            return None
+        data = json.loads(raw)
+    except Exception:
+        return None
+
+    url = str(data.get("url") or "").strip()
+    if not url:
+        return None
+
+    vcs_info = data.get("vcs_info")
+    if isinstance(vcs_info, dict) and vcs_info.get("vcs") == "git":
+        target = url if url.startswith("git+") else f"git+{url}"
+        requested_revision = str(vcs_info.get("requested_revision") or "").strip()
+        if requested_revision:
+            target = f"{target}@{requested_revision}"
+    else:
+        target = url
+    return f"{distribution_name} @ {target}"
+
+
 def recommended_update_command_for_method(method: str) -> str:
     """Return the update command or guidance for a given install method."""
     if method == "nixos":
@@ -450,6 +485,13 @@ def recommended_update_command() -> str:
     if managed_cmd:
         return managed_cmd
     method = detect_install_method()
+    if method == "pip":
+        direct_target = direct_url_distribution_target()
+        if direct_target:
+            quoted_target = shlex.quote(direct_target)
+            if shutil.which("uv"):
+                return f"uv pip install --upgrade {quoted_target}"
+            return f"pip install --upgrade {quoted_target}"
     return recommended_update_command_for_method(method)
 
 

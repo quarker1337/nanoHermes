@@ -3,6 +3,7 @@
 Pure display functions with no HermesCLI state dependency.
 """
 
+import importlib.metadata as importlib_metadata
 import json
 import logging
 import os
@@ -221,6 +222,85 @@ def check_via_pypi() -> Optional[int]:
         return 1 if latest != VERSION else 0
 
 
+def _installed_direct_url_metadata(distribution_name: str = "hermes-agent") -> Optional[dict]:
+    """Return PEP 610 direct-url metadata for the installed distribution."""
+    try:
+        dist = importlib_metadata.distribution(distribution_name)
+        raw = dist.read_text("direct_url.json")
+        if not raw:
+            return None
+        data = json.loads(raw)
+    except Exception:
+        return None
+    return data if isinstance(data, dict) and data.get("url") else None
+
+
+def _direct_url_cache_key(metadata: Optional[dict]) -> Optional[str]:
+    """Stable cache discriminator for direct-url installs."""
+    if not metadata:
+        return None
+    return json.dumps(
+        {
+            "url": metadata.get("url"),
+            "vcs_info": metadata.get("vcs_info"),
+            "archive_info": metadata.get("archive_info"),
+            "dir_info": metadata.get("dir_info"),
+        },
+        sort_keys=True,
+    )
+
+
+def _check_via_direct_url(metadata: dict) -> Optional[int]:
+    """Compare a PEP 610 git direct-url install with its recorded source.
+
+    GitHub fork installs such as ``git+https://.../nanoHermes.git@main`` are
+    not PyPI installs.  Comparing them with upstream ``hermes-agent`` on PyPI
+    can produce a false update warning and a dangerous plain-PyPI upgrade hint.
+    """
+    vcs_info = metadata.get("vcs_info")
+    if not isinstance(vcs_info, dict) or vcs_info.get("vcs") != "git":
+        # Direct local/archive installs are source-specific too, but without a
+        # recorded git commit we cannot safely know whether an update exists.
+        return None
+
+    url = str(metadata.get("url") or "").strip()
+    local_rev = str(vcs_info.get("commit_id") or "").strip()
+    requested_revision = str(vcs_info.get("requested_revision") or "").strip()
+    if not url or not local_rev:
+        return None
+
+    refs: list[str] = []
+    if requested_revision:
+        if requested_revision.startswith("refs/"):
+            refs.append(requested_revision)
+        else:
+            refs.extend([
+                f"refs/heads/{requested_revision}",
+                f"refs/tags/{requested_revision}",
+                requested_revision,
+            ])
+    else:
+        refs.append("HEAD")
+
+    for ref in refs:
+        try:
+            result = subprocess.run(
+                ["git", "ls-remote", url, ref],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except Exception:
+            continue
+        if result.returncode != 0 or not result.stdout:
+            continue
+        remote_rev = result.stdout.split()[0]
+        if not remote_rev:
+            continue
+        return 0 if remote_rev == local_rev else UPDATE_AVAILABLE_NO_COUNT
+    return None
+
+
 def check_for_updates() -> Optional[int]:
     """Check whether a Hermes update is available.
 
@@ -247,6 +327,23 @@ def check_for_updates() -> Optional[int]:
     except Exception:
         pass
 
+    repo_dir: Optional[Path] = None
+    if not embedded_rev:
+        # Prefer the running code's location over the profile-scoped path.
+        # $HERMES_HOME/hermes-agent/ may be a stale copy from --clone-all;
+        # Path(__file__) always resolves to the actual installed checkout.
+        candidate = Path(__file__).parent.parent.resolve()
+        if not (candidate / ".git").exists():
+            candidate = hermes_home / "hermes-agent"
+        repo_dir = candidate if (candidate / ".git").exists() else None
+
+    direct_url_metadata = (
+        _installed_direct_url_metadata()
+        if not embedded_rev and repo_dir is None
+        else None
+    )
+    source_key = _direct_url_cache_key(direct_url_metadata)
+
     # Read cache — invalidate if the embedded rev OR installed version has
     # changed since the last check. The version guard matters for pip installs:
     # `check_via_pypi()` compares against VERSION, so a `pip install --upgrade`
@@ -260,6 +357,7 @@ def check_for_updates() -> Optional[int]:
                 now - cached.get("ts", 0) < _UPDATE_CHECK_CACHE_SECONDS
                 and cached.get("rev") == embedded_rev
                 and cached.get("ver") == VERSION
+                and cached.get("source") == source_key
             ):
                 return cached.get("behind")
     except Exception:
@@ -267,21 +365,23 @@ def check_for_updates() -> Optional[int]:
 
     if embedded_rev:
         behind = _check_via_rev(embedded_rev)
-    else:
-        # Prefer the running code's location over the profile-scoped path.
-        # $HERMES_HOME/hermes-agent/ may be a stale copy from --clone-all;
-        # Path(__file__) always resolves to the actual installed checkout.
-        repo_dir = Path(__file__).parent.parent.resolve()
-        if not (repo_dir / ".git").exists():
-            repo_dir = hermes_home / "hermes-agent"
-        if not (repo_dir / ".git").exists():
-            behind = check_via_pypi()
+    elif repo_dir is None:
+        if direct_url_metadata:
+            behind = _check_via_direct_url(direct_url_metadata)
         else:
-            behind = _check_via_local_git(repo_dir)
+            behind = check_via_pypi()
+    else:
+        behind = _check_via_local_git(repo_dir)
 
     try:
         cache_file.write_text(
-            json.dumps({"ts": now, "behind": behind, "rev": embedded_rev, "ver": VERSION})
+            json.dumps({
+                "ts": now,
+                "behind": behind,
+                "rev": embedded_rev,
+                "ver": VERSION,
+                "source": source_key,
+            })
         )
     except Exception:
         pass

@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 
@@ -37,6 +38,28 @@ def test_recommended_update_command_pip():
     assert "pip install" in cmd or "uv pip install" in cmd
     assert "--upgrade" in cmd
     assert "hermes-agent" in cmd
+
+
+def test_recommended_update_command_preserves_direct_url_source():
+    """Direct-url pip installs should not recommend replacing forks with PyPI."""
+    from hermes_cli import config
+
+    class FakeDistribution:
+        def read_text(self, name):
+            assert name == "direct_url.json"
+            return json.dumps({
+                "url": "https://github.com/quarker1337/nanoHermes.git",
+                "vcs_info": {"vcs": "git", "requested_revision": "main"},
+            })
+
+    with patch("hermes_cli.config.get_managed_update_command", return_value=None), \
+         patch("hermes_cli.config.detect_install_method", return_value="pip"), \
+         patch("hermes_cli.config.importlib_metadata.distribution", return_value=FakeDistribution()), \
+         patch("hermes_cli.config.shutil.which", return_value="/usr/bin/uv"):
+        cmd = config.recommended_update_command()
+
+    assert cmd.startswith("uv pip install --upgrade ")
+    assert "hermes-agent @ git+https://github.com/quarker1337/nanoHermes.git@main" in cmd
 
 
 def test_stamp_file_takes_precedence(tmp_path):

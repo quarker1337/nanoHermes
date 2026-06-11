@@ -114,6 +114,81 @@ def test_check_for_updates_no_git_dir(tmp_path, monkeypatch):
     mock_run.assert_not_called()
 
 
+def test_check_for_updates_uses_direct_url_git_source(tmp_path, monkeypatch):
+    """PEP 610 git installs compare against their own fork/source branch."""
+    import hermes_cli.banner as banner
+
+    fake_banner = tmp_path / "site-packages" / "hermes_cli" / "banner.py"
+    fake_banner.parent.mkdir(parents=True, exist_ok=True)
+    fake_banner.touch()
+    monkeypatch.setattr(banner, "__file__", str(fake_banner))
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.delenv("HERMES_REVISION", raising=False)
+
+    class FakeDistribution:
+        def read_text(self, name):
+            assert name == "direct_url.json"
+            return json.dumps({
+                "url": "https://github.com/quarker1337/nanoHermes.git",
+                "vcs_info": {
+                    "vcs": "git",
+                    "commit_id": "abc123",
+                    "requested_revision": "main",
+                },
+            })
+
+    mock_result = MagicMock(returncode=0, stdout="abc123\trefs/heads/main\n")
+    with patch("hermes_cli.config.detect_install_method", return_value="pip"), \
+         patch("hermes_cli.banner.importlib_metadata.distribution", return_value=FakeDistribution()), \
+         patch("hermes_cli.banner.subprocess.run", return_value=mock_result) as mock_run, \
+         patch("hermes_cli.banner.check_via_pypi") as mock_pypi:
+        result = banner.check_for_updates()
+
+    assert result == 0
+    mock_pypi.assert_not_called()
+    mock_run.assert_called_once_with(
+        ["git", "ls-remote", "https://github.com/quarker1337/nanoHermes.git", "refs/heads/main"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    written = json.loads((tmp_path / ".update_check").read_text())
+    assert "quarker1337/nanoHermes.git" in written["source"]
+
+
+def test_check_for_updates_direct_url_git_update_unknown_count(tmp_path, monkeypatch):
+    """Changed direct-url source revisions surface as update-available without PyPI."""
+    import hermes_cli.banner as banner
+
+    fake_banner = tmp_path / "site-packages" / "hermes_cli" / "banner.py"
+    fake_banner.parent.mkdir(parents=True, exist_ok=True)
+    fake_banner.touch()
+    monkeypatch.setattr(banner, "__file__", str(fake_banner))
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.delenv("HERMES_REVISION", raising=False)
+
+    class FakeDistribution:
+        def read_text(self, name):
+            return json.dumps({
+                "url": "https://github.com/quarker1337/nanoHermes.git",
+                "vcs_info": {
+                    "vcs": "git",
+                    "commit_id": "oldrev",
+                    "requested_revision": "main",
+                },
+            })
+
+    mock_result = MagicMock(returncode=0, stdout="newrev\trefs/heads/main\n")
+    with patch("hermes_cli.config.detect_install_method", return_value="pip"), \
+         patch("hermes_cli.banner.importlib_metadata.distribution", return_value=FakeDistribution()), \
+         patch("hermes_cli.banner.subprocess.run", return_value=mock_result), \
+         patch("hermes_cli.banner.check_via_pypi") as mock_pypi:
+        result = banner.check_for_updates()
+
+    assert result == banner.UPDATE_AVAILABLE_NO_COUNT
+    mock_pypi.assert_not_called()
+
+
 def test_check_for_updates_fallback_to_project_root(tmp_path, monkeypatch):
     """Dev install: falls back to Path(__file__).parent.parent when HERMES_HOME has no git repo."""
     import hermes_cli.banner as banner
