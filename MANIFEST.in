@@ -1,5 +1,7 @@
 include infra/packaging/build_backend.py
 include infra/packaging/setup.py
+include scripts/install.sh
+include scripts/install.ps1
 graft config
 graft constraints
 graft resources/locales

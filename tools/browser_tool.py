@@ -3534,9 +3534,10 @@ def _chromium_search_roots() -> List[str]:
 
     1. ``PLAYWRIGHT_BROWSERS_PATH`` when set (Docker image sets this to
        ``/opt/hermes/.playwright``).
-    2. ``~/.cache/ms-playwright`` — Playwright's default on Linux/macOS.
-    3. ``~/Library/Caches/ms-playwright`` — Playwright's default on macOS.
-    4. ``%USERPROFILE%\\AppData\\Local\\ms-playwright`` — Playwright's default
+    2. ``~/.agent-browser/browsers`` — agent-browser's current Chrome cache.
+    3. ``~/.cache/ms-playwright`` — Playwright's default on Linux/macOS.
+    4. ``~/Library/Caches/ms-playwright`` — Playwright's default on macOS.
+    5. ``%USERPROFILE%\\AppData\\Local\\ms-playwright`` — Playwright's default
        on Windows.
     """
     roots: List[str] = []
@@ -3544,6 +3545,7 @@ def _chromium_search_roots() -> List[str]:
     if env_path and env_path != "0":
         roots.append(env_path)
     home = os.path.expanduser("~")
+    roots.append(os.path.join(home, ".agent-browser", "browsers"))
     roots.append(os.path.join(home, ".cache", "ms-playwright"))
     if sys.platform == "darwin":
         roots.append(os.path.join(home, "Library", "Caches", "ms-playwright"))
@@ -3596,7 +3598,9 @@ def _chromium_installed() -> bool:
         _cached_chromium_installed = True
         return True
 
-    # 3. Playwright browser cache (legacy — chromium-* / chromium_headless_shell-* dirs)
+    # 3. Browser cache roots. Playwright names entries ``chromium-<build>`` and
+    # ``chromium_headless_shell-<build>``; recent agent-browser versions cache
+    # Chrome for Testing as ``~/.agent-browser/browsers/chrome-<version>``.
     for root in _chromium_search_roots():
         if not root or not os.path.isdir(root):
             continue
@@ -3604,12 +3608,8 @@ def _chromium_installed() -> bool:
             entries = os.listdir(root)
         except OSError:
             continue
-        # Playwright names them ``chromium-<build>`` and
-        # ``chromium_headless_shell-<build>``; agent-browser accepts either.
         for entry in entries:
-            if entry.startswith("chromium-") or entry.startswith(
-                "chromium_headless_shell-"
-            ):
+            if entry.startswith(("chromium-", "chromium_headless_shell-", "chrome-")):
                 _cached_chromium_installed = True
                 return True
 

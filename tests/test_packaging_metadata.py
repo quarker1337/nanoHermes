@@ -1,9 +1,75 @@
 import ast
+import shutil
+import subprocess
+import sys
+import zipfile
 from pathlib import Path
 import tomllib
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_base_distribution_bundles_dependency_install_scripts():
+    """Dependency ensure needs install.sh/install.ps1 in installed wheels."""
+    manifest = (REPO_ROOT / "MANIFEST.in").read_text(encoding="utf-8")
+    setup_py = (REPO_ROOT / "infra/packaging/setup.py").read_text(encoding="utf-8")
+    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+
+    assert "include scripts/install.sh" in manifest
+    assert "include scripts/install.ps1" in manifest
+    assert "def _copy_install_scripts" in setup_py
+    assert '"install.sh"' in setup_py
+    assert '"install.ps1"' in setup_py
+    assert "scripts/install.sh" in pyproject["tool"]["setuptools"]["package-data"]["hermes_cli"]
+    assert "scripts/install.ps1" in pyproject["tool"]["setuptools"]["package-data"]["hermes_cli"]
+
+
+def test_built_wheel_contains_dependency_install_scripts(tmp_path):
+    """Build the actual wheel and verify dep_ensure can find bundled scripts."""
+    wheelhouse = tmp_path / "wheelhouse"
+    wheelhouse.mkdir()
+    uv = shutil.which("uv")
+    if uv:
+        cmd = [
+            uv,
+            "build",
+            "--wheel",
+            "--no-build-isolation",
+            "--out-dir",
+            str(wheelhouse),
+            str(REPO_ROOT),
+        ]
+    else:
+        cmd = [
+            sys.executable,
+            "-m",
+            "pip",
+            "wheel",
+            "--no-deps",
+            "--no-build-isolation",
+            "--no-cache-dir",
+            "-w",
+            str(wheelhouse),
+            str(REPO_ROOT),
+        ]
+    result = subprocess.run(
+        cmd,
+        cwd=tmp_path,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        timeout=180,
+    )
+
+    assert result.returncode == 0, result.stdout
+    wheels = sorted(wheelhouse.glob("hermes_agent-*.whl"))
+    assert wheels, result.stdout
+    with zipfile.ZipFile(wheels[0]) as wheel:
+        names = set(wheel.namelist())
+
+    assert "hermes_cli/scripts/install.sh" in names
+    assert "hermes_cli/scripts/install.ps1" in names
 
 
 def test_faster_whisper_is_not_a_base_dependency():

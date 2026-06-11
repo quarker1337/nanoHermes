@@ -140,10 +140,26 @@ class NanoHermesBuildPy(_build_py):
 
     def run(self):
         super().run()
+        self._copy_install_scripts()
         self._remove_excluded_tool_outputs()
         self._remove_excluded_hermes_cli_outputs()
         self._remove_excluded_plugin_outputs()
         self._remove_excluded_gateway_platform_outputs()
+
+    def _copy_install_scripts(self) -> None:
+        """Bundle explicit dependency installer scripts into the wheel.
+
+        Source checkouts can resolve ``scripts/install.sh`` via the repo root,
+        but runtime wheel installs only have ``site-packages/hermes_cli``.
+        ``hermes pkg install browser-engine`` calls ``ensure_dependency()``, so
+        the wheel must carry the installer under ``hermes_cli/scripts``.
+        """
+        target_dir = Path(self.build_lib) / "hermes_cli" / "scripts"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        for script_name in ("install.sh", "install.ps1"):
+            source = REPO_ROOT / "scripts" / script_name
+            if source.is_file():
+                shutil.copy2(source, target_dir / script_name)
 
     def _remove_excluded_tool_outputs(self) -> None:
         # bdist_wheel can reuse an existing build/lib tree. Delete filtered

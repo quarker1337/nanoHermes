@@ -137,12 +137,13 @@ def _editable_project_root() -> Path | None:
 
 
 def _direct_url_distribution_target(extras: list[str], distribution_name: str = _DISTRIBUTION_NAME) -> str | None:
-    """Return ``name[extras] @ url`` for remote archive/VCS installs.
+    """Return ``name[extras] @ url`` for direct-url installs.
 
-    Minimal NanoHermes installs are commonly installed by uv from the GitHub
-    branch tarball.  PEP 610 metadata records that URL; preserving it prevents
-    optional package installs from accidentally switching the tester back to the
-    upstream PyPI ``hermes-agent`` package.
+    Minimal NanoHermes installs are commonly installed by uv/pip from a GitHub
+    branch tarball or from a local checkout path during pre-release live smokes.
+    PEP 610 metadata records that URL; preserving it prevents optional package
+    installs from accidentally switching the tester back to the upstream PyPI
+    ``hermes-agent`` package.
     """
     try:
         dist = importlib_metadata.distribution(distribution_name)
@@ -153,9 +154,21 @@ def _direct_url_distribution_target(extras: list[str], distribution_name: str = 
         url = str(data.get("url") or "").strip()
         if not url:
             return None
-        if data.get("archive_info") is None and data.get("vcs_info") is None:
+        if (
+            data.get("archive_info") is None
+            and data.get("vcs_info") is None
+            and data.get("dir_info") is None
+        ):
             return None
-        if not url.startswith(("http://", "https://", "git+http://", "git+https://", "ssh://", "git+ssh://")):
+        if not url.startswith((
+            "file://",
+            "http://",
+            "https://",
+            "git+http://",
+            "git+https://",
+            "ssh://",
+            "git+ssh://",
+        )):
             return None
         return f"{distribution_name}{_extras_suffix(extras)} @ {url}"
     except Exception:

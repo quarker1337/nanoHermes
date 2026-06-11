@@ -659,6 +659,29 @@ def test_python_extra_target_preserves_remote_archive_install_source(monkeypatch
     assert editable is False
 
 
+def test_python_extra_target_preserves_local_directory_install_source(monkeypatch, tmp_path):
+    class FakeDistribution:
+        def read_text(self, name):
+            assert name == "direct_url.json"
+            return json.dumps({
+                "url": "file:///home/wayne/hans/nanoHermes",
+                "dir_info": {},
+            })
+
+    monkeypatch.setattr(pkg_cli, "_editable_project_root", lambda: None)
+    monkeypatch.setattr(
+        pkg_cli.importlib_metadata,
+        "distribution",
+        lambda distribution_name: FakeDistribution(),
+    )
+
+    target, cwd, editable = pkg_cli._python_extras_install_target(["dashboard", "cron"])
+
+    assert target == "hermes-agent[cron,dashboard] @ file:///home/wayne/hans/nanoHermes"
+    assert cwd is None
+    assert editable is False
+
+
 def test_install_optional_python_asset_extracts_into_site_packages(tmp_path, monkeypatch, capsys):
     source = _write_registry_with_python_asset(tmp_path)
     home = tmp_path / "home"
