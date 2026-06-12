@@ -39,11 +39,20 @@ This project is actively being built.
 
 Expected rough edges:
 
-- install flow may change;
-- package names and registry schema may change;
-- optional tool packages may be incomplete;
+- install flow may still change;
+- package names and registry schema may still evolve;
 - docs may lag behind the code;
-- upstream sync may occasionally require manual conflict resolution.
+- upstream sync may occasionally require manual conflict resolution;
+- real Electron GUI window validation is still separate from the packaged-app/build-only smoke.
+
+Recently verified pieces:
+
+- a pushed direct-URL install from `git+https://github.com/quarker1337/nanoHermes.git@main` works;
+- the default pushed registry fetched 46 packages;
+- all 46 packages real-installed without `--no-pip`, including `browser-engine`;
+- package-managed first-party tool modules restore into `site-packages`;
+- invalid Python-extra warnings are currently clean;
+- direct-URL update checks preserve the NanoHermes fork and report `Up to date`.
 
 Working/intentional pieces:
 
@@ -61,19 +70,42 @@ Working/intentional pieces:
 
 ## Quick start for contributors/testers
 
-This is the current development-style install path:
+For a fresh tester install from the pushed NanoHermes repo:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv venv .venv --python 3.11
+source .venv/bin/activate
+uv pip install 'git+https://github.com/quarker1337/nanoHermes.git@main'
+
+hermes --version
+hermes --help
+nanohermes --help
+```
+
+Then try the default package registry:
+
+```bash
+hermes pkg update
+hermes pkg search ''
+hermes pkg search web
+hermes pkg show web-search
+hermes pkg install web-search browser --yes
+
+# Optional local browser runtime bootstrap; this may download Chrome.
+hermes pkg install browser-engine --yes
+
+hermes pkg doctor
+```
+
+For local development against a checkout:
 
 ```bash
 git clone https://github.com/quarker1337/nanoHermes.git
 cd nanoHermes
-
-curl -LsSf https://astral.sh/uv/install.sh | sh
 uv venv .venv --python 3.11
 source .venv/bin/activate
 uv pip install -e .
-
-hermes --help
-nanohermes --help
 ```
 
 On Windows, use PowerShell and the repository installer script once the repo is
@@ -81,16 +113,6 @@ checked out:
 
 ```powershell
 .\scripts\install.ps1
-```
-
-Then try the package manager:
-
-```bash
-hermes pkg update
-hermes pkg search web
-hermes pkg show web-search
-hermes pkg install web-search --dry-run
-hermes pkg doctor
 ```
 
 ### Tiny base, package-managed capabilities
@@ -201,7 +223,11 @@ Before calling a NanoHermes change ready, prefer at least:
 
 ```bash
 python3 -m py_compile hermes_cli/main.py scripts/sync_upstream.py scripts/upstream_sync_report.py
-uv run --with pytest python -m pytest tests/package_manager/test_package_manager_runtime/hermes_runtime/cli.py -q -o 'addopts='
+uv run --with pytest python -m pytest \
+  tests/package_manager/test_package_manager_cli.py \
+  tests/test_packaging_metadata.py \
+  tests/tools/test_browser_chromium_check.py \
+  -q -o 'addopts='
 ```
 
 Use temp homes or `--home` in smoke tests so package-manager experiments do not

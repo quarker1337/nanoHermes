@@ -4,6 +4,16 @@ NanoHermes uses an apt-like package layer for optional tools, plugins, and skill
 
 NanoHermes base intentionally starts with **zero installed skills**. The base runtime stays small and unopinionated; capabilities are installed explicitly from package-managed, checksummed assets.
 
+Install the current pushed runtime with:
+
+```bash
+uv venv .venv --python 3.11
+source .venv/bin/activate
+uv pip install 'git+https://github.com/quarker1337/nanoHermes.git@main'
+```
+
+The current default registry has been smoke-tested with all 46 packages installed in a fresh venv/HERMES_HOME, including the explicit `browser-engine` runtime package.
+
 ## Command shape
 
 ```bash
@@ -63,7 +73,7 @@ hermes pkg install browser --yes
 # Browser-dependent exploratory web-app QA / dogfood workflow
 hermes pkg install web-qa --yes
 
-# Explicit local browser engine bootstrap: Node.js, agent-browser, Chromium/headless-shell
+# Explicit local browser engine bootstrap: Node.js, agent-browser, Chrome runtime
 hermes pkg install browser-engine --yes
 ```
 
