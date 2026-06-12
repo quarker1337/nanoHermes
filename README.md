@@ -62,6 +62,11 @@ hermes --help
 nanohermes --help
 ```
 
+Windows users: native PowerShell installer support lives at
+[`scripts/install.ps1`](scripts/install.ps1), but the NanoHermes-specific tested
+install path is currently the direct-URL `uv` flow above until the PowerShell
+installer source defaults are validated for this fork.
+
 Fetch the package registry and inspect packages:
 
 ```bash
